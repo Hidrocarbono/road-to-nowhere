@@ -17,8 +17,12 @@ changing their script files.
 
 #include "const.h"
 
+#ifndef MAX_AMMO_TYPES
 #define MAX_AMMO_TYPES		64
+#endif
+#ifndef MAX_WEAPON_SPRITES
 #define MAX_WEAPON_SPRITES	8
+#endif
 #define MAX_WEAPON_NAME		64
 #define MAX_WEAPON_MODELS	64
 #define MAX_AMMO_NAME		32
