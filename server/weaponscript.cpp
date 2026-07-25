@@ -374,7 +374,7 @@ int WeaponScript_ParseAmmoDesc( const char *filename )
 		}
 	}
 
-	Mem_Free( text );
+	free( text );
 	WS_Printf( "WeaponScript: parsed %d ammo definitions from %s\n", parsed, filename );
 	return parsed;
 }
@@ -444,7 +444,7 @@ int WeaponScript_ParseWeapon( const char *filename )
 		WS_Printf( "WeaponScript: loaded weapon (%d sprites)\n", w.num_sprites );
 	}
 
-	Mem_Free( text );
+	free( text );
 	return 0;
 }
 
