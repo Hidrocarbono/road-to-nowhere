@@ -27,8 +27,7 @@ static void WS_Printf( const char *fmt, ... )
 	char buf[1024];
 	va_list ap;
 	va_start( ap, fmt );
-	vsnprintf( buf, sizeof( buf ), fmt, ap );
-	va_end( ap );
+new_PLACEHOLDER
 	g_engfuncs.pfnConsolePrint( buf );
 }
 
