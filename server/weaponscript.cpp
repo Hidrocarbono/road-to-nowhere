@@ -27,7 +27,13 @@ static void WS_Printf( const char *fmt, ... )
 	char buf[1024];
 	va_list ap;
 	va_start( ap, fmt );
-new_PLACEHOLDER
+#ifdef _MSC_VER
+	_vsnprintf( buf, sizeof( buf ) - 1, fmt, ap );
+#else
+	vsnprintf( buf, sizeof( buf ), fmt, ap );
+#endif
+	va_end( ap );
+	buf[sizeof( buf ) - 1] = 0;
 	g_engfuncs.pfnConsolePrint( buf );
 }
 
