@@ -34,7 +34,7 @@ static void WS_Printf( const char *fmt, ... )
 #endif
 	va_end( ap );
 	buf[sizeof( buf ) - 1] = 0;
-	g_engfuncs.pfnConsolePrint( buf );
+	g_engfuncs.pfnServerPrint( buf );
 }
 
 static int WS_stricmp( const char *a, const char *b )
@@ -78,20 +78,20 @@ ammoinfo_t *WeaponScript_FindAmmo( const char *name )
 	return NULL;
 }
 
-// Read a whole file (engine VFS) into a NUL-terminated buffer. free() it.
+// Read a whole file (engine VFS) into a NUL-terminated buffer. Mem_Free() it.
 static char *WS_LoadText( const char *filename )
 {
-	fs_offset_t size;
-	byte *buf = LOAD_FILE( filename, &size );
+	int size;
+	char *buf = LOAD_FILE( filename, &size );
 	char *text;
 
 	if( !buf )
 		return NULL;
 
-	text = (char *)malloc(size + 1 );
+	text = (char *)malloc( size + 1 );
 	memcpy( text, buf, size );
 	text[size] = '\0';
-	free( buf );
+	FREE_FILE( buf );
 	return text;
 }
 
@@ -153,7 +153,7 @@ static char *WS_NextToken( char **pp )
 static void WS_ParseRange( const char *s, float *outMin, float *outMax )
 {
 	float a, b;
-	char *dot = strchr( s, '.' );
+	const char *dot = strchr( s, '.' );
 	if( dot && dot[1] == '.' )
 	{
 		char buf[64];
@@ -374,7 +374,7 @@ int WeaponScript_ParseAmmoDesc( const char *filename )
 		}
 	}
 
-	free( text );
+	Mem_Free( text );
 	WS_Printf( "WeaponScript: parsed %d ammo definitions from %s\n", parsed, filename );
 	return parsed;
 }
@@ -444,12 +444,15 @@ int WeaponScript_ParseWeapon( const char *filename )
 		WS_Printf( "WeaponScript: loaded weapon (%d sprites)\n", w.num_sprites );
 	}
 
-	free( text );
+	Mem_Free( text );
 	return 0;
 }
 
 void WeaponScript_LoadAll( void )
 {
+	// Default script locations, relative to the game directory (gamedir).
+	// Matches where mods keep them: scripts/weapons/ammodesc.txt and
+	// scripts/weapons/weapon_*.txt  (e.g. valve/scripts/weapons/...)
 	char gamedir[256];
 	GET_GAME_DIR( gamedir );
 	std::string base = std::string( gamedir ) + "/scripts/weapons";
@@ -467,8 +470,6 @@ void WeaponScript_LoadAll( void )
 	{
 		WS_Printf( "WeaponScript: could not scan %s\n", base.c_str() );
 	}
-}
-}
 }
 
 
