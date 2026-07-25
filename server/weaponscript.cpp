@@ -381,7 +381,6 @@ int WeaponScript_ParseWeapon( const char *filename )
 	weaponinfo_t w;
 	weaponsound_t snd;
 	weaponsprite_t spr;
-	qboolean haveSoundBlock = false;
 
 	if( !text )
 	{
@@ -448,14 +447,22 @@ void WeaponScript_LoadAll( void )
 	// Default script locations, relative to the game directory (gamedir).
 	// Matches where mods keep them: scripts/weapons/ammodesc.txt and
 	// scripts/weapons/weapon_*.txt  (e.g. valve/scripts/weapons/...)
-	WeaponScript_ParseAmmoDesc( "scripts/weapons/ammodesc.txt" );
-
-	search_t *list = FS_Search( "scripts/weapons/weapon_*.txt", true, false );
-	if( list )
+	char gamedir[256];
+	GET_GAME_DIR( gamedir );
+	std::string base = std::string( gamedir ) + "/scripts/weapons";
+	WeaponScript_ParseAmmoDesc( (base + "/ammodesc.txt").c_str() );
+	try
 	{
-		for( int i = 0; i < list->numfilenames; i++ )
-			WeaponScript_ParseWeapon( list->filenames[i] );
-		free( list );
+		for( auto &entry : std::filesystem::directory_iterator( base ) )
+		{
+			std::string name = entry.path().filename().string();
+			if( name.rfind( "weapon_", 0 ) == 0 && name.size() > 7 && name.substr( name.size()-4 ) == ".txt" )
+				WeaponScript_ParseWeapon( entry.path().string().c_str() );
+		}
+	}
+	catch( ... )
+	{
+		WS_Printf( "WeaponScript: could not scan %s\n", base.c_str() );
 	}
 }
 
