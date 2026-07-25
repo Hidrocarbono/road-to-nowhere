@@ -82,7 +82,7 @@ ammoinfo_t *WeaponScript_FindAmmo( const char *name )
 static char *WS_LoadText( const char *filename )
 {
 	int size;
-	char *buf = LOAD_FILE( filename, &size );
+	char *buf = (char*)LOAD_FILE( filename, &size );
 	char *text;
 
 	if( !buf )
@@ -515,8 +515,6 @@ static void WeaponScript_List_f( void )
 
 void WeaponScript_Init( void )
 {
-	g_engfuncs.pfnAddServerCommand( "weaponscript_reload", WeaponScript_Reload_f
-		"Brother Hermes: (re)load ammodesc.txt and weapon_*.txt scripts" );
-	g_engfuncs.pfnAddServerCommand( "weaponscript_list", WeaponScript_List_f
-		"Brother Hermes: list loaded weapons/ammo from scripts" );
+	g_engfuncs.pfnAddServerCommand( "weaponscript_reload", WeaponScript_Reload_f );
+	g_engfuncs.pfnAddServerCommand( "weaponscript_list", WeaponScript_List_f );
 }
