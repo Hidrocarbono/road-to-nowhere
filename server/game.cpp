@@ -17,6 +17,7 @@
 #include "util.h"
 #include "game.h"
 #include "cbase.h"
+#include "weaponscript.h"
 #include "client.h"
 #include "user_messages.h"
 #include "sv_materials.h"
@@ -510,6 +511,9 @@ void GameDLLInit( void )
 #ifdef HAVE_STRINGPOOL
 	g_engfuncs.pfnAddServerCommand( "dump_strings", DumpStrings_f );
 #endif
+
+	// Brother Hermes - Road to Nowhere: register weapon script system console commands
+	WeaponScript_Init();
 	CVAR_REGISTER (&displaysoundlist);
 
 	CVAR_REGISTER (&teamplay);
