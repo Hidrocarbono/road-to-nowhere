@@ -9,9 +9,17 @@ Parser for Uncle Mike's Paranoia 2 script format:
 Scripts are line-oriented key/value pairs inside { } blocks.
 */
 
-
-
-
+#include "extdll.h"
+#include "enginecallback.h"
+#include "filesystem_utils.h"
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cctype>
+#include <cstdarg>
+#include <string>
+#include <vector>
+#include <filesystem>
 #include "weaponscript.h"
 
 static void WS_Printf( const char *fmt, ... )
@@ -47,7 +55,6 @@ static void WS_strncpy( char *dst, const char *src, int n )
 }
 
 
-
 ammoinfo_t	gAmmoInfo[MAX_AMMO_TYPES];
 int		gNumAmmoInfo = 0;
 ammopickup_t	gAmmoPickups[MAX_AMMO_TYPES];
@@ -70,7 +77,7 @@ ammoinfo_t *WeaponScript_FindAmmo( const char *name )
 static char *WS_LoadText( const char *filename )
 {
 	fs_offset_t size;
-	byte *buf = LOAD_FILE( filename, &size, false );
+	byte *buf = LOAD_FILE( filename, &size );
 	char *text;
 
 	if( !buf )
@@ -141,7 +148,7 @@ static char *WS_NextToken( char **pp )
 static void WS_ParseRange( const char *s, float *outMin, float *outMax )
 {
 	float a, b;
-	char *dot = Q_strchr( s, '.' );
+	char *dot = strchr( s, '.' );
 	if( dot && dot[1] == '.' )
 	{
 		char buf[64];
