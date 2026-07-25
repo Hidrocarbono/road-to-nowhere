@@ -1,11 +1,5 @@
 name: nightly-builds
-on: 
-  push:
-    paths-ignore:
-      - 'documentation/**'
-  pull_request:
-    paths-ignore:
-      - 'documentation/**'
+on:
   workflow_dispatch:
   
 permissions:
