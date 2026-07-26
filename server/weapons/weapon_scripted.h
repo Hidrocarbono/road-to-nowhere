@@ -14,7 +14,6 @@ public:
 	CWeaponScripted();
 	virtual void Spawn( void ) override;
 	virtual void Precache( void ) override;
-	virtual bool Deploy( void ) override;
 	virtual int GetItemInfo( ItemInfo *p ) const override;
 	virtual const char *pszName( void ) override { return m_pInfo ? m_pInfo->scriptname : "weapon_scripted"; }
 	virtual int iMaxClip( void ) override { return m_pInfo ? m_pInfo->clip_size : 0; }
