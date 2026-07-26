@@ -21,9 +21,6 @@ Scripts are line-oriented key/value pairs inside { } blocks.
 #include <vector>
 #include <filesystem>
 #include "weaponscript.h"
-#include "player.h"
-#include "cbase.h"
-#include "entities.h"
 
 static void WS_Printf( const char *fmt, ... )
 {
@@ -549,14 +546,15 @@ void WeaponScript_Give_f( void )
 		WS_Printf( "ws_give: usage: ws_give <classname>\n" );
 		return;
 	}
-	CBasePlayer *pPlayer = (CBasePlayer *)UTIL_FindEntityByClassname( NULL, "player" );
-	if( !pPlayer )
+	WS_Printf( "ws_give: creating %s\n", name );
+	edict_t *ed = CREATE_NAMED_ENTITY( ALLOC_STRING( name ) );
+	if( !ed )
 	{
-		WS_Printf( "ws_give: no player found\n" );
+		WS_Printf( "ws_give: CreateEntityByName failed for %s\n", name );
 		return;
 	}
-	WS_Printf( "ws_give: giving %s\n", name );
-	pPlayer->GiveNamedItem( name );
+	g_engfuncs.pfnDispatchSpawn( ed );
+	WS_Printf( "ws_give: %s spawned\n", name );
 }
 
 void WeaponScript_Init( void )
