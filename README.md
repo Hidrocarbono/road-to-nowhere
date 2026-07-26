@@ -9,7 +9,6 @@ Este é um fork do PrimeXT com modificações personalizadas, incluindo:
 
 - **Sistema de armas via script** (inspirado no sistema do Uncle Mike para Paranoia 2) — adicione novas armas apenas colocando modelos na pasta `models/` e criando arquivos de script em `scripts/weapons/`, sem recompilar o código-fonte.
 - **Sistema de legendas personalizadas** — exiba textos formatados na tela com fontes `.ttf`, cores personalizadas e substituição automática de `%player_name%` pelo nome do jogador.
-- **Compatibilidade total com o Xash3D FWGS** e com o ecossistema Half-Life/GoldSrc.
 
 ## Installation
 You can read the detailed installation guide on our documentation site: available on [English](https://snmetamorph.github.io/PrimeXT/docs/eng/installation) and [Russian](https://snmetamorph.github.io/PrimeXT/docs/rus/installation) languages.
