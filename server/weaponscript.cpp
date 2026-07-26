@@ -21,6 +21,7 @@ Scripts are line-oriented key/value pairs inside { } blocks.
 #include <vector>
 #include <filesystem>
 #include "weaponscript.h"
+#include "cbase.h"
 
 static void WS_Printf( const char *fmt, ... )
 {
@@ -547,13 +548,13 @@ void WeaponScript_Give_f( void )
 		return;
 	}
 	WS_Printf( "ws_give: creating %s\n", name );
-	edict_t *ed = CREATE_NAMED_ENTITY( MAKE_STRING( name ) );
+	edict_t *ed = CREATE_NAMED_ENTITY( ALLOC_STRING( name ) );
 	if( !ed )
 	{
 		WS_Printf( "ws_give: CreateEntityByName failed for %s\n", name );
 		return;
 	}
-	g_engfuncs.pfnSpawn( ed );
+	DispatchSpawn( ed );
 	WS_Printf( "ws_give: %s spawned\n", name );
 }
 
