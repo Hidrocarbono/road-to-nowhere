@@ -19,6 +19,7 @@
 #include "cbase.h"
 #include "monsters.h"
 #include "weapons.h"
+#include "weaponscript.h"
 
 class CMP5 : public CBasePlayerWeapon
 {
@@ -27,7 +28,17 @@ class CMP5 : public CBasePlayerWeapon
 public:
 	CMP5();
 
-	void Spawn();
-	void Precache();
+	void Spawn() override;
+	void Precache() override;
 	int AddToPlayer(CBasePlayer *pPlayer);
+	bool Deploy() override;
+	int GetItemInfo(ItemInfo *p) const override;
+	int iMaxClip() override;
+	const char *pszAmmo1() override;
+	int iWeight() override;
+	int iItemSlot() override;
+	int iItemPosition() override;
+	int iFlags() override;
+private:
+	weaponinfo_t *m_pScriptInfo;
 };
