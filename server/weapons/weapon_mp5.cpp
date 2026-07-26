@@ -86,9 +86,9 @@ int CMP5::AddToPlayer(CBasePlayer *pPlayer)
 	return FALSE;
 }
 
-void CMP5::Deploy()
+BOOL CMP5::Deploy()
 {
-	CBasePlayerWeapon::Deploy();
+	BOOL result = CBasePlayerWeapon::Deploy();
 	if( m_pScriptInfo )
 	{
 		if( m_pScriptInfo->viewmodel[0] )
@@ -96,6 +96,7 @@ void CMP5::Deploy()
 		if( m_pScriptInfo->playermodel[0] )
 			m_pPlayer->pev->weaponmodel = MAKE_STRING( m_pScriptInfo->playermodel );
 	}
+	return result;
 }
 
 int CMP5::GetItemInfo(ItemInfo *p) const
