@@ -78,6 +78,14 @@ ammoinfo_t *WeaponScript_FindAmmo( const char *name )
 	return NULL;
 }
 
+weaponinfo_t *WeaponScript_FindWeaponByName( const char *scriptname )
+{
+	for( int i = 0; i < gNumWeaponInfo; i++ )
+		if( !WS_stricmp( gWeaponInfo[i].scriptname, scriptname ) )
+			return &gWeaponInfo[i];
+	return NULL;
+}
+
 // Read a whole file (engine VFS) into a NUL-terminated buffer. Mem_Free() it.
 static char *WS_LoadText( const char *filename )
 {
@@ -440,6 +448,14 @@ int WeaponScript_ParseWeapon( const char *filename )
 
 	if( gNumWeaponInfo < MAX_AMMO_TYPES )
 	{
+		// store the script file basename (e.g. "weapon_mp5") for lookup by name
+		const char *fname = filename;
+		const char *slash = strrchr( filename, '/' );
+		if( slash ) fname = slash + 1;
+		WS_strncpy( w.scriptname, fname, sizeof( w.scriptname ) );
+		size_t sl = strlen( w.scriptname );
+		if( sl > 4 && !WS_stricmp( w.scriptname + sl - 4, ".txt" ) )
+			w.scriptname[sl-4] = 0;
 		gWeaponInfo[gNumWeaponInfo++] = w;
 		WS_Printf( "WeaponScript: loaded weapon (%d sprites)\n", w.num_sprites );
 	}
