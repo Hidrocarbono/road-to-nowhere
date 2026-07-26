@@ -21,6 +21,9 @@ Scripts are line-oriented key/value pairs inside { } blocks.
 #include <vector>
 #include <filesystem>
 #include "weaponscript.h"
+#include "player.h"
+#include "cbase.h"
+#include "entities.h"
 
 static void WS_Printf( const char *fmt, ... )
 {
@@ -472,7 +475,16 @@ void WeaponScript_LoadAll( void )
 	char gamedir[256];
 	GET_GAME_DIR( gamedir );
 	std::string base = std::string( gamedir ) + "/scripts/weapons";
-	WeaponScript_ParseAmmoDesc( (base + "/ammodesc.txt").c_str() );
+	// try both possible locations for ammodesc.txt
+	std::string ammoPath = base + "/ammodesc.txt";
+	if( !fs::FileExists( ammoPath.c_str() ) )
+	{
+		std::string alt = std::string( gamedir ) + "/scripts/ammodesc.txt";
+		if( fs::FileExists( alt.c_str() ) )
+			ammoPath = alt;
+	}
+	WS_Printf( "WeaponScript: loading ammo desc from %s\n", ammoPath.c_str() );
+	WeaponScript_ParseAmmoDesc( ammoPath.c_str() );
 	try
 	{
 		for( auto &entry : std::filesystem::directory_iterator( base ) )
@@ -529,8 +541,27 @@ static void WeaponScript_List_f( void )
 	}
 }
 
+void WeaponScript_Give_f( void )
+{
+	const char *name = CMD_ARGV( 1 );
+	if( !name || !name[0] )
+	{
+		WS_Printf( "ws_give: usage: ws_give <classname>\n" );
+		return;
+	}
+	CBasePlayer *pPlayer = (CBasePlayer *)UTIL_FindEntityByClassname( NULL, "player" );
+	if( !pPlayer )
+	{
+		WS_Printf( "ws_give: no player found\n" );
+		return;
+	}
+	WS_Printf( "ws_give: giving %s\n", name );
+	pPlayer->GiveNamedItem( name );
+}
+
 void WeaponScript_Init( void )
 {
 	g_engfuncs.pfnAddServerCommand( "weaponscript_reload", WeaponScript_Reload_f );
 	g_engfuncs.pfnAddServerCommand( "weaponscript_list", WeaponScript_List_f );
+	g_engfuncs.pfnAddServerCommand( "ws_give", WeaponScript_Give_f );
 }
