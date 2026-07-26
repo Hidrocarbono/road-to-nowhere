@@ -6,7 +6,6 @@
 #include "server_weapon_layer_impl.h"
 #include "user_messages.h"
 #include "weapon_layer.h"
-#include "weapons/mp5.h"
 
 LINK_ENTITY_TO_CLASS( weapon_scripted, CWeaponScripted );
 
