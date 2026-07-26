@@ -4,7 +4,6 @@
  */
 #pragma once
 #include "weapons.h"
-#include "weapons/scripted.h"
 #include "weapon_mp5.h"   // reusa o contexto de tiro da MP5
 #include "weaponscript.h"
 
