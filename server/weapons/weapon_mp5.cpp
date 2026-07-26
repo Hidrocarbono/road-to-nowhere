@@ -18,6 +18,7 @@
 #include "weapon_layer.h"
 #include "weapons/mp5.h"
 #include "server_weapon_layer_impl.h"
+#include "weaponscript.h"
 
 LINK_ENTITY_TO_CLASS( weapon_mp5, CMP5 );
 LINK_ENTITY_TO_CLASS( weapon_9mmAR, CMP5 );
@@ -31,14 +32,24 @@ CMP5::CMP5()
 
 void CMP5::Spawn()
 {
+	m_pScriptInfo = WeaponScript_FindWeaponByName( "weapon_mp5" );
 	pev->classname = MAKE_STRING(CLASSNAME_STR(MP5_CLASSNAME));
 	Precache();
-	SET_MODEL(ENT(pev), "models/w_9mmAR.mdl");
+	if( m_pScriptInfo && m_pScriptInfo->worldmodel[0] )
+		SET_MODEL(ENT(pev), m_pScriptInfo->worldmodel );
+	else
+		SET_MODEL(ENT(pev), "models/w_9mmAR.mdl");
 	FallInit(); // get ready to fall down.
 }
 
 void CMP5::Precache()
 {
+	if( m_pScriptInfo )
+	{
+		if( m_pScriptInfo->viewmodel[0] ) PRECACHE_MODEL( m_pScriptInfo->viewmodel );
+		if( m_pScriptInfo->worldmodel[0] ) PRECACHE_MODEL( m_pScriptInfo->worldmodel );
+		if( m_pScriptInfo->playermodel[0] ) PRECACHE_MODEL( m_pScriptInfo->playermodel );
+	}
 	PRECACHE_MODEL("models/v_9mmAR.mdl");
 	PRECACHE_MODEL("models/w_9mmAR.mdl");
 	PRECACHE_MODEL("models/p_9mmAR.mdl");
@@ -74,3 +85,40 @@ int CMP5::AddToPlayer(CBasePlayer *pPlayer)
 	}
 	return FALSE;
 }
+
+bool CMP5::Deploy()
+{
+	bool ok = CBasePlayerWeapon::Deploy();
+	if( m_pScriptInfo )
+	{
+		if( m_pScriptInfo->viewmodel[0] )
+			m_pPlayer->pev->viewmodel = MAKE_STRING( m_pScriptInfo->viewmodel );
+		if( m_pScriptInfo->playermodel[0] )
+			m_pPlayer->pev->weaponmodel = MAKE_STRING( m_pScriptInfo->playermodel );
+	}
+	return ok;
+}
+
+int CMP5::GetItemInfo(ItemInfo *p) const
+{
+	int base = CBasePlayerWeapon::GetItemInfo( p );
+	if( m_pScriptInfo )
+	{
+		p->iMaxClip = m_pScriptInfo->clip_size;
+		p->pszAmmo1 = m_pScriptInfo->primary_ammo;
+		p->pszAmmo2 = m_pScriptInfo->secondary_ammo;
+		p->iSlot = m_pScriptInfo->bucket;
+		p->iPosition = m_pScriptInfo->bucket_position;
+		p->iWeight = m_pScriptInfo->weight;
+		p->iFlags = m_pScriptInfo->item_flags;
+	}
+	return base;
+}
+
+int CMP5::iMaxClip() { return m_pScriptInfo ? m_pScriptInfo->clip_size : CBasePlayerWeapon::iMaxClip(); }
+const char *CMP5::pszAmmo1() { return m_pScriptInfo ? m_pScriptInfo->primary_ammo : CBasePlayerWeapon::pszAmmo1(); }
+int CMP5::iWeight() { return m_pScriptInfo ? m_pScriptInfo->weight : CBasePlayerWeapon::iWeight(); }
+int CMP5::iItemSlot() { return m_pScriptInfo ? m_pScriptInfo->bucket : CBasePlayerWeapon::iItemSlot(); }
+int CMP5::iItemPosition() { return m_pScriptInfo ? m_pScriptInfo->bucket_position : CBasePlayerWeapon::iItemPosition(); }
+int CMP5::iFlags() { return m_pScriptInfo ? m_pScriptInfo->item_flags : CBasePlayerWeapon::iFlags(); }
+
