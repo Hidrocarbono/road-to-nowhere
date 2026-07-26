@@ -547,13 +547,13 @@ void WeaponScript_Give_f( void )
 		return;
 	}
 	WS_Printf( "ws_give: creating %s\n", name );
-	edict_t *ed = CREATE_NAMED_ENTITY( ALLOC_STRING( name ) );
+	edict_t *ed = CREATE_NAMED_ENTITY( MAKE_STRING( name ) );
 	if( !ed )
 	{
 		WS_Printf( "ws_give: CreateEntityByName failed for %s\n", name );
 		return;
 	}
-	g_engfuncs.pfnDispatchSpawn( ed );
+	g_engfuncs.pfnSpawn( ed );
 	WS_Printf( "ws_give: %s spawned\n", name );
 }
 
