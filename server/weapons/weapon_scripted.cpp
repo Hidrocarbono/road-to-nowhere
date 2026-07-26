@@ -5,6 +5,8 @@
 #include "weapon_scripted.h"
 #include "server_weapon_layer_impl.h"
 #include "user_messages.h"
+#include "weapon_layer.h"
+#include "weapons/mp5.h"
 
 LINK_ENTITY_TO_CLASS( weapon_scripted, CWeaponScripted );
 
@@ -45,13 +47,6 @@ void CWeaponScripted::Precache( void )
 	}
 }
 
-bool CWeaponScripted::Deploy( void )
-{
-	if( m_pInfo && m_pInfo->viewmodel[0] && m_pInfo->playermodel[0] )
-		return DefaultDeploy( m_pInfo->viewmodel, m_pInfo->playermodel, 0, "mp5" );
-	return CBasePlayerWeapon::Deploy();
-}
-
 int CWeaponScripted::GetItemInfo( ItemInfo *p ) const
 {
 	if( !m_pInfo ) return 0;
@@ -64,6 +59,6 @@ int CWeaponScripted::GetItemInfo( ItemInfo *p ) const
 	p->iWeight = m_pInfo->weight;
 	p->iFlags = m_pInfo->item_flags;
 	p->iMaxAmmo1 = MAX_WEAPON_NAME;
-	p->iId = WEAPON_MP5;   // reusing MP5 id so the HUD slot matches
+	p->iId = WEAPON_MP5;
 	return 1;
 }
