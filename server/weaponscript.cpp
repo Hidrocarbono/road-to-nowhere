@@ -547,6 +547,12 @@ void WeaponScript_Give_f( void )
 		WS_Printf( "ws_give: usage: ws_give <classname>\n" );
 		return;
 	}
+	CBaseEntity *pPlayer = UTIL_FindEntityByClassname( NULL, "player" );
+	if( !pPlayer )
+	{
+		WS_Printf( "ws_give: no player found\n" );
+		return;
+	}
 	WS_Printf( "ws_give: creating %s\n", name );
 	CBaseEntity *pEnt = CreateEntityByName( name );
 	if( !pEnt )
@@ -554,10 +560,11 @@ void WeaponScript_Give_f( void )
 		WS_Printf( "ws_give: CreateEntityByName failed for %s\n", name );
 		return;
 	}
+	pEnt->SetAbsOrigin( pPlayer->GetAbsOrigin() );
 	pEnt->pev->spawnflags |= SF_NORESPAWN;
 	DispatchSpawn( pEnt->edict() );
-	WS_Printf( "ws_give: %s spawned\n", name );
-	WS_Printf( "ws_give: %s spawned\n", name );
+	DispatchTouch( pEnt->edict(), pPlayer->edict() );
+	WS_Printf( "ws_give: %s given to player\n", name );
 }
 
 void WeaponScript_Init( void )
