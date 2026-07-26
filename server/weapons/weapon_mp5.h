@@ -31,7 +31,7 @@ public:
 	void Spawn() override;
 	void Precache() override;
 	int AddToPlayer(CBasePlayer *pPlayer);
-	void Deploy() override;
+	BOOL Deploy() override;
 	int GetItemInfo(ItemInfo *p) const override;
 	int iMaxClip() override;
 	const char *pszAmmo1() override;
