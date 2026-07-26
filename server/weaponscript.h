@@ -107,6 +107,7 @@ typedef struct weaponinfo_s
 	weaponsound_t	sound;
 	weaponsprite_t	sprites[MAX_WEAPON_SPRITES];
 	int	num_sprites;
+	char	scriptname[64];
 } weaponinfo_t;
 
 extern ammoinfo_t		gAmmoInfo[MAX_AMMO_TYPES];
@@ -123,6 +124,7 @@ void WeaponScript_LoadAll( void );
 
 ammoinfo_t *WeaponScript_FindAmmo( const char *name );
 weaponinfo_t *WeaponScript_FindWeapon( const char *name );
+weaponinfo_t *WeaponScript_FindWeaponByName( const char *scriptname );
 void WeaponScript_Init( void );
 
 #endif // WEAPONSCRIPT_H
