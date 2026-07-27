@@ -472,30 +472,41 @@ void WeaponScript_LoadAll( void )
 	// scripts/weapons/weapon_*.txt  (e.g. valve/scripts/weapons/...)
 	char gamedir[256];
 	GET_GAME_DIR( gamedir );
+	WS_Printf( "WeaponScript: gamedir = [%s]\n", gamedir );
 	std::string base = std::string( gamedir ) + "/scripts/weapons";
+	WS_Printf( "WeaponScript: scanning dir [%s]\n", base.c_str() );
 	// try both possible locations for ammodesc.txt
 	std::string ammoPath = base + "/ammodesc.txt";
 	if( !fs::FileExists( ammoPath.c_str() ) )
 	{
 		std::string alt = std::string( gamedir ) + "/scripts/ammodesc.txt";
 		if( fs::FileExists( alt.c_str() ) )
+		{
 			ammoPath = alt;
+			base = std::string( gamedir ) + "/scripts";
+			WS_Printf( "WeaponScript: using alt ammo path [%s]\n", ammoPath.c_str() );
+		}
 	}
 	WS_Printf( "WeaponScript: loading ammo desc from %s\n", ammoPath.c_str() );
 	WeaponScript_ParseAmmoDesc( ammoPath.c_str() );
+	int found = 0;
 	try
 	{
 		for( auto &entry : std::filesystem::directory_iterator( base ) )
 		{
 			std::string name = entry.path().filename().string();
 			if( name.rfind( "weapon_", 0 ) == 0 && name.size() > 7 && name.substr( name.size()-4 ) == ".txt" )
+			{
 				WeaponScript_ParseWeapon( entry.path().string().c_str() );
+				found++;
+			}
 		}
 	}
 	catch( ... )
 	{
 		WS_Printf( "WeaponScript: could not scan %s\n", base.c_str() );
 	}
+	WS_Printf( "WeaponScript: %d weapon_*.txt found in [%s]\n", found, base.c_str() );
 }
 
 
