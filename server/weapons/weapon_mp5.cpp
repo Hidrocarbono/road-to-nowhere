@@ -88,13 +88,21 @@ int CMP5::AddToPlayer(CBasePlayer *pPlayer)
 
 BOOL CMP5::Deploy()
 {
+	// Fase 4: re-lookup the script at deploy time (parser may have loaded after Spawn)
+	if( !m_pScriptInfo )
+		m_pScriptInfo = WeaponScript_FindWeaponByName( "weapon_mp5" );
 	BOOL result = CBasePlayerWeapon::Deploy();
 	if( m_pScriptInfo )
 	{
+		WS_Printf( "CMP5::Deploy: script found, viewmodel=[%s]\n", m_pScriptInfo->viewmodel );
 		if( m_pScriptInfo->viewmodel[0] )
 			m_pPlayer->pev->viewmodel = MAKE_STRING( m_pScriptInfo->viewmodel );
 		if( m_pScriptInfo->playermodel[0] )
 			m_pPlayer->pev->weaponmodel = MAKE_STRING( m_pScriptInfo->playermodel );
+	}
+	else
+	{
+		WS_Printf( "CMP5::Deploy: no script info for weapon_mp5\n" );
 	}
 	return result;
 }
