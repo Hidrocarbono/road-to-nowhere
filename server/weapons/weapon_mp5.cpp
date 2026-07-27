@@ -94,7 +94,7 @@ BOOL CMP5::Deploy()
 	BOOL result = CBasePlayerWeapon::Deploy();
 	if( m_pScriptInfo )
 	{
-		WS_Printf( "CMP5::Deploy: script found, viewmodel=[%s]\n", m_pScriptInfo->viewmodel );
+		ALERT( at_console, "CMP5::Deploy: script found, viewmodel=[%s]\n", m_pScriptInfo->viewmodel );
 		if( m_pScriptInfo->viewmodel[0] )
 			m_pPlayer->pev->viewmodel = MAKE_STRING( m_pScriptInfo->viewmodel );
 		if( m_pScriptInfo->playermodel[0] )
@@ -102,7 +102,7 @@ BOOL CMP5::Deploy()
 	}
 	else
 	{
-		WS_Printf( "CMP5::Deploy: no script info for weapon_mp5\n" );
+		ALERT( at_console, "CMP5::Deploy: no script info for weapon_mp5\n" );
 	}
 	return result;
 }
