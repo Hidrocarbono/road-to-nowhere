@@ -79,11 +79,25 @@ ammoinfo_t *WeaponScript_FindAmmo( const char *name )
 	return NULL;
 }
 
+static void WS_StripTxt( char *dst, const char *src, size_t n )
+{
+	WS_strncpy( dst, src, n );
+	size_t l = strlen( dst );
+	if( l > 4 && !WS_stricmp( dst + l - 4, ".txt" ) )
+		dst[l-4] = '\0';
+}
+
 weaponinfo_t *WeaponScript_FindWeaponByName( const char *scriptname )
 {
+	char want[64];
+	WS_StripTxt( want, scriptname, sizeof( want ) );
 	for( int i = 0; i < gNumWeaponInfo; i++ )
-		if( !WS_stricmp( gWeaponInfo[i].scriptname, scriptname ) )
+	{
+		char have[64];
+		WS_StripTxt( have, gWeaponInfo[i].scriptname, sizeof( have ) );
+		if( !WS_stricmp( have, want ) )
 			return &gWeaponInfo[i];
+	}
 	return NULL;
 }
 
@@ -583,4 +597,6 @@ void WeaponScript_Init( void )
 	g_engfuncs.pfnAddServerCommand( "weaponscript_reload", WeaponScript_Reload_f );
 	g_engfuncs.pfnAddServerCommand( "weaponscript_list", WeaponScript_List_f );
 	g_engfuncs.pfnAddServerCommand( "ws_give", WeaponScript_Give_f );
+	WeaponScript_LoadAll();
+	WS_Printf( "WeaponScript: auto-loaded %d weapons at startup\n", gNumWeaponInfo );
 }
