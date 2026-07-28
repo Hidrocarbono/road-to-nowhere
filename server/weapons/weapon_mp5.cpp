@@ -88,10 +88,20 @@ int CMP5::AddToPlayer(CBasePlayer *pPlayer)
 
 BOOL CMP5::Deploy()
 {
-	// TEST (Fase 4): force a known-existing, visibly different model to prove override runs
 	BOOL result = CBasePlayerWeapon::Deploy();
-	m_pPlayer->pev->viewmodel = MAKE_STRING( "models/v_grenade.mdl" );
-	m_pPlayer->pev->weaponmodel = MAKE_STRING( "models/v_grenade.mdl" );
+	if( !m_pScriptInfo )
+		m_pScriptInfo = WeaponScript_FindWeaponByName( "weapon_mp5" );
+	if( m_pScriptInfo && m_pScriptInfo->viewmodel[0] )
+	{
+		g_engfuncs.pfnServerPrint( va( "CMP5::Deploy: script viewmodel=[%s]\n", m_pScriptInfo->viewmodel ) );
+		m_pPlayer->pev->viewmodel = MAKE_STRING( m_pScriptInfo->viewmodel );
+		if( m_pScriptInfo->playermodel[0] )
+			m_pPlayer->pev->weaponmodel = MAKE_STRING( m_pScriptInfo->playermodel );
+	}
+	else
+	{
+		g_engfuncs.pfnServerPrint( "CMP5::Deploy: NO script info for weapon_mp5\n" );
+	}
 	return result;
 }
 
