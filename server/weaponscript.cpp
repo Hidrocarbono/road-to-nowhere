@@ -450,10 +450,9 @@ int WeaponScript_ParseWeapon( const char *filename )
 	if( gNumWeaponInfo < MAX_AMMO_TYPES )
 	{
 		// store the script file basename (e.g. "weapon_mp5") for lookup by name
-		const char *fname = filename;
-		const char *slash = strrchr( filename, '/' );
-		if( slash ) fname = slash + 1;
-		WS_strncpy( w.scriptname, fname, sizeof( w.scriptname ) );
+		// use std::filesystem::path to strip directory regardless of / or \ separator
+		std::string baseName = std::filesystem::path( filename ).filename().string();
+		WS_strncpy( w.scriptname, baseName.c_str(), sizeof( w.scriptname ) );
 		size_t sl = strlen( w.scriptname );
 		if( sl > 4 && !WS_stricmp( w.scriptname + sl - 4, ".txt" ) )
 			w.scriptname[sl-4] = 0;
