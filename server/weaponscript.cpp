@@ -456,6 +456,7 @@ int WeaponScript_ParseWeapon( const char *filename )
 		size_t sl = strlen( w.scriptname );
 		if( sl > 4 && !WS_stricmp( w.scriptname + sl - 4, ".txt" ) )
 			w.scriptname[sl-4] = 0;
+		WS_Printf( "WeaponScript: indexed [%s] from file [%s]\n", w.scriptname, baseName.c_str() );
 		gWeaponInfo[gNumWeaponInfo++] = w;
 		WS_Printf( "WeaponScript: loaded weapon (%d sprites)\n", w.num_sprites );
 	}
