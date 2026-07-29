@@ -44,6 +44,9 @@ void CMP5::Spawn()
 
 void CMP5::Precache()
 {
+	// re-lookup script in case parser loaded after Spawn (timing fix)
+	if( !m_pScriptInfo )
+		m_pScriptInfo = WeaponScript_FindWeaponByName( "weapon_mp5" );
 	if( m_pScriptInfo )
 	{
 		if( m_pScriptInfo->viewmodel[0] ) PRECACHE_MODEL( m_pScriptInfo->viewmodel );
