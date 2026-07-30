@@ -128,6 +128,9 @@ static char *WS_NextToken( char **pp )
 
 	while( *p )
 	{
+		// skip UTF-8 BOM (EF BB BF)
+		if( (unsigned char)p[0] == 0xEF && (unsigned char)p[1] == 0xBB && (unsigned char)p[2] == 0xBF )
+			p += 3;
 		while( *p == ' ' || *p == '\t' || *p == '\r' || *p == '\n' )
 			p++;
 
@@ -484,6 +487,9 @@ int WeaponScript_ParseWeapon( const char *filename )
 
 void WeaponScript_LoadAll( void )
 {
+	gNumWeaponInfo = 0;
+	gNumAmmoInfo = 0;
+	gNumAmmoPickups = 0;
 	// Default script locations, relative to the game directory (gamedir).
 	// Matches where mods keep them: scripts/weapons/ammodesc.txt and
 	// scripts/weapons/weapon_*.txt  (e.g. valve/scripts/weapons/...)
