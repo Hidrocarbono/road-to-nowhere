@@ -91,13 +91,16 @@ weaponinfo_t *WeaponScript_FindWeaponByName( const char *scriptname )
 {
 	char want[64];
 	WS_StripTxt( want, scriptname, sizeof( want ) );
+	g_engfuncs.pfnServerPrint( va( "DEBUG FindWeaponByName: want=[%s], gNumWeaponInfo=%d\n", want, gNumWeaponInfo ) );
 	for( int i = 0; i < gNumWeaponInfo; i++ )
 	{
 		char have[64];
 		WS_StripTxt( have, gWeaponInfo[i].scriptname, sizeof( have ) );
+		g_engfuncs.pfnServerPrint( va( "DEBUG FindWeaponByName: i=%d have=[%s] want=[%s] cmp=%d\n", i, have, want, WS_stricmp(have,want) ) );
 		if( !WS_stricmp( have, want ) )
 			return &gWeaponInfo[i];
 	}
+	g_engfuncs.pfnServerPrint( "DEBUG FindWeaponByName: NOT FOUND\n" );
 	return NULL;
 }
 
