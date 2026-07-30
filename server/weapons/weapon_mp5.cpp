@@ -25,6 +25,7 @@ LINK_ENTITY_TO_CLASS( weapon_9mmAR, CMP5 );
 
 CMP5::CMP5()
 {
+	m_pScriptInfo = NULL;  // init before Precache/Spawn can use it
 	auto layerImpl = std::make_unique<CServerWeaponLayerImpl>(this);
 	auto contextImpl = std::make_unique<CMP5WeaponContext>(std::move(layerImpl));
 	m_pWeaponContext = std::move(contextImpl);
@@ -44,9 +45,8 @@ void CMP5::Spawn()
 
 void CMP5::Precache()
 {
-	// re-lookup script in case parser loaded after Spawn (timing fix)
-	if( !m_pScriptInfo )
-		m_pScriptInfo = WeaponScript_FindWeaponByName( "weapon_mp5" );
+	// always re-lookup script in Precache (engine may call Precache before Spawn)
+	m_pScriptInfo = WeaponScript_FindWeaponByName( "weapon_mp5" );
 	if( m_pScriptInfo )
 	{
 		if( m_pScriptInfo->viewmodel[0] ) PRECACHE_MODEL( m_pScriptInfo->viewmodel );
