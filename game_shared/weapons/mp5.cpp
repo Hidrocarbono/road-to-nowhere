@@ -1,18 +1,3 @@
-/***
-*
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
-*	All Rights Reserved.
-*
-*   Use, distribution, and modification of this source code and/or resulting
-*   object code is restricted to non-commercial enhancements to products from
-*   Valve LLC.  All other use, distribution, or modification is prohibited
-*   without written permission from Valve LLC.
-*
-****/
-
 #include "mp5.h"
 
 #ifdef CLIENT_DLL
@@ -36,6 +21,7 @@ CMP5WeaponContext::CMP5WeaponContext(std::unique_ptr<IWeaponLayer> &&layer) :
 	m_iDefaultAmmo = MP5_DEFAULT_GIVE;
 	m_usEvent1 = m_pLayer->PrecacheEvent("events/mp5.sc");
 	m_usEvent2 = m_pLayer->PrecacheEvent("events/mp52.sc");
+	m_bInIronSight = false;
 }
 
 int CMP5WeaponContext::GetItemInfo(ItemInfo *p) const
@@ -61,7 +47,8 @@ int CMP5WeaponContext::SecondaryAmmoIndex()
 
 bool CMP5WeaponContext::Deploy()
 {
-	return DefaultDeploy( "models/v_9mmAR.mdl", "models/p_9mmAR.mdl", MP5_DEPLOY, "mp5" );
+	m_bInIronSight = false;
+	return DefaultDeploy( "models/v_mp5.mdl", "models/p_mp5.mdl", MP5_ANIM_DEPLOY, "mp5" );
 }
 
 void CMP5WeaponContext::PrimaryAttack()
@@ -86,7 +73,14 @@ void CMP5WeaponContext::PrimaryAttack()
 	Vector vecSrc = m_pLayer->GetGunPosition();
 	matrix3x3 cameraTransform = m_pLayer->GetCameraOrientation();
 	cameraTransform.SetForward(m_pLayer->GetAutoaimVector(AUTOAIM_5DEGREES));
-	Vector spread = m_pLayer->IsMultiplayer() ? VECTOR_CONE_6DEGREES : VECTOR_CONE_3DEGREES;
+
+	// spread depends on ironsight: normal = 3deg, aiming = 1deg (more accurate)
+	Vector spread;
+	if( m_bInIronSight )
+		spread = m_pLayer->IsMultiplayer() ? VECTOR_CONE_1DEGREES : VECTOR_CONE_1DEGREES;
+	else
+		spread = m_pLayer->IsMultiplayer() ? VECTOR_CONE_6DEGREES : VECTOR_CONE_3DEGREES;
+
 	Vector vecDir = m_pLayer->FireBullets(1, vecSrc, cameraTransform, 8192, spread.x, BULLET_PLAYER_MP5, m_pLayer->GetRandomSeed());
 
 	WeaponEventParams params;
@@ -116,7 +110,6 @@ void CMP5WeaponContext::PrimaryAttack()
 	player->SetAnimation(PLAYER_ATTACK1);
 
 	if (!m_iClip && player->m_rgAmmo[m_iPrimaryAmmoType] <= 0)
-		// HEV suit - indicate out of ammo condition
 		player->SetSuitUpdate("!HEV_AMO0", FALSE, 0);
 #endif
 
@@ -126,66 +119,31 @@ void CMP5WeaponContext::PrimaryAttack()
 
 void CMP5WeaponContext::SecondaryAttack()
 {
-	// don't fire underwater
-	if (m_pLayer->GetPlayerWaterlevel() == 3)
+	// Toggle ironsight on right-click
+	m_bInIronSight = !m_bInIronSight;
+
+	// Play the ironsight transition animation
+	if( m_bInIronSight )
 	{
-		PlayEmptySound();
-		m_flNextPrimaryAttack = GetNextPrimaryAttackDelay(0.15f);
-		return;
+		SendWeaponAnim( MP5_ANIM_AIM_IN );
+		m_pLayer->SetPlayerFOV( 55 );  // slight zoom when aiming
 	}
-
-	if (m_pLayer->GetPlayerAmmo(m_iSecondaryAmmoType) < 1)
+	else
 	{
-		PlayEmptySound();
-		return;
+		SendWeaponAnim( MP5_ANIM_AIM_OUT );
+		m_pLayer->SetPlayerFOV( 90 );  // back to normal
 	}
 
-	m_pLayer->SetPlayerAmmo(m_iSecondaryAmmoType, m_pLayer->GetPlayerAmmo(m_iSecondaryAmmoType) - 1);
-
-	WeaponEventParams params;
-	params.flags = WeaponEventFlags::NotHost;
-	params.eventindex = m_usEvent2;
-	params.delay = 0.0f;
-	params.origin = m_pLayer->GetGunPosition();
-	params.angles = m_pLayer->GetViewAngles();
-	params.fparam1 = 0;
-	params.fparam2 = 0;
-	params.iparam1 = 0;
-	params.iparam2 = 0;
-	params.bparam1 = 0;
-	params.bparam2 = 0;
-
-	if (m_pLayer->ShouldRunFuncs()) {
-		m_pLayer->PlaybackWeaponEvent(params);
-	}
-
-#ifndef CLIENT_DLL
-	CBasePlayer *player = m_pLayer->GetWeaponEntity()->m_pPlayer;
-	player->m_iWeaponVolume = NORMAL_GUN_VOLUME;
-	player->m_iWeaponFlash = BRIGHT_GUN_FLASH;
-	player->m_iExtraSoundTypes = bits_SOUND_DANGER;
-	player->m_flStopExtraSoundTime = gpGlobals->time + 0.2;
-	player->SetAnimation(PLAYER_ATTACK1);
-
-	UTIL_MakeVectors(player->pev->v_angle + player->pev->punchangle);
-
-	// we don't add in player velocity anymore.
-	CGrenade::ShootContact(player->pev, player->EyePosition() + gpGlobals->v_forward * 16, gpGlobals->v_forward * 800);
-
-	if (!player->m_rgAmmo[m_iSecondaryAmmoType])
-		// HEV suit - indicate out of ammo condition
-		player->SetSuitUpdate("!HEV_AMO0", FALSE, 0);
-#endif
-
-	m_pLayer->AddPlayerPunchangle(-10.f, 0.f, 0.f);
-	m_flNextPrimaryAttack = GetNextPrimaryAttackDelay(1.0f);
-	m_flNextSecondaryAttack = m_pLayer->GetWeaponTimeBase(UsePredicting()) + 1.f;
-	m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase(UsePredicting()) + 5.f; // idle pretty soon after shooting.
+	m_flNextSecondaryAttack = m_pLayer->GetWeaponTimeBase(UsePredicting()) + 0.3f;
+	m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase(UsePredicting()) + 2.0f;
 }
 
 void CMP5WeaponContext::Reload()
 {
-	DefaultReload( MP5_MAX_CLIP, MP5_RELOAD, 1.5 );
+	if( m_bInIronSight )
+		DefaultReload( MP5_MAX_CLIP, MP5_ANIM_RELOAD_AIM, 1.5 );
+	else
+		DefaultReload( MP5_MAX_CLIP, MP5_ANIM_RELOAD, 1.5 );
 }
 
 void CMP5WeaponContext::WeaponIdle()
@@ -196,6 +154,10 @@ void CMP5WeaponContext::WeaponIdle()
 	if (m_flTimeWeaponIdle > m_pLayer->GetWeaponTimeBase(UsePredicting()))
 		return;
 
-	SendWeaponAnim(m_pLayer->GetRandomInt(m_pLayer->GetRandomSeed(), 0, 1) == 0 ? MP5_LONGIDLE : MP5_IDLE1);
+	if( m_bInIronSight )
+		SendWeaponAnim( MP5_ANIM_IDLE_AIM );
+	else
+		SendWeaponAnim( MP5_ANIM_IDLE );
+
 	m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase(UsePredicting()) + m_pLayer->GetRandomFloat(m_pLayer->GetRandomSeed(), 10.f, 15.f);
 }
