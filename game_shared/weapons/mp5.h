@@ -1,18 +1,3 @@
-/***
-*
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
-*	All Rights Reserved.
-*
-*   Use, distribution, and modification of this source code and/or resulting
-*   object code is restricted to non-commercial enhancements to products from
-*   Valve LLC.  All other use, distribution, or modification is prohibited
-*   without written permission from Valve LLC.
-*
-****/
-
 #pragma once
 #include "weapon_context.h"
 #include "weapon_layer.h"
@@ -23,18 +8,23 @@
 #define MP5_MAX_CLIP		50
 #define MP5_DEFAULT_AMMO	25
 #define MP5_DEFAULT_GIVE	25
-#define MP5_CLASSNAME		weapon_9mmAR
+#define MP5_CLASSNAME		weapon_mp5
 
-enum mp5_e
+enum mp5_anim_e
 {
-	MP5_LONGIDLE = 0,
-	MP5_IDLE1,
-	MP5_LAUNCH,
-	MP5_RELOAD,
-	MP5_DEPLOY,
-	MP5_FIRE1,
-	MP5_FIRE2,
-	MP5_FIRE3,
+	MP5_ANIM_IDLE = 0,			// ACT_82
+	MP5_ANIM_SHOOT1 = 1,		// ACT_84 1
+	MP5_ANIM_SHOOT2 = 2,		// ACT_84 2
+	MP5_ANIM_SHOOT3 = 3,		// ACT_84 3
+	MP5_ANIM_RELOAD = 4,		// ACT_94 1
+	MP5_ANIM_DEPLOY = 5,		// ACT_78 1
+	MP5_ANIM_IDLE_AIM = 6,		// ACT_83 1
+	MP5_ANIM_SHOOT1_AIM = 7,	// ACT_85 1
+	MP5_ANIM_SHOOT2_AIM = 8,	// ACT_85 2
+	MP5_ANIM_SHOOT3_AIM = 9,	// ACT_85 3
+	MP5_ANIM_RELOAD_AIM = 10,	// ACT_95 1
+	MP5_ANIM_AIM_IN = 11,		// ACT_109 1
+	MP5_ANIM_AIM_OUT = 12,		// ACT_110 1
 };
 
 class CMP5WeaponContext : public CBaseWeaponContext
@@ -53,6 +43,7 @@ public:
 	void Reload() override;
 	void WeaponIdle() override;
 
+	bool m_bInIronSight = false;
 	uint16_t m_usEvent1;
 	uint16_t m_usEvent2;
 };
