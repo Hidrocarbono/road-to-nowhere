@@ -25,6 +25,15 @@ enum mp5_anim_e
 	MP5_ANIM_RELOAD_AIM = 10,	// ACT_95 1
 	MP5_ANIM_AIM_IN = 11,		// ACT_109 1
 	MP5_ANIM_AIM_OUT = 12,		// ACT_110 1
+	// backward compat aliases for client event code
+	MP5_LONGIDLE = 0,
+	MP5_IDLE1 = 0,
+	MP5_LAUNCH = 2,
+	MP5_RELOAD = 4,
+	MP5_DEPLOY = 5,
+	MP5_FIRE1 = 1,
+	MP5_FIRE2 = 2,
+	MP5_FIRE3 = 3,
 };
 
 class CMP5WeaponContext : public CBaseWeaponContext
