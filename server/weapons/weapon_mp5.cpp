@@ -101,23 +101,21 @@ BOOL CMP5::Deploy()
 int CMP5::GetItemInfo(ItemInfo *p) const
 {
 	int base = CBasePlayerWeapon::GetItemInfo( p );
-	if( m_pScriptInfo )
-	{
-		p->iMaxClip = m_pScriptInfo->clip_size;
-		p->pszAmmo1 = m_pScriptInfo->primary_ammo;
-		p->pszAmmo2 = m_pScriptInfo->secondary_ammo;
-		p->iSlot = m_pScriptInfo->bucket;
-		p->iPosition = m_pScriptInfo->bucket_position;
-		p->iWeight = m_pScriptInfo->weight;
-		p->iFlags = m_pScriptInfo->item_flags;
-	}
+	// PLAN B (Fase 4 Final): hardcoded from weapon_mp5.txt
+	p->iMaxClip = 30;
+	p->pszAmmo1 = "9mm";
+	p->pszAmmo2 = "ARgrenades";
+	p->iSlot = 3;
+	p->iPosition = 6;
+	p->iWeight = 15;
+	p->iFlags = ITEM_FLAG_SELECTONEMPTY;
 	return base;
 }
 
-int CMP5::iMaxClip() { return m_pScriptInfo ? m_pScriptInfo->clip_size : CBasePlayerWeapon::iMaxClip(); }
-const char *CMP5::pszAmmo1() { return m_pScriptInfo ? m_pScriptInfo->primary_ammo : CBasePlayerWeapon::pszAmmo1(); }
-int CMP5::iWeight() { return m_pScriptInfo ? m_pScriptInfo->weight : CBasePlayerWeapon::iWeight(); }
-int CMP5::iItemSlot() { return m_pScriptInfo ? m_pScriptInfo->bucket : CBasePlayerWeapon::iItemSlot(); }
-int CMP5::iItemPosition() { return m_pScriptInfo ? m_pScriptInfo->bucket_position : CBasePlayerWeapon::iItemPosition(); }
-int CMP5::iFlags() { return m_pScriptInfo ? m_pScriptInfo->item_flags : CBasePlayerWeapon::iFlags(); }
+int CMP5::iMaxClip() { return 30; }
+const char *CMP5::pszAmmo1() { return "9mm"; }
+int CMP5::iWeight() { return 15; }
+int CMP5::iItemSlot() { return 3; }
+int CMP5::iItemPosition() { return 6; }
+int CMP5::iFlags() { return ITEM_FLAG_SELECTONEMPTY; }
 
