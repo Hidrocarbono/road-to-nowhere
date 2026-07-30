@@ -91,22 +91,10 @@ int CMP5::AddToPlayer(CBasePlayer *pPlayer)
 
 BOOL CMP5::Deploy()
 {
-	// always re-lookup (safety: parser may have reloaded after Spawn)
-	m_pScriptInfo = WeaponScript_FindWeaponByName( "weapon_mp5" );
+	// PLAN B: hardcoded viewmodel from weapon_mp5.txt (Fase 4 Final)
 	BOOL result = CBasePlayerWeapon::Deploy();
-	g_engfuncs.pfnServerPrint( va( "Deploy: m_pScriptInfo=%p, m_pPlayer=%p\n", (void*)m_pScriptInfo, (void*)m_pPlayer ) );
-	if( m_pScriptInfo )
-		g_engfuncs.pfnServerPrint( va( "Deploy: viewmodel[0]=%d viewmodel='%s'\n", m_pScriptInfo->viewmodel[0], m_pScriptInfo->viewmodel ) );
-	else
-		g_engfuncs.pfnServerPrint( "Deploy: m_pScriptInfo is NULL\n" );
-	if( m_pScriptInfo && m_pScriptInfo->viewmodel[0] )
-	{
-		m_pPlayer->pev->viewmodel = MAKE_STRING( m_pScriptInfo->viewmodel );
-		if( m_pScriptInfo->playermodel[0] )
-			m_pPlayer->pev->weaponmodel = MAKE_STRING( m_pScriptInfo->playermodel );
-	}
-	else
-		g_engfuncs.pfnServerPrint( "Deploy: CONDITION FAILED - not setting viewmodel\n" );
+	m_pPlayer->pev->viewmodel = MAKE_STRING( "models/v_mp5.mdl" );
+	m_pPlayer->pev->weaponmodel = MAKE_STRING( "models/p_mp5.mdl" );
 	return result;
 }
 
