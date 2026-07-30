@@ -54,15 +54,11 @@ void CItemStimulant::PrimaryAttack()
 	// Play sound
 	EMIT_SOUND( ENT(pPlayer), CHAN_ITEM, "items/smallmedkit1.wav", 1.0, ATTN_NORM );
 
-	// Remove from inventory - set next think to destroy
-	pPlayer->pev->weapons &= ~(1 << m_iId);
-	if( pPlayer->m_pActiveItem == this )
-		pPlayer->m_pActiveItem = NULL;
-	if( pPlayer->m_pWeapons.Find( this ) >= 0 )
-		pPlayer->m_pWeapons.Remove( this );
+	// Remove from inventory
+	pPlayer->RemoveWeapon( this );
 
-	SetThink( &CItemStimulant::SUB_Remove );
-	pev->nextthink = gpGlobals->time + 0.1f;
+	// remove from world
+	UTIL_Remove( this );
 }
 
 void CItemStimulant::WeaponIdle()
