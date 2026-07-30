@@ -53,6 +53,9 @@ void CMP5::Precache()
 		if( m_pScriptInfo->worldmodel[0] ) PRECACHE_MODEL( m_pScriptInfo->worldmodel );
 		if( m_pScriptInfo->playermodel[0] ) PRECACHE_MODEL( m_pScriptInfo->playermodel );
 	}
+	PRECACHE_MODEL("models/v_mp5.mdl");
+	PRECACHE_MODEL("models/p_mp5.mdl");
+	PRECACHE_MODEL("models/w_mp5.mdl");
 	PRECACHE_MODEL("models/v_9mmAR.mdl");
 	PRECACHE_MODEL("models/w_9mmAR.mdl");
 	PRECACHE_MODEL("models/p_9mmAR.mdl");
