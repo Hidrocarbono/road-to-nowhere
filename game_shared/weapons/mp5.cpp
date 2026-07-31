@@ -3,6 +3,7 @@
 #ifdef CLIENT_DLL
 #else
 #include "extdll.h"
+#include "enginecallback.h"
 #include "util.h"
 #include "cbase.h"
 #include "monsters.h"
@@ -48,6 +49,13 @@ int CMP5WeaponContext::SecondaryAmmoIndex()
 bool CMP5WeaponContext::Deploy()
 {
 	m_bInIronSight = false;
+	m_bFOVLerpActive = false;
+	m_pLayer->SetPlayerFOV( 90 );
+#ifndef CLIENT_DLL
+	CBasePlayer *player = m_pLayer->GetWeaponEntity()->m_pPlayer;
+	if( player )
+		g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 62\n" );
+#endif
 	return DefaultDeploy( "models/v_mp5.mdl", "models/p_mp5.mdl", MP5_ANIM_DEPLOY, "mp5" );
 }
 
@@ -73,6 +81,9 @@ void CMP5WeaponContext::PrimaryAttack()
 	Vector vecSrc = m_pLayer->GetGunPosition();
 	matrix3x3 cameraTransform = m_pLayer->GetCameraOrientation();
 	cameraTransform.SetForward(m_pLayer->GetAutoaimVector(AUTOAIM_5DEGREES));
+	// pull gun origin back 15u when not aiming (visual alignment)
+	if( !m_bInIronSight )
+		vecSrc = vecSrc - cameraTransform.GetForward() * 15.0f;
 
 	// spread depends on ironsight: normal = 3deg, aiming = 1deg (more accurate)
 	Vector spread;
@@ -93,18 +104,12 @@ void CMP5WeaponContext::PrimaryAttack()
 	params.fparam2 = vecDir.y;
 	params.iparam1 = 0;
 	params.iparam2 = 0;
-	params.bparam1 = 0;
+	params.bparam1 = m_bInIronSight ? 1 : 0;  // tells client which shoot anim to play
 	params.bparam2 = 0;
 
 	if (m_pLayer->ShouldRunFuncs()) {
 		m_pLayer->PlaybackWeaponEvent(params);
 	}
-
-	// FIX: send correct shoot animation based on ironsight state (stays in aim mode)
-	if( m_bInIronSight )
-		SendWeaponAnim( MP5_ANIM_SHOOT1_AIM + (m_iClip % 3) );
-	else
-		SendWeaponAnim( MP5_ANIM_SHOOT1 + (m_iClip % 3) );
 
 #ifndef CLIENT_DLL
 	CBasePlayer *player = m_pLayer->GetWeaponEntity()->m_pPlayer;
@@ -129,13 +134,36 @@ void CMP5WeaponContext::SecondaryAttack()
 	if( m_bInIronSight )
 	{
 		SendWeaponAnim( MP5_ANIM_AIM_IN );
-		m_pLayer->SetPlayerFOV( 55 );  // slight zoom when aiming
+		// start FOV lerp 90 -> 55
+		m_fFOVFrom = 90.0f;
+		m_fFOVTo = 55.0f;
+		m_fFOVLerpStart = m_pLayer->GetWeaponTimeBase(UsePredicting());
+		m_bFOVLerpActive = true;
+		// subtle camera dip (Tarkov-style)
+		m_pLayer->AddPlayerPunchangle( 1.5f, 0.f, 0.f );
 	}
 	else
 	{
 		SendWeaponAnim( MP5_ANIM_AIM_OUT );
-		m_pLayer->SetPlayerFOV( 90 );  // back to normal
+		// start FOV lerp 55 -> 90
+		m_fFOVFrom = 55.0f;
+		m_fFOVTo = 90.0f;
+		m_fFOVLerpStart = m_pLayer->GetWeaponTimeBase(UsePredicting());
+		m_bFOVLerpActive = true;
+		m_pLayer->AddPlayerPunchangle( -1.5f, 0.f, 0.f );
 	}
+
+	// dynamic cl_viewmodel_fov: 62 when hip (gun smaller/pulled back), 54 when aiming (unchanged)
+#ifndef CLIENT_DLL
+	CBasePlayer *player = m_pLayer->GetWeaponEntity()->m_pPlayer;
+	if( player )
+	{
+		if( m_bInIronSight )
+			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 54\n" );
+		else
+			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 62\n" );
+	}
+#endif
 
 	m_flNextSecondaryAttack = m_pLayer->GetWeaponTimeBase(UsePredicting()) + 0.3f;
 	m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase(UsePredicting()) + 2.0f;
@@ -153,6 +181,22 @@ void CMP5WeaponContext::WeaponIdle()
 {
 	ResetEmptySound();
 	m_pLayer->GetAutoaimVector(AUTOAIM_5DEGREES);
+
+	// FOV lerp for smooth ironsight transition
+	if( m_bFOVLerpActive )
+	{
+		float curTime = m_pLayer->GetWeaponTimeBase(UsePredicting());
+		float progress = (curTime - m_fFOVLerpStart) / 0.15f;  // ~150ms transition
+		if( progress >= 1.0f )
+		{
+			m_bFOVLerpActive = false;
+			m_pLayer->SetPlayerFOV( m_fFOVTo );
+		}
+		else
+		{
+			m_pLayer->SetPlayerFOV( m_fFOVFrom + (m_fFOVTo - m_fFOVFrom) * progress );
+		}
+	}
 
 	if (m_flTimeWeaponIdle > m_pLayer->GetWeaponTimeBase(UsePredicting()))
 		return;
