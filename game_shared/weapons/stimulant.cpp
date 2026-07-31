@@ -56,9 +56,9 @@ void CStimulantWeaponContext::PrimaryAttack()
 
 	// effects applied AFTER the animation finishes (hitme_1 @90fps ~0.3s)
 	m_bUseInProgress = true;
-	m_flUseFinishTime = m_pLayer->GetWeaponTimeBase(UsePredicting()) + 0.35f;
-	m_flNextPrimaryAttack = m_pLayer->GetWeaponTimeBase(UsePredicting()) + 0.5f;
-	m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase(UsePredicting());
+	m_flUseFinishTime = m_pLayer->GetTime() + 0.35f;
+	m_flNextPrimaryAttack = m_pLayer->GetTime() + 0.5f;
+	m_flTimeWeaponIdle = m_pLayer->GetTime();
 }
 
 void CStimulantWeaponContext::WeaponIdle()
@@ -67,7 +67,7 @@ void CStimulantWeaponContext::WeaponIdle()
 
 	if( m_bUseInProgress )
 	{
-		if( m_pLayer->GetWeaponTimeBase(UsePredicting()) >= m_flUseFinishTime )
+		if( m_pLayer->GetTime() >= m_flUseFinishTime )
 		{
 			m_bUseInProgress = false;
 #ifndef CLIENT_DLL
@@ -92,10 +92,10 @@ void CStimulantWeaponContext::WeaponIdle()
 		else
 		{
 			// keep checking while animation plays
-			m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase(UsePredicting());
+			m_flTimeWeaponIdle = m_pLayer->GetTime();
 			return;
 		}
 	}
 
-	m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase(UsePredicting()) + 5.0f;
+	m_flTimeWeaponIdle = m_pLayer->GetTime() + 5.0f;
 }
