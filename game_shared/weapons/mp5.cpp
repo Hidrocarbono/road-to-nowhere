@@ -70,8 +70,8 @@ void CMP5WeaponContext::PrimaryAttack()
 
 	m_iClip--;
 
-	// adjust gun position for v_mp5.mdl model offset (pull back 4 units when not aiming)
- = m_pLayer->GetCameraOrientation();
+	Vector vecSrc = m_pLayer->GetGunPosition();
+
 	cameraTransform.SetForward(m_pLayer->GetAutoaimVector(AUTOAIM_5DEGREES));
 
 	// spread depends on ironsight: normal = 3deg, aiming = 1deg (more accurate)
