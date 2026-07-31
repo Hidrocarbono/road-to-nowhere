@@ -19,6 +19,8 @@ public:
 	const char *pszAmmo1() override { return NULL; }
 	int iFlags() override { return ITEM_FLAG_SELECTONEMPTY | ITEM_FLAG_NOAUTORELOAD; }
 	bool IsUseable() override { return true; }
+	// no prediction: server always sends anims (SVC_WEAPONANIM) and GetWeaponTimeBase returns real time
+	bool UsePredicting() override { return false; }
 	bool ShouldWeaponIdle() override { return true; }  // run WeaponIdle every frame (use timer)
 	bool m_bUseInProgress = false;
 	float m_flUseFinishTime = 0.0f;
