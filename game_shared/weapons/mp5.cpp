@@ -134,10 +134,10 @@ void CMP5WeaponContext::SecondaryAttack()
 	if( m_bInIronSight )
 	{
 		SendWeaponAnim( MP5_ANIM_AIM_IN );
-		// start FOV lerp 90 -> 55
+		// start FOV lerp 90 -> 55 (GetTime = real time; GetWeaponTimeBase(true) is always 0 on server!)
 		m_fFOVFrom = 90.0f;
 		m_fFOVTo = 55.0f;
-		m_fFOVLerpStart = m_pLayer->GetWeaponTimeBase(UsePredicting());
+		m_fFOVLerpStart = m_pLayer->GetTime();
 		m_bFOVLerpActive = true;
 		// subtle camera dip (Tarkov-style)
 		m_pLayer->AddPlayerPunchangle( 1.5f, 0.f, 0.f );
@@ -145,10 +145,10 @@ void CMP5WeaponContext::SecondaryAttack()
 	else
 	{
 		SendWeaponAnim( MP5_ANIM_AIM_OUT );
-		// start FOV lerp 55 -> 90
+		// start FOV lerp 55 -> 90 (GetTime = real time)
 		m_fFOVFrom = 55.0f;
 		m_fFOVTo = 90.0f;
-		m_fFOVLerpStart = m_pLayer->GetWeaponTimeBase(UsePredicting());
+		m_fFOVLerpStart = m_pLayer->GetTime();
 		m_bFOVLerpActive = true;
 		m_pLayer->AddPlayerPunchangle( -1.5f, 0.f, 0.f );
 	}
@@ -182,10 +182,10 @@ void CMP5WeaponContext::WeaponIdle()
 	ResetEmptySound();
 	m_pLayer->GetAutoaimVector(AUTOAIM_5DEGREES);
 
-	// FOV lerp for smooth ironsight transition
+	// FOV lerp for smooth ironsight transition (GetTime = real time!)
 	if( m_bFOVLerpActive )
 	{
-		float curTime = m_pLayer->GetWeaponTimeBase(UsePredicting());
+		float curTime = m_pLayer->GetTime();
 		float progress = (curTime - m_fFOVLerpStart) / 0.15f;  // ~150ms transition
 		if( progress >= 1.0f )
 		{
