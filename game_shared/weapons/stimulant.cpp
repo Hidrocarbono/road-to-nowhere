@@ -12,7 +12,9 @@ CStimulantWeaponContext::CStimulantWeaponContext(std::unique_ptr<IWeaponLayer> &
 	CBaseWeaponContext(std::move(layer))
 {
 	m_iId = -1; // not a standard weapon
-	m_iClip = -1;
+	m_iClip = 1; // ready to use (1 use)
+	m_iPrimaryAmmoType = -1;
+	m_iSecondaryAmmoType = -1;
 }
 
 int CStimulantWeaponContext::GetItemInfo(ItemInfo *p) const
@@ -22,10 +24,10 @@ int CStimulantWeaponContext::GetItemInfo(ItemInfo *p) const
 	p->iMaxAmmo1 = -1;
 	p->pszAmmo2 = NULL;
 	p->iMaxAmmo2 = -1;
-	p->iMaxClip = -1;
+	p->iMaxClip = 1;
 	p->iSlot = 1;
 	p->iPosition = 6;
-	p->iFlags = ITEM_FLAG_SELECTONEMPTY;
+	p->iFlags = ITEM_FLAG_SELECTONEMPTY | ITEM_FLAG_NOAUTORELOAD;
 	p->iId = -1;
 	p->iWeight = 5;
 	return 1;
@@ -48,10 +50,10 @@ void CStimulantWeaponContext::PrimaryAttack()
 	// Restore stamina - fuser2 is stamina in Xash/PrimeXT
 	player->pev->fuser2 = 100.0f;
 
-	// Screen flash effect (white flash 0.1s)
-	UTIL_ScreenFade( player, Vector(255, 255, 200), 0.1f, 0.3f, 128, FFADE_IN );
+	// Screen flash effect (white flash, 0.1s) - FFADE_IN = 0
+	UTIL_ScreenFade( player, Vector(255, 255, 200), 0.1f, 0.3f, 128, 0 );
 
-	// Play sound (only if not client)
+	// Play sound
 	EMIT_SOUND( ENT(player), CHAN_ITEM, "items/smallmedkit1.wav", 1.0, ATTN_NORM );
 
 	// Remove from player inventory
