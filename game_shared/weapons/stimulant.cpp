@@ -12,7 +12,7 @@
 CStimulantWeaponContext::CStimulantWeaponContext(std::unique_ptr<IWeaponLayer> &&layer) :
 	CBaseWeaponContext(std::move(layer))
 {
-	m_iId = -1; // not a standard weapon
+	m_iId = WEAPON_STIMULANT;  // real ID (1<<-1 was UB and corrupted weapons bitfield!)
 	m_iClip = 1; // ready to use (1 use)
 	m_iPrimaryAmmoType = -1;
 	m_iSecondaryAmmoType = -1;
@@ -29,44 +29,73 @@ int CStimulantWeaponContext::GetItemInfo(ItemInfo *p) const
 	p->iSlot = 1;
 	p->iPosition = 6;
 	p->iFlags = ITEM_FLAG_SELECTONEMPTY | ITEM_FLAG_NOAUTORELOAD;
-	p->iId = -1;
+	p->iId = WEAPON_STIMULANT;
 	p->iWeight = 5;
 	return 1;
 }
 
 bool CStimulantWeaponContext::Deploy()
 {
-	return DefaultDeploy( "models/v_antidote.mdl", "models/w_antidote.mdl", 0, "medkit" );
+	return DefaultDeploy( "models/v_antidote.mdl", "models/w_antidote.mdl", 2, "medkit" );  // anim 2 = draw
 }
 
 void CStimulantWeaponContext::PrimaryAttack()
 {
+	if( m_bUseInProgress )
+		return;  // already animating
+
+	// play the use animation (hitme_1 = anim 1)
+	SendWeaponAnim( 1 );
+
+	// play sound immediately
 #ifndef CLIENT_DLL
 	CBasePlayer *player = m_pLayer->GetWeaponEntity()->m_pPlayer;
-	if( !player ) return;
-
-	// Heal 50 HP
-	player->TakeHealth( 50, DMG_GENERIC );
-
-	// Restore stamina - fuser2 is stamina in Xash/PrimeXT
-	player->pev->fuser2 = 100.0f;
-
-	// Screen flash effect (white flash, 0.1s) - FFADE_IN = 0
-	UTIL_ScreenFade( player, Vector(255, 255, 200), 0.1f, 0.3f, 128, 0 );
-
-	// Play sound
-	EMIT_SOUND( ENT(player), CHAN_ITEM, "items/smallmedkit1.wav", 1.0, ATTN_NORM );
-
-	// Remove from player inventory
-	player->RemovePlayerItem( m_pLayer->GetWeaponEntity() );
-
-	// Remove from world
-	UTIL_Remove( (CBaseEntity *)m_pLayer->GetWeaponEntity() );
+	if( player )
+		EMIT_SOUND( ENT(player), CHAN_ITEM, "items/smallmedkit1.wav", 1.0, ATTN_NORM );
 #endif
+
+	// effects applied AFTER the animation finishes (hitme_1 @90fps ~0.3s)
+	m_bUseInProgress = true;
+	m_flUseFinishTime = m_pLayer->GetWeaponTimeBase(UsePredicting()) + 0.35f;
+	m_flNextPrimaryAttack = m_pLayer->GetWeaponTimeBase(UsePredicting()) + 0.5f;
+	m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase(UsePredicting());
 }
 
 void CStimulantWeaponContext::WeaponIdle()
 {
 	ResetEmptySound();
+
+	if( m_bUseInProgress )
+	{
+		if( m_pLayer->GetWeaponTimeBase(UsePredicting()) >= m_flUseFinishTime )
+		{
+			m_bUseInProgress = false;
+#ifndef CLIENT_DLL
+			CBasePlayer *player = m_pLayer->GetWeaponEntity()->m_pPlayer;
+			if( player )
+			{
+				// Heal 50 HP
+				player->TakeHealth( 50, DMG_GENERIC );
+
+				// Restore stamina - fuser2 is stamina in Xash/PrimeXT
+				player->pev->fuser2 = 100.0f;
+
+				// Screen flash: fast (20ms fade, 50ms hold) - FFADE_IN = 0
+				UTIL_ScreenFade( player, Vector(255, 255, 200), 0.02f, 0.05f, 128, 0 );
+
+				// Remove from player inventory + world
+				player->RemovePlayerItem( m_pLayer->GetWeaponEntity() );
+				UTIL_Remove( (CBaseEntity *)m_pLayer->GetWeaponEntity() );
+			}
+#endif
+		}
+		else
+		{
+			// keep checking while animation plays
+			m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase(UsePredicting());
+			return;
+		}
+	}
+
 	m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase(UsePredicting()) + 5.0f;
 }
