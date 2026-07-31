@@ -53,6 +53,11 @@ public:
 	void WeaponIdle() override;
 
 	bool m_bInIronSight = false;
+	bool m_bFOVLerpActive = false;
+	float m_fFOVLerpStart = 0.0f;
+	float m_fFOVFrom = 90.0f;
+	float m_fFOVTo = 90.0f;
+	bool ShouldWeaponIdle() override { return true; }  // so WeaponIdle runs every frame (FOV lerp)
 	uint16_t m_usEvent1;
 	uint16_t m_usEvent2;
 };
