@@ -50,8 +50,10 @@ void GameEventUtils::CreateTracer(const matrix3x3 &camera, const Vector &origin,
 	if (count % frequency == 0) 
 	{
 		const Vector offset = Vector(0.f, 0.f, -4.f);
-		Vector startPos = origin + offset + camera.GetRight() * -6.f + camera.GetForward() * 10.f;
-		gEngfuncs.pEfxAPI->R_TracerEffect(startPos, const_cast<float*>(&end.x));
+		Vector startPos = origin + offset + camera.GetRight() * -3.f + camera.GetForward() * 10.f;
+		// custom tracer: thin (width 1.5) + 50% alpha (127) via beam points
+		int beamSprite = gEngfuncs.pEventAPI->EV_FindModelIndex("sprites/laserbeam.spr");
+		gEngfuncs.pEfxAPI->R_BeamPoints(startPos, const_cast<float*>(&end.x), beamSprite, 0, 0, 1.5f, 0, 255, 255, 200, 127, 0);
 	}
 	count++;
 }
