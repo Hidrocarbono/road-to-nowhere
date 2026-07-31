@@ -21,7 +21,6 @@
 #include "weaponscript.h"
 
 LINK_ENTITY_TO_CLASS( weapon_mp5, CMP5 );
-LINK_ENTITY_TO_CLASS( weapon_mp5, CMP5 );
 LINK_ENTITY_TO_CLASS( weapon_9mmAR, CMP5 );
 
 CMP5::CMP5()
