@@ -71,7 +71,7 @@ void CMP5WeaponContext::PrimaryAttack()
 	m_iClip--;
 
 	Vector vecSrc = m_pLayer->GetGunPosition();
-
+	matrix3x3 cameraTransform = m_pLayer->GetCameraOrientation();
 	cameraTransform.SetForward(m_pLayer->GetAutoaimVector(AUTOAIM_5DEGREES));
 
 	// spread depends on ironsight: normal = 3deg, aiming = 1deg (more accurate)
@@ -100,8 +100,11 @@ void CMP5WeaponContext::PrimaryAttack()
 		m_pLayer->PlaybackWeaponEvent(params);
 	}
 
-	// send correct shoot animation based on ironsight state
-
+	// FIX: send correct shoot animation based on ironsight state (stays in aim mode)
+	if( m_bInIronSight )
+		SendWeaponAnim( MP5_ANIM_SHOOT1_AIM + (m_iClip % 3) );
+	else
+		SendWeaponAnim( MP5_ANIM_SHOOT1 + (m_iClip % 3) );
 
 #ifndef CLIENT_DLL
 	CBasePlayer *player = m_pLayer->GetWeaponEntity()->m_pPlayer;
@@ -117,7 +120,6 @@ void CMP5WeaponContext::PrimaryAttack()
 	m_flNextPrimaryAttack = GetNextPrimaryAttackDelay(0.1f);
 	m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase(UsePredicting()) + m_pLayer->GetRandomFloat(m_pLayer->GetRandomSeed(), 10.f, 15.f);
 }
-
 void CMP5WeaponContext::SecondaryAttack()
 {
 	// Toggle ironsight on right-click
