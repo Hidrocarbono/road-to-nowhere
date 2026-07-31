@@ -3,6 +3,8 @@
 #include "weapon_layer.h"
 #include <utility>
 
+#define WEAPON_STIMULANT	30
+
 class CStimulantWeaponContext : public CBaseWeaponContext
 {
 public:
@@ -17,6 +19,9 @@ public:
 	const char *pszAmmo1() override { return NULL; }
 	int iFlags() override { return ITEM_FLAG_SELECTONEMPTY | ITEM_FLAG_NOAUTORELOAD; }
 	bool IsUseable() override { return true; }
+	bool ShouldWeaponIdle() override { return true; }  // run WeaponIdle every frame (use timer)
+	bool m_bUseInProgress = false;
+	float m_flUseFinishTime = 0.0f;
 	int GetItemInfo(ItemInfo *p) const override;
 	bool Deploy() override;
 	void PrimaryAttack() override;
