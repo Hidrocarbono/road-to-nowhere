@@ -5,6 +5,7 @@
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
+#include "weapons.h"
 #include "player.h"
 #endif
 
@@ -60,8 +61,7 @@ void CStimulantWeaponContext::PrimaryAttack()
 	player->RemovePlayerItem( m_pLayer->GetWeaponEntity() );
 
 	// Remove from world
-	m_pLayer->GetWeaponEntity()->SetThink( NULL );
-	UTIL_Remove( m_pLayer->GetWeaponEntity() );
+	UTIL_Remove( (CBaseEntity *)m_pLayer->GetWeaponEntity() );
 #endif
 }
 
