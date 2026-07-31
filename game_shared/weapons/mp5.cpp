@@ -70,8 +70,8 @@ void CMP5WeaponContext::PrimaryAttack()
 
 	m_iClip--;
 
-	Vector vecSrc = m_pLayer->GetGunPosition();
-	matrix3x3 cameraTransform = m_pLayer->GetCameraOrientation();
+	// adjust gun position for v_mp5.mdl model offset (pull back 4 units when not aiming)
+ = m_pLayer->GetCameraOrientation();
 	cameraTransform.SetForward(m_pLayer->GetAutoaimVector(AUTOAIM_5DEGREES));
 
 	// spread depends on ironsight: normal = 3deg, aiming = 1deg (more accurate)
@@ -100,7 +100,8 @@ void CMP5WeaponContext::PrimaryAttack()
 		m_pLayer->PlaybackWeaponEvent(params);
 	}
 
-	m_pLayer->AddPlayerPunchangle(m_pLayer->GetRandomFloat(m_pLayer->GetRandomSeed(), -2.f, 2.f), 0.f, 0.f);
+	// send correct shoot animation based on ironsight state
+
 
 #ifndef CLIENT_DLL
 	CBasePlayer *player = m_pLayer->GetWeaponEntity()->m_pPlayer;
