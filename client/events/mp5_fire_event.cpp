@@ -40,7 +40,10 @@ void CMP5FireEvent::HandleShot()
 	if (IsEventLocal())
 	{
 		GameEventUtils::SpawnMuzzleflash();
-		gEngfuncs.pEventAPI->EV_WeaponAnimation( MP5_FIRE1 + gEngfuncs.pfnRandomLong(0,2), 2 );
+		if( m_arguments->bparam1 )
+			gEngfuncs.pEventAPI->EV_WeaponAnimation( MP5_ANIM_SHOOT1_AIM + gEngfuncs.pfnRandomLong(0,2), 2 );
+		else
+			gEngfuncs.pEventAPI->EV_WeaponAnimation( MP5_FIRE1 + gEngfuncs.pfnRandomLong(0,2), 2 );
 	}
 
 	matrix3x3 cameraMatrix(GetAngles());
