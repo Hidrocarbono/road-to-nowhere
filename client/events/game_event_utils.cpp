@@ -53,7 +53,7 @@ void GameEventUtils::CreateTracer(const matrix3x3 &camera, const Vector &origin,
 		Vector startPos = origin + offset + camera.GetRight() * -3.f + camera.GetForward() * 10.f;
 		// custom tracer: thin (width 1.5) + 50% alpha (127) via beam points
 		int beamSprite = gEngfuncs.pEventAPI->EV_FindModelIndex("sprites/laserbeam.spr");
-		gEngfuncs.pEfxAPI->R_BeamPoints(startPos, const_cast<float*>(&end.x), beamSprite, 0, 0, 1.5f, 0, 255, 255, 200, 127, 0);
+		gEngfuncs.pEfxAPI->R_BeamPoints(startPos, const_cast<float*>(&end.x), beamSprite, 0.1f, 1.5f, 0, 127, 0, 0, 0, 255, 255, 200);  // life 0.1s, width 1.5 (thin), brightness 127 (50% alpha)
 	}
 	count++;
 }
