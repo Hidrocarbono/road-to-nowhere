@@ -1,7 +1,7 @@
 #include "item_stimulant.h"
 #include "server_weapon_layer_impl.h"
 #include "weapon_layer.h"
-#include "stimulant.h"
+#include "weapons/stimulant.h"
 
 LINK_ENTITY_TO_CLASS( item_stimulant, CItemStimulant );
 
