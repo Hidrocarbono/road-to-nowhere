@@ -48,6 +48,9 @@ void CStimulantWeaponContext::PrimaryAttack()
 	// Restore stamina - fuser2 is stamina in Xash/PrimeXT
 	player->pev->fuser2 = 100.0f;
 
+	// Screen flash effect (white flash 0.1s)
+	UTIL_ScreenFade( player, Vector(255, 255, 200), 0.1f, 0.3f, 128, FFADE_IN );
+
 	// Play sound (only if not client)
 	EMIT_SOUND( ENT(player), CHAN_ITEM, "items/smallmedkit1.wav", 1.0, ATTN_NORM );
 
