@@ -24,6 +24,7 @@ GNU General Public License for more details.
 #include "gl_aurora.h"
 #include "r_efx.h"
 #include "dlight.h"
+#include "const.h"
 
 CMP5FireEvent::CMP5FireEvent(event_args_t *args) :
 	CBaseGameEvent(args)
@@ -54,16 +55,39 @@ void CMP5FireEvent::HandleShot()
 		if( viewEnt )
 			UTIL_CreateAurora( viewEnt, "particles/weapon_hot.aur", 1, 0.4f );
 
-		// RTN: dynamic muzzle light (dlight) - brief flash that lights the wall
+		// RTN: 3D muzzle flash (Paranoia 2 style) - m_flash models, additive, short-lived
+		static const char *flashModels[] = { "models/m_flash.mdl", "models/m_flash1.mdl", "models/m_flash2.mdl", "models/m_flash.mdl" };
+		int flashIdx = 0;
+		struct model_s *flashModel = gEngfuncs.CL_LoadModel( flashModels[gEngfuncs.pfnRandomLong(0, 3)], &flashIdx );
+		if( flashModel )
+		{
+			Vector flashOrigin = GetOrigin() + forward * 30.0f + up * 2.0f;
+			TEMPENTITY *flash = gEngfuncs.pEfxAPI->CL_TempEntAllocHigh( flashOrigin, flashModel );
+			if( flash )
+			{
+				flash->flags = FTENT_SPRANIMATE | FTENT_FADEOUT;
+				flash->die = gEngfuncs.GetClientTime() + 0.08f;
+				flash->entity.curstate.rendermode = kRenderTransAdd;
+				flash->entity.curstate.renderamt = 255;
+				flash->entity.curstate.scale = gEngfuncs.pfnRandomFloat(0.4f, 0.7f);
+				flash->entity.curstate.frame = gEngfuncs.pfnRandomLong(0, 3);  // random flash frame
+				flash->entity.curstate.framerate = 200.0f;  // animate fast (petal expansion)
+				flash->entity.curstate.body = 0;
+				flash->entity.angles = GetAngles();  // face the camera (billboard-like)
+				flash->entity.curstate.angles = GetAngles();
+			}
+		}
+
+		// RTN: dynamic muzzle light (dlight) - warm yellow/orange, syncs with flash life
 		dlight_t *muzzleLight = gEngfuncs.pEfxAPI->CL_AllocDlight( m_arguments->entindex );
 		if( muzzleLight )
 		{
 			Vector lightOrigin = GetOrigin() + forward * 30.0f + up * 2.0f;
 			muzzleLight->origin = lightOrigin;
-			muzzleLight->radius = 120.0f;
+			muzzleLight->radius = 110.0f;
 			muzzleLight->color.r = 255;
-			muzzleLight->color.g = 200;
-			muzzleLight->color.b = 100;
+			muzzleLight->color.g = 170;
+			muzzleLight->color.b = 60;
 			muzzleLight->die = gEngfuncs.GetClientTime() + 0.08f;
 			muzzleLight->decay = 1500.0f;
 			muzzleLight->minlight = 16.0f;
