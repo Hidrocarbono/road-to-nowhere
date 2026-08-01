@@ -929,13 +929,13 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 		else if( pparams->cmd->buttons & IN_ALT2 ) leanDir = 1;  // E = right
 
 		float targetRoll = (float)leanDir * 5.0f;  // subtle 5deg
-		g_flLeanRoll += (targetRoll - g_flLeanRoll) * min( 1.0f, pparams->frametime * 10.0f );
+		g_flLeanRoll += (targetRoll - g_flLeanRoll) * Q_min( 1.0f, pparams->frametime * 10.0f );
 		if( fabs( g_flLeanRoll - targetRoll ) < 0.05f ) g_flLeanRoll = targetRoll;
 		pparams->viewangles[ROLL] += g_flLeanRoll;
 
 		// lateral eye offset (visual, complements server view_ofs lean)
 		float targetOffset = (float)leanDir * 12.0f;  // matches server view_ofs lean
-		g_flLeanOffset += (targetOffset - g_flLeanOffset) * min( 1.0f, pparams->frametime * 10.0f );
+		g_flLeanOffset += (targetOffset - g_flLeanOffset) * Q_min( 1.0f, pparams->frametime * 10.0f );
 		if( fabs( g_flLeanOffset - targetOffset ) < 0.05f ) g_flLeanOffset = targetOffset;
 		pparams->vieworg += pparams->right * g_flLeanOffset;
 	}
