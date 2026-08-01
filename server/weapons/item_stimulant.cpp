@@ -38,7 +38,7 @@ int CItemStimulant::AddToPlayer(CBasePlayer *pPlayer)
 			if( pItem->iItemSlot() == 1 && pItem->m_pWeaponContext &&
 				pItem->m_pWeaponContext->m_iId == WEAPON_STIMULANT )
 			{
-				pItem->m_pWeaponContext->AddDose( 1 );
+				pItem->m_pWeaponContext->m_iClip += 1;  // +1 dose (m_iClip is public)
 				return TRUE;  // picked up, no duplicate entity added
 			}
 			pItem = pItem->m_pNext;
