@@ -1764,7 +1764,7 @@ void CBasePlayer::PreThink(void)
 		float leanTarget = 0.0f;
 		if ( pev->button & IN_ALT1 )
 			leanTarget = -12.0f;
-		else if ( pev->button & IN_ALT2 )
+		else if ( pev->button & IN_CANCEL )
 			leanTarget = 12.0f;
 
 		float leanYaw = pev->v_angle.y * ( M_PI / 180.0f );
