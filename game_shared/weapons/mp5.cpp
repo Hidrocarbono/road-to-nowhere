@@ -163,7 +163,7 @@ void CMP5WeaponContext::SecondaryAttack()
 	if( player )
 	{
 		if( m_bInIronSight )
-			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 59\n" );  // 54 era colada no rosto; 59 afasta +5
+			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 65\n" );  // user: ainda perto -> 65 (mais longe)
 		else
 			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 62\n" );
 	}
