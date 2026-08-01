@@ -126,6 +126,10 @@ float V_CalcBob( struct ref_params_s *pparams )
 	bob = sqrt( vel.x * vel.x + vel.y * vel.y ) * cl_bob->value;
 	bob = bob * 0.3f + bob * 0.7f * sin( cycle );
 
+	// RTN: extra weapon sway while running (Shift)
+	if( pparams->cmd && ( pparams->cmd->buttons & IN_RUN ))
+		bob *= 1.4f;
+
 	return bound( -7, bob, 4 );
 }
 
@@ -898,6 +902,30 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 	pparams->vieworg.z += bob;
 
 	pparams->viewangles = pparams->cl_viewangles;
+
+	// RTN Fase 5: Lean (Q/E) - Tarkov-style subtle camera roll + lateral offset
+	if( pparams->cmd )
+	{
+		int leanDir = 0;
+		if( pparams->cmd->buttons & IN_ALT1 ) leanDir = -1;  // Q = left
+		else if( pparams->cmd->buttons & IN_ALT2 ) leanDir = 1;  // E = right
+
+		static float flLeanRoll = 0.0f;
+		float targetRoll = (float)leanDir * 5.0f;  // subtle 5deg
+		flLeanRoll += (targetRoll - flLeanRoll) * min( 1.0f, pparams->frametime * 10.0f );
+		if( fabs( flLeanRoll - targetRoll ) < 0.05f ) flLeanRoll = targetRoll;
+		pparams->viewangles[ROLL] += flLeanRoll;
+
+		// lateral eye offset (visual side of the server's view_ofs lean)
+		if( pparams->right )
+		{
+			static float flLeanOffset = 0.0f;
+			float targetOffset = (float)leanDir * 6.0f;
+			flLeanOffset += (targetOffset - flLeanOffset) * min( 1.0f, pparams->frametime * 10.0f );
+			if( fabs( flLeanOffset - targetOffset ) < 0.05f ) flLeanOffset = targetOffset;
+			pparams->vieworg += pparams->right * flLeanOffset;
+		}
+	}
 
 	gEngfuncs.V_CalcShake();
 	gEngfuncs.V_ApplyShake( pparams->vieworg, pparams->viewangles, 1.0f );
