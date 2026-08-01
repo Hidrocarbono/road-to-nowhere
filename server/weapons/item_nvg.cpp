@@ -49,7 +49,7 @@ int CItemNVG::AddDuplicate(CBasePlayerItem *pItem)
 			float battery = ctx->GetBatteryLeft() + NVG_BATTERY_MAX;
 			if( battery > NVG_BATTERY_MAX * 3.0f )
 				battery = NVG_BATTERY_MAX * 3.0f;
-			ctx->AddBattery( NVG_BATTERY_MAX );
+			ctx->AddBattery( battery - ctx->GetBatteryLeft() );
 			return TRUE;
 		}
 	}
