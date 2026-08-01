@@ -27,5 +27,6 @@ public:
 	int GetItemInfo(ItemInfo *p) const override;
 	bool Deploy() override;
 	void PrimaryAttack() override;
+	void ItemPostFrame() override;
 	void WeaponIdle() override;
 };
