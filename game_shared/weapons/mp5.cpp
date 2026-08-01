@@ -33,9 +33,9 @@ int CMP5WeaponContext::GetItemInfo(ItemInfo *p) const
 	p->pszAmmo2 = "ARgrenades";
 	p->iMaxAmmo2 = M203_GRENADE_MAX_CARRY;
 	p->iMaxClip = MP5_MAX_CLIP;
-	p->iSlot = 2;
-	p->iPosition = 0;
-	p->iFlags = 0;
+	p->iSlot = 3;        // consistente com server/weapon_mp5.cpp (slot 3)
+	p->iPosition = 1;    // pos 1 (padrao HL; pos 6 quebrava o scroll)
+	p->iFlags = ITEM_FLAG_SELECTONEMPTY;
 	p->iId = m_iId;
 	p->iWeight = MP5_WEIGHT;
 	return 1;
