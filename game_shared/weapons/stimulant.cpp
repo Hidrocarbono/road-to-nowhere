@@ -80,8 +80,10 @@ void CStimulantWeaponContext::WeaponIdle()
 				// Restore stamina - fuser2 is stamina in Xash/PrimeXT
 				player->pev->fuser2 = 100.0f;
 
-				// Screen flash: fast (20ms fade, 50ms hold) - FFADE_IN = 0
-				UTIL_ScreenFade( player, Vector(255, 255, 200), 0.02f, 0.05f, 128, 0 );
+				// Screen flash: longer (100ms fade, 200ms hold) - drug kick effect
+				UTIL_ScreenFade( player, Vector(255, 255, 200), 0.1f, 0.2f, 160, 0 );
+				// secondary warm pulse (drug "wave") - fades out over 0.6s
+				UTIL_ScreenFade( player, Vector(255, 180, 60), 0.3f, 0.6f, 60, 0 );
 
 				// RTN cumulative: consume 1 dose; only remove when out of doses
 				m_iClip--;
