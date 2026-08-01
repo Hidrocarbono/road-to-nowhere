@@ -926,7 +926,7 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 	{
 		int leanDir = 0;
 		if( pparams->cmd->buttons & IN_ALT1 ) leanDir = -1;  // Q = left
-		else if( pparams->cmd->buttons & IN_ALT2 ) leanDir = 1;  // E = right
+		else if( pparams->cmd->buttons & IN_CANCEL ) leanDir = 1;  // E = right
 
 		float targetRoll = (float)leanDir * 5.0f;  // subtle 5deg
 		g_flLeanRoll += (targetRoll - g_flLeanRoll) * Q_min( 1.0f, pparams->frametime * 10.0f );
