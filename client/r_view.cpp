@@ -937,7 +937,7 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 		float targetOffset = (float)leanDir * 12.0f;  // matches server view_ofs lean
 		g_flLeanOffset += (targetOffset - g_flLeanOffset) * Q_min( 1.0f, pparams->frametime * 10.0f );
 		if( fabs( g_flLeanOffset - targetOffset ) < 0.05f ) g_flLeanOffset = targetOffset;
-		pparams->vieworg += pparams->right * g_flLeanOffset;
+		pparams->vieworg += pparams->right * g_flLeanOffset;  // camera eye shifts full 12u
 	}
 
 	cl_entity_t *view = GET_VIEWMODEL();
@@ -961,9 +961,10 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 	view->angles[ROLL] -= bob * 1.0f;
 	view->origin.z -= 1;
 
-	// RTN: viewmodel tilts with lean too (Tarkov-style)
+	// RTN F5 RIG UNIFICADO: viewmodel acompanha a câmera EXATAMENTE (mesmo roll + mesmo offset).
+	// Antes era 0.5x -> arma ficava "em pé reto" enquanto a câmera inclinava (bug do cano defasado).
 	view->angles[ROLL] += g_flLeanRoll;
-	view->origin += pparams->right * g_flLeanOffset * 0.5f;  // viewmodel moves half (subtle)
+	view->origin += pparams->right * g_flLeanOffset;  // 1.0x: cano visual alinhado com o centro da tela
 
 	// fudge position around to keep amount of weapon visible
 	// roughly equal with different FOV
