@@ -35,10 +35,12 @@ int CItemStimulant::AddToPlayer(CBasePlayer *pPlayer)
 		CBasePlayerItem *pItem = pPlayer->m_rgpPlayerItems[i];
 		while( pItem )
 		{
-			if( pItem->iItemSlot() == 1 && pItem->m_pWeaponContext &&
-				pItem->m_pWeaponContext->m_iId == WEAPON_STIMULANT )
+			// m_pWeaponContext lives on CBasePlayerWeapon, so cast (safe: all weapons are CBasePlayerWeapon)
+			CBasePlayerWeapon *pWeapon = dynamic_cast<CBasePlayerWeapon *>(pItem);
+			if( pWeapon && pWeapon->iItemSlot() == 1 && pWeapon->m_pWeaponContext &&
+				pWeapon->m_pWeaponContext->m_iId == WEAPON_STIMULANT )
 			{
-				pItem->m_pWeaponContext->m_iClip += 1;  // +1 dose (m_iClip is public)
+				pWeapon->m_pWeaponContext->m_iClip += 1;  // +1 dose (m_iClip is public)
 				return TRUE;  // picked up, no duplicate entity added
 			}
 			pItem = pItem->m_pNext;
