@@ -934,7 +934,7 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 		pparams->viewangles[ROLL] += g_flLeanRoll;
 
 		// lateral eye offset (visual, complements server view_ofs lean)
-		float targetOffset = (float)leanDir * 6.0f;
+		float targetOffset = (float)leanDir * 12.0f;  // matches server view_ofs lean
 		g_flLeanOffset += (targetOffset - g_flLeanOffset) * min( 1.0f, pparams->frametime * 10.0f );
 		if( fabs( g_flLeanOffset - targetOffset ) < 0.05f ) g_flLeanOffset = targetOffset;
 		pparams->vieworg += pparams->right * g_flLeanOffset;
@@ -963,7 +963,7 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 
 	// RTN: viewmodel tilts with lean too (Tarkov-style)
 	view->angles[ROLL] += g_flLeanRoll;
-	view->origin += pparams->right * g_flLeanOffset * 0.5f;
+	view->origin += pparams->right * g_flLeanOffset * 0.5f;  // viewmodel moves half (subtle)
 
 	// fudge position around to keep amount of weapon visible
 	// roughly equal with different FOV
