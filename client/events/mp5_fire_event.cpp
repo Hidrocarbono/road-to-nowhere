@@ -21,6 +21,8 @@ GNU General Public License for more details.
 #include "event_api.h"
 #include "event_args.h"
 #include "weapons/mp5.h"
+#include "gl_aurora.h"
+#include "dlight.h"
 
 CMP5FireEvent::CMP5FireEvent(event_args_t *args) :
 	CBaseGameEvent(args)
@@ -40,6 +42,27 @@ void CMP5FireEvent::HandleShot()
 	if (IsEventLocal())
 	{
 		GameEventUtils::SpawnMuzzleflash();
+
+		// RTN: smoke puff on the barrel (Paranoia 2 style) - weapon_hot.aur exists in game_dir/particles
+		cl_entity_t *viewEnt = gEngfuncs.GetViewModel();
+		if( viewEnt )
+			UTIL_CreateAurora( viewEnt, "particles/weapon_hot.aur", 1, 0.4f );
+
+		// RTN: dynamic muzzle light (dlight) - brief flash that lights the wall
+		dlight_t *muzzleLight = gEngfuncs.pEfxAPI->CL_AllocDlight( m_arguments->entindex );
+		if( muzzleLight )
+		{
+			Vector lightOrigin = GetOrigin() + forward * 30.0f + up * 2.0f;
+			muzzleLight->origin = lightOrigin;
+			muzzleLight->radius = 120.0f;
+			muzzleLight->color.r = 255;
+			muzzleLight->color.g = 200;
+			muzzleLight->color.b = 100;
+			muzzleLight->die = gEngfuncs.GetClientTime() + 0.08f;
+			muzzleLight->decay = 1500.0f;
+			muzzleLight->minlight = 16.0f;
+		}
+
 		if( m_arguments->bparam1 )
 			gEngfuncs.pEventAPI->EV_WeaponAnimation( MP5_ANIM_SHOOT1_AIM + gEngfuncs.pfnRandomLong(0,2), 2 );
 		else
