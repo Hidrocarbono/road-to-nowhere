@@ -26,6 +26,10 @@ cl_entity_t *v_intermission_spot;
 float v_idlescale;
 static bool is_paused = false;
 
+// RTN Fase 5: lean smoothing state (shared between camera & viewmodel)
+static float g_flLeanRoll = 0.0f;
+static float g_flLeanOffset = 0.0f;
+
 cvar_t	*cl_bobcycle;
 cvar_t	*cl_bob;
 cvar_t	*cl_bobup;
@@ -924,18 +928,16 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 		if( pparams->cmd->buttons & IN_ALT1 ) leanDir = -1;  // Q = left
 		else if( pparams->cmd->buttons & IN_ALT2 ) leanDir = 1;  // E = right
 
-		static float flLeanRoll = 0.0f;
 		float targetRoll = (float)leanDir * 5.0f;  // subtle 5deg
-		flLeanRoll += (targetRoll - flLeanRoll) * min( 1.0f, pparams->frametime * 10.0f );
-		if( fabs( flLeanRoll - targetRoll ) < 0.05f ) flLeanRoll = targetRoll;
-		pparams->viewangles[ROLL] += flLeanRoll;
+		g_flLeanRoll += (targetRoll - g_flLeanRoll) * min( 1.0f, pparams->frametime * 10.0f );
+		if( fabs( g_flLeanRoll - targetRoll ) < 0.05f ) g_flLeanRoll = targetRoll;
+		pparams->viewangles[ROLL] += g_flLeanRoll;
 
 		// lateral eye offset (visual, complements server view_ofs lean)
-		static float flLeanOffset = 0.0f;
 		float targetOffset = (float)leanDir * 6.0f;
-		flLeanOffset += (targetOffset - flLeanOffset) * min( 1.0f, pparams->frametime * 10.0f );
-		if( fabs( flLeanOffset - targetOffset ) < 0.05f ) flLeanOffset = targetOffset;
-		pparams->vieworg += pparams->right * flLeanOffset;
+		g_flLeanOffset += (targetOffset - g_flLeanOffset) * min( 1.0f, pparams->frametime * 10.0f );
+		if( fabs( g_flLeanOffset - targetOffset ) < 0.05f ) g_flLeanOffset = targetOffset;
+		pparams->vieworg += pparams->right * g_flLeanOffset;
 	}
 
 	cl_entity_t *view = GET_VIEWMODEL();
@@ -958,6 +960,10 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 	view->angles[YAW] -= bob * 0.5f;
 	view->angles[ROLL] -= bob * 1.0f;
 	view->origin.z -= 1;
+
+	// RTN: viewmodel tilts with lean too (Tarkov-style)
+	view->angles[ROLL] += g_flLeanRoll;
+	view->origin += pparams->right * g_flLeanOffset * 0.5f;
 
 	// fudge position around to keep amount of weapon visible
 	// roughly equal with different FOV
