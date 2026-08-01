@@ -15,6 +15,7 @@ public:
 	void Spawn() override;
 	void Precache() override;
 	int AddToPlayer(CBasePlayer *pPlayer);
+	int AddDuplicate(CBasePlayerItem *pItem) override;
 	int GetItemInfo(ItemInfo *p) const override;
 	int iItemSlot() override { return 1; }
 	int iItemPosition() override { return 6; }
