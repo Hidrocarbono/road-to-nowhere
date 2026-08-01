@@ -83,9 +83,13 @@ void CStimulantWeaponContext::WeaponIdle()
 				// Screen flash: fast (20ms fade, 50ms hold) - FFADE_IN = 0
 				UTIL_ScreenFade( player, Vector(255, 255, 200), 0.02f, 0.05f, 128, 0 );
 
-				// Remove from player inventory + world
-				player->RemovePlayerItem( m_pLayer->GetWeaponEntity() );
-				UTIL_Remove( (CBaseEntity *)m_pLayer->GetWeaponEntity() );
+				// RTN cumulative: consume 1 dose; only remove when out of doses
+				m_iClip--;
+				if( m_iClip <= 0 )
+				{
+					player->RemovePlayerItem( m_pLayer->GetWeaponEntity() );
+					UTIL_Remove( (CBaseEntity *)m_pLayer->GetWeaponEntity() );
+				}
 			}
 #endif
 		}
