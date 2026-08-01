@@ -68,10 +68,13 @@ void CStimulantWeaponContext::PrimaryAttack()
 	m_flTimeWeaponIdle = m_pLayer->GetTime();
 }
 
-void CStimulantWeaponContext::ItemPostFrame()
+void CStimulantWeaponContext::WeaponIdle()
 {
-	// RTN F6 fix: processa os efeitos AQUI (roda todo frame, mesmo com o botao de ataque
-	// pressionado). WeaponIdle() so era chamado com o botao solto -> uso "travava".
+	ResetEmptySound();
+
+	// RTN F6 fix: ShouldWeaponIdle()=true -> o ItemPostFrame base chama WeaponIdle()
+	// TODO frame (inclusive com o botao de ataque pressionado - catch-all no final).
+	// Assim os efeitos do uso sao processados mesmo segurando o clique.
 	if( m_bUseInProgress )
 	{
 		if( m_pLayer->GetTime() >= m_flUseFinishTime )
@@ -109,11 +112,5 @@ void CStimulantWeaponContext::ItemPostFrame()
 		}
 	}
 
-	CBaseWeaponContext::ItemPostFrame();
-}
-
-void CStimulantWeaponContext::WeaponIdle()
-{
-	ResetEmptySound();
 	m_flTimeWeaponIdle = m_pLayer->GetTime() + 5.0f;
 }
