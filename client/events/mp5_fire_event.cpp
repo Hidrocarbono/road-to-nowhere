@@ -39,6 +39,11 @@ void CMP5FireEvent::Execute(bool secondary)
 
 void CMP5FireEvent::HandleShot()
 {
+	matrix3x3 cameraMatrix(GetAngles());
+	Vector up = cameraMatrix.GetUp();
+	Vector right = cameraMatrix.GetRight();
+	Vector forward = cameraMatrix.GetForward();
+
 	if (IsEventLocal())
 	{
 		GameEventUtils::SpawnMuzzleflash();
@@ -69,10 +74,6 @@ void CMP5FireEvent::HandleShot()
 			gEngfuncs.pEventAPI->EV_WeaponAnimation( MP5_FIRE1 + gEngfuncs.pfnRandomLong(0,2), 2 );
 	}
 
-	matrix3x3 cameraMatrix(GetAngles());
-	Vector up = cameraMatrix.GetUp();
-	Vector right = cameraMatrix.GetRight();
-	Vector forward = cameraMatrix.GetForward();
 	int brassModelIndex = gEngfuncs.pEventAPI->EV_FindModelIndex("models/shell.mdl");
 	Vector shellVelocity = GetVelocity() + right * gEngfuncs.pfnRandomFloat(50, 70) + up * gEngfuncs.pfnRandomFloat(100, 150) + forward * 25.0f;
 	Vector shellOrigin = GetOrigin() + up * -12.0f + forward * 20.0f + right * 4.0f;
