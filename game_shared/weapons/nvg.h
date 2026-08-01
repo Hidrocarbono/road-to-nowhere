@@ -30,6 +30,7 @@ public:
 
 	bool IsNVGActive() const { return m_bNVGActive; }
 	float GetBatteryLeft() const { return m_flBattery; }
+	void AddBattery(float amount) { m_flBattery += amount; }
 
 private:
 	void ApplyNVGState(bool active);
