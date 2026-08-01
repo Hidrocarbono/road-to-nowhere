@@ -357,6 +357,10 @@ void W_Precache(void)
 	// hornetgun
 	UTIL_PrecacheOtherWeapon( "weapon_hornetgun" );
 
+	// RTN custom weapons (registrados na ItemInfoArray -> HUD/scroll do mouse)
+	UTIL_PrecacheOtherWeapon( "weapon_mp5" );       // MP5 hardcoded (tambem linkada a weapon_9mmAR)
+	UTIL_PrecacheOtherWeapon( "item_stimulant" );   // estimulante (slot 1 pos 5)
+
 	if ( g_pGameRules->IsDeathmatch() )
 	{
 		UTIL_PrecacheOther( "weaponbox" );// container for dropped deathmatch weapons
@@ -375,7 +379,10 @@ void W_Precache(void)
 	// used by explosions
 	PRECACHE_MODEL("models/grenade.mdl");
 	PRECACHE_MODEL("sprites/explode1.spr");
+	// RTN muzzle flash 3D (Paranoia 2 style) - todos os modelos de flash
+	PRECACHE_MODEL("models/m_flash.mdl");
 	PRECACHE_MODEL("models/m_flash1.mdl");
+	PRECACHE_MODEL("models/m_flash2.mdl");
 
 	PRECACHE_SOUND("weapons/debris1.wav");// explosion aftermaths
 	PRECACHE_SOUND("weapons/debris2.wav");// explosion aftermaths
