@@ -1749,6 +1749,31 @@ void CBasePlayer::PreThink(void)
 	m_afButtonPressed =  buttonsChanged & pev->button;		// The changed ones still down are "pressed"
 	m_afButtonReleased = buttonsChanged & (~pev->button);	// The ones not down are "released"
 
+	// ===== RTN Fase 5: Run (Shift) + Lean (Q/E) =====
+	if ( IsAlive() )
+	{
+		// RUN: Shift -> IN_RUN -> faster maxspeed (25% more than 320)
+		if ( pev->button & IN_RUN )
+			pev->maxspeed = 400;
+		else if ( pev->maxspeed == 400 )
+			pev->maxspeed = 320;
+
+		// LEAN: IN_ALT1 (Q) left, IN_ALT2 (E) right -> offset eye laterally
+		// view_ofs.y = side axis of the player's body
+		float leanTarget = 0.0f;
+		if ( pev->button & IN_ALT1 )
+			leanTarget = -12.0f;
+		else if ( pev->button & IN_ALT2 )
+			leanTarget = 12.0f;
+
+		// smooth approach (~0.12s)
+		float leanCur = pev->view_ofs.y;
+		float leanNew = leanCur + (leanTarget - leanCur) * min( 1.0f, gpGlobals->frametime * 12.0f );
+		if ( fabs( leanNew - leanCur ) < 0.01f )
+			leanNew = leanTarget;
+		pev->view_ofs.y = leanNew;
+	}
+
 	g_pGameRules->PlayerThink( this );
 
 	if ( g_fGameOver )
