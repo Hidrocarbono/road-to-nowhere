@@ -220,6 +220,7 @@ DECLARE_COMMAND( m_Ammo, Slot10 );
 DECLARE_COMMAND( m_Ammo, Close );
 DECLARE_COMMAND( m_Ammo, NextWeapon );
 DECLARE_COMMAND( m_Ammo, PrevWeapon );
+DECLARE_COMMAND( m_Ammo, NVG_Toggle );
 
 // width of ammo fonts
 #define AMMO_SMALL_WIDTH	10
@@ -647,7 +648,7 @@ int CHudAmmo::MsgFunc_WeaponList( const char *pszName, int iSize, void *pbuf )
 // Command Handlers
 //------------------------------------------------------------------------
 // RTN F8: NVG on/off (bind: bind n "nvg") - envia comando ao server que aplica o postfx
-void CHudAmmo::NVG_Toggle( void )
+void CHudAmmo::UserCmd_NVG_Toggle( void )
 {
 	gEngfuncs.pfnServerCmd( "nvg_toggle" );
 }
