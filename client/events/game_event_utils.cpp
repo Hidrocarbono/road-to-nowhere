@@ -51,9 +51,30 @@ void GameEventUtils::CreateTracer(const matrix3x3 &camera, const Vector &origin,
 	{
 		const Vector offset = Vector(0.f, 0.f, -4.f);
 		Vector startPos = origin + offset + camera.GetRight() * -3.f + camera.GetForward() * 10.f;
-		// custom tracer: thin (width 1.5) + 50% alpha (127) via beam points
 		int beamSprite = gEngfuncs.pEventAPI->EV_FindModelIndex("sprites/laserbeam.spr");
-		gEngfuncs.pEfxAPI->R_BeamPoints(startPos, const_cast<float*>(&end.x), beamSprite, 0.1f, 0.5f, 0, 217, 0, 0, 0, 255, 255, 200);  // life 0.1s, width 0.5 (very thin), brightness 217 (85% alpha)
+
+		// RTN: DASHED tracer - short segments with gaps (subtle, thin, almost transparent)
+		// 8 dashes along the flight path; each dash ~12u long with ~28u gap
+		Vector dir = end - startPos;
+		float totalLen = dir.Length();
+		if (totalLen < 1.0f) return;
+		dir = dir / totalLen;
+
+		const float dashLen = 12.0f;
+		const float gapLen = 28.0f;
+		const float stepLen = dashLen + gapLen;
+		const int maxDashes = 8;
+		float traveled = 0.0f;
+		int dashCount = 0;
+		while (traveled + dashLen < totalLen && dashCount < maxDashes)
+		{
+			Vector segStart = startPos + dir * traveled;
+			Vector segEnd = segStart + dir * dashLen;
+			// width 0.3 (hairline), brightness 60 (~25% alpha - barely visible)
+			gEngfuncs.pEfxAPI->R_BeamPoints(segStart, segEnd, beamSprite, 0.05f, 0.3f, 0, 60, 0, 0, 0, 255, 255, 200);
+			traveled += stepLen;
+			dashCount++;
+		}
 	}
 	count++;
 }
