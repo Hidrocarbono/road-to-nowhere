@@ -24,7 +24,6 @@ public:
 	bool ShouldWeaponIdle() override { return true; }  // run WeaponIdle every frame (use timer)
 	bool m_bUseInProgress = false;
 	float m_flUseFinishTime = 0.0f;
-	void AddDose( int iAmount = 1 ) { m_iClip += iAmount; }  // RTN: cumulative doses
 	int GetItemInfo(ItemInfo *p) const override;
 	bool Deploy() override;
 	void PrimaryAttack() override;
