@@ -27,7 +27,7 @@ int CStimulantWeaponContext::GetItemInfo(ItemInfo *p) const
 	p->iMaxAmmo2 = -1;
 	p->iMaxClip = 1;
 	p->iSlot = 1;
-	p->iPosition = 6;
+	p->iPosition = 5;  // pos 6 quebrava o ciclo do scroll (padrao HL: 1-5)
 	p->iFlags = ITEM_FLAG_SELECTONEMPTY | ITEM_FLAG_NOAUTORELOAD;
 	p->iId = WEAPON_STIMULANT;
 	p->iWeight = 5;
