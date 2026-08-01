@@ -65,7 +65,11 @@ void CNVGWeaponContext::ItemPostFrame()
 {
 	if( m_bNVGActive )
 	{
-		m_flBattery -= m_pLayer->GetFrameTime();
+#ifndef CLIENT_DLL
+		m_flBattery -= gpGlobals->frametime;
+#else
+		m_flBattery -= 0.01f;
+#endif
 		if( m_flBattery <= 0.0f )
 		{
 			m_flBattery = 0.0f;
