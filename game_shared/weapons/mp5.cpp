@@ -81,9 +81,9 @@ void CMP5WeaponContext::PrimaryAttack()
 	Vector vecSrc = m_pLayer->GetGunPosition();
 	matrix3x3 cameraTransform = m_pLayer->GetCameraOrientation();
 	cameraTransform.SetForward(m_pLayer->GetAutoaimVector(AUTOAIM_5DEGREES));
-	// pull gun origin back 15u when not aiming (visual alignment)
+	// pull gun origin back 12u when not aiming (user: 15u was too close, -3 => 12u)
 	if( !m_bInIronSight )
-		vecSrc = vecSrc - cameraTransform.GetForward() * 15.0f;
+		vecSrc = vecSrc - cameraTransform.GetForward() * 12.0f;
 
 	// RTN F5: lean offset - shot follows the leaned eye position (Tarkov-style)
 #ifndef CLIENT_DLL
