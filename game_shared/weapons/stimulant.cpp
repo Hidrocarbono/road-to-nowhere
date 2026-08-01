@@ -37,11 +37,11 @@ int CStimulantWeaponContext::GetItemInfo(ItemInfo *p) const
 
 bool CStimulantWeaponContext::Deploy()
 {
-	// RTN: viewmodel afastada do rosto (cl_viewmodel_fov 66 vs 62 padrao)
+	// RTN: viewmodel bem afastada do rosto (user pediu 80)
 #ifndef CLIENT_DLL
 	CBasePlayer *player = m_pLayer->GetWeaponEntity()->m_pPlayer;
 	if( player )
-		g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 66\n" );
+		g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 80\n" );
 #endif
 	return DefaultDeploy( "models/v_antidote.mdl", "models/w_antidote.mdl", 2, "medkit" );  // anim 2 = draw
 }
