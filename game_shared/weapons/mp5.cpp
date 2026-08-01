@@ -88,6 +88,19 @@ void CMP5WeaponContext::PrimaryAttack()
 	// RTN F5 RIG UNIFICADO: o offset lateral do lean NÃO é aplicado aqui.
 	// O GetGunPosition() já retorna o olho deslocado (view_ofs do server, ±12u rotacionado pelo yaw).
 	// Aplicar offset duplo aqui fazia o tiro sair a 24u (12u view_ofs + 12u extra) - bug do "tiro solto".
+#ifndef CLIENT_DLL
+	// DEBUG temporario: verificar se o lean chega ao server e onde o tiro sai (remover depois)
+	{
+		CBasePlayer *pDebug = m_pLayer->GetWeaponEntity()->m_pPlayer;
+		if( pDebug && (pDebug->pev->button & (IN_ALT1 | IN_CANCEL)) )
+		{
+			g_engfuncs.pfnServerPrint( va( "[RTN] lean btn=0x%x view_ofs=(%.1f,%.1f,%.1f) vecSrc=(%.1f,%.1f,%.1f)\n",
+				pDebug->pev->button & (IN_ALT1 | IN_CANCEL),
+				pDebug->pev->view_ofs.x, pDebug->pev->view_ofs.y, pDebug->pev->view_ofs.z,
+				vecSrc.x, vecSrc.y, vecSrc.z ) );
+		}
+	}
+#endif
 
 	// spread depends on ironsight: normal = 3deg, aiming = 1deg (more accurate)
 	Vector spread;
