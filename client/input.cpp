@@ -733,7 +733,7 @@ int CL_ButtonBits( int bResetState )
 
 	if( in_leanright.state & (BUTTON_DOWN|IMPULSE_DOWN))
 	{
-		bits |= IN_ALT2;  // RTN lean right (E)
+		bits |= IN_CANCEL;  // RTN lean right (E) - IN_CANCEL cabe em 16 bits do usercmd (IN_ALT2=1<<16 estourava!)
 	}
 
 	if( in_speed.state & (BUTTON_DOWN|IMPULSE_DOWN))
