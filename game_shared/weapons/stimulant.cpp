@@ -68,10 +68,10 @@ void CStimulantWeaponContext::PrimaryAttack()
 	m_flTimeWeaponIdle = m_pLayer->GetTime();
 }
 
-void CStimulantWeaponContext::WeaponIdle()
+void CStimulantWeaponContext::ItemPostFrame()
 {
-	ResetEmptySound();
-
+	// RTN F6 fix: processa os efeitos AQUI (roda todo frame, mesmo com o botao de ataque
+	// pressionado). WeaponIdle() so era chamado com o botao solto -> uso "travava".
 	if( m_bUseInProgress )
 	{
 		if( m_pLayer->GetTime() >= m_flUseFinishTime )
@@ -106,9 +106,14 @@ void CStimulantWeaponContext::WeaponIdle()
 		{
 			// keep checking while animation plays
 			m_flTimeWeaponIdle = m_pLayer->GetTime();
-			return;
 		}
 	}
 
+	CBaseWeaponContext::ItemPostFrame();
+}
+
+void CStimulantWeaponContext::WeaponIdle()
+{
+	ResetEmptySound();
 	m_flTimeWeaponIdle = m_pLayer->GetTime() + 5.0f;
 }
