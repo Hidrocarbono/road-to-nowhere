@@ -3,6 +3,7 @@
 #ifdef CLIENT_DLL
 #else
 #include "extdll.h"
+#include "enginecallback.h"
 #include "util.h"
 #include "cbase.h"
 #include "weapons.h"
@@ -36,6 +37,12 @@ int CStimulantWeaponContext::GetItemInfo(ItemInfo *p) const
 
 bool CStimulantWeaponContext::Deploy()
 {
+	// RTN: viewmodel afastada do rosto (cl_viewmodel_fov 66 vs 62 padrao)
+#ifndef CLIENT_DLL
+	CBasePlayer *player = m_pLayer->GetWeaponEntity()->m_pPlayer;
+	if( player )
+		g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 66\n" );
+#endif
 	return DefaultDeploy( "models/v_antidote.mdl", "models/w_antidote.mdl", 2, "medkit" );  // anim 2 = draw
 }
 
