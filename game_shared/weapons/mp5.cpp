@@ -171,7 +171,7 @@ void CMP5WeaponContext::SecondaryAttack()
 	if( player )
 	{
 		if( m_bInIronSight )
-			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 54\n" );
+			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 59\n" );  // 54 era colada no rosto; 59 afasta +5
 		else
 			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 62\n" );
 	}
