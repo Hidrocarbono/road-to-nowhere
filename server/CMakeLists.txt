@@ -51,6 +51,7 @@ list(APPEND SVDLL_SOURCES
 	"weaponscript.cpp"
 	"weapons/weapon_scripted.cpp"
 	"server_weapon_layer_impl.cpp"
+	"nvg_controller.cpp"
 	"world.cpp"
 )
 
