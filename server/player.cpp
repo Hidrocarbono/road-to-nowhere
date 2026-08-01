@@ -1759,19 +1759,23 @@ void CBasePlayer::PreThink(void)
 			pev->maxspeed = 320;
 
 		// LEAN: IN_ALT1 (Q) left, IN_ALT2 (E) right -> offset eye laterally
-		// view_ofs.y = side axis of the player's body
+		// view_ofs is in WORLD space, so rotate the offset by the player's yaw
+		// (right vector: x = -sin(yaw), y = cos(yaw))
 		float leanTarget = 0.0f;
 		if ( pev->button & IN_ALT1 )
 			leanTarget = -12.0f;
 		else if ( pev->button & IN_ALT2 )
 			leanTarget = 12.0f;
 
-		// smooth approach (~0.12s)
-		float leanCur = pev->view_ofs.y;
-		float leanNew = leanCur + (leanTarget - leanCur) * min( 1.0f, gpGlobals->frametime * 12.0f );
-		if ( fabs( leanNew - leanCur ) < 0.01f )
-			leanNew = leanTarget;
-		pev->view_ofs.y = leanNew;
+		float leanYaw = pev->v_angle.y * ( M_PI / 180.0f );
+		float leanOfsX = -sin( leanYaw ) * leanTarget;
+		float leanOfsY =  cos( leanYaw ) * leanTarget;
+
+		// smooth approach (~0.12s) on both axes
+		float leanNewX = pev->view_ofs.x + (leanOfsX - pev->view_ofs.x) * min( 1.0f, gpGlobals->frametime * 12.0f );
+		float leanNewY = pev->view_ofs.y + (leanOfsY - pev->view_ofs.y) * min( 1.0f, gpGlobals->frametime * 12.0f );
+		pev->view_ofs.x = leanNewX;
+		pev->view_ofs.y = leanNewY;
 	}
 
 	g_pGameRules->PlayerThink( this );
