@@ -12,11 +12,11 @@
 
 {
 	"name" "smoke"
-	"startsize" "0.3"
-	"endsize" "0.5"
-	"startangle" "0"
+	"startsize" "1.0"
+	"endsize" "2.5"
+	"startangle" "0..360"
 	"angledelta" "40..-40"
-	"startframe" "2"
+	"startframe" "0..10"
 	"framerate" "0"
 	"lifetime" "1.5"
 	"sprite" "sprites/smokeball.spr"
@@ -27,7 +27,7 @@
 	"endgreen" "1"
 	"startblue" "1"
 	"endblue" "1"
-	"startalpha" "0.04"
+	"startalpha" "0.12"
 	"endalpha" "0"
-	"gravity" "7"
+	"gravity" "12"
 }
