@@ -22,6 +22,7 @@ GNU General Public License for more details.
 #include "event_args.h"
 #include "weapons/mp5.h"
 #include "gl_aurora.h"
+#include "r_efx.h"
 #include "dlight.h"
 
 CMP5FireEvent::CMP5FireEvent(event_args_t *args) :
