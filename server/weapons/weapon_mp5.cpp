@@ -109,7 +109,7 @@ int CMP5::GetItemInfo(ItemInfo *p) const
 	p->pszAmmo1 = "9mm";
 	p->pszAmmo2 = "ARgrenades";
 	p->iSlot = 3;
-	p->iPosition = 6;
+	p->iPosition = 1;  // pos 6 quebrava o ciclo do scroll (padrao HL: 1-5)
 	p->iWeight = 15;
 	p->iFlags = ITEM_FLAG_SELECTONEMPTY;
 	return base;
@@ -119,6 +119,6 @@ int CMP5::iMaxClip() { return 30; }
 const char *CMP5::pszAmmo1() { return "9mm"; }
 int CMP5::iWeight() { return 15; }
 int CMP5::iItemSlot() { return 3; }
-int CMP5::iItemPosition() { return 6; }
+int CMP5::iItemPosition() { return 1; }
 int CMP5::iFlags() { return ITEM_FLAG_SELECTONEMPTY; }
 
