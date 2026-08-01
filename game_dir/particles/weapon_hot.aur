@@ -19,7 +19,7 @@
 	"startframe" "2"
 	"framerate" "0"
 	"lifetime" "1.5"
-	"sprite" "sprites/smoke.spr"
+	"sprite" "sprites/smokeball.spr"
 	"rendermode" "additive"
 	"startred" "1"
 	"endred" "1"
