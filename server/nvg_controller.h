@@ -7,6 +7,9 @@
 // NAO depende de slot/inventario: o comando client "nvg" -> server "nvg_toggle"
 // aplica o postfx nativo (gmsgPostFxSettings) no jogador.
 
+// registra o comando server "nvg_toggle" (chamado no GameDLLInit)
+void NVG_Init();
+
 class CNVGController
 {
 public:
