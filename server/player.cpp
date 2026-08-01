@@ -1772,8 +1772,8 @@ void CBasePlayer::PreThink(void)
 		float leanOfsY =  cos( leanYaw ) * leanTarget;
 
 		// smooth approach (~0.12s) on both axes
-		float leanNewX = pev->view_ofs.x + (leanOfsX - pev->view_ofs.x) * min( 1.0f, gpGlobals->frametime * 12.0f );
-		float leanNewY = pev->view_ofs.y + (leanOfsY - pev->view_ofs.y) * min( 1.0f, gpGlobals->frametime * 12.0f );
+		float leanNewX = pev->view_ofs.x + (leanOfsX - pev->view_ofs.x) * Q_min( 1.0f, gpGlobals->frametime * 12.0f );
+		float leanNewY = pev->view_ofs.y + (leanOfsY - pev->view_ofs.y) * Q_min( 1.0f, gpGlobals->frametime * 12.0f );
 		pev->view_ofs.x = leanNewX;
 		pev->view_ofs.y = leanNewY;
 	}
