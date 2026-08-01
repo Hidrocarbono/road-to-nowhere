@@ -210,4 +210,8 @@ private:
 
 extern CParticleSystemManager	g_pParticleSystems; // buz
 
+// RTN: public aurora API (defined in gl_aurora.cpp)
+void UTIL_CreateAurora( cl_entity_t *ent, const char *file, int attachment, float lifetime );
+void UTIL_RemoveAurora( cl_entity_t *ent );
+
 #endif//GL_PARTICLE_H
