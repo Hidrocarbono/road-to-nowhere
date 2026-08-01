@@ -684,6 +684,9 @@ void StartFrame( void )
 	if ( g_pGameRules )
 		g_pGameRules->Think();
 
+	// RTN F8: NVG battery drain / auto-shutdown (tecla N)
+	CNVGController::GetInstance().Update();
+
 	if ( g_fGameOver )
 		return;
 
