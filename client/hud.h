@@ -117,6 +117,7 @@ public:
 	int MsgFunc_AmmoX( const char *pszName, int iSize, void *pbuf );
 
 	void SlotInput( int iSlot );
+	void _cdecl NVG_Toggle( void );
 	void _cdecl UserCmd_Slot1( void );
 	void _cdecl UserCmd_Slot2( void );
 	void _cdecl UserCmd_Slot3( void );
