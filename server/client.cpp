@@ -36,6 +36,7 @@
 #include "customentity.h"
 #include "weapons.h"
 #include "weaponinfo.h"
+#include "nvg_controller.h"
 #include "weapons/rpg.h"
 #include "weapons/satchel.h"
 #include "weapons/handgrenade.h"
