@@ -85,17 +85,9 @@ void CMP5WeaponContext::PrimaryAttack()
 	if( !m_bInIronSight )
 		vecSrc = vecSrc - cameraTransform.GetForward() * 12.0f;
 
-	// RTN F5: lean offset - shot follows the leaned eye position (Tarkov-style)
-#ifndef CLIENT_DLL
-	CBasePlayer *pLeanPlayer = m_pLayer->GetWeaponEntity()->m_pPlayer;
-	if( pLeanPlayer )
-	{
-		if( pLeanPlayer->pev->button & IN_ALT1 )
-			vecSrc = vecSrc - cameraTransform.GetRight() * 12.0f;  // lean left (Q)
-		else if( pLeanPlayer->pev->button & IN_CANCEL )
-			vecSrc = vecSrc + cameraTransform.GetRight() * 12.0f;  // lean right (E)
-	}
-#endif
+	// RTN F5 RIG UNIFICADO: o offset lateral do lean NÃO é aplicado aqui.
+	// O GetGunPosition() já retorna o olho deslocado (view_ofs do server, ±12u rotacionado pelo yaw).
+	// Aplicar offset duplo aqui fazia o tiro sair a 24u (12u view_ofs + 12u extra) - bug do "tiro solto".
 
 	// spread depends on ironsight: normal = 3deg, aiming = 1deg (more accurate)
 	Vector spread;
