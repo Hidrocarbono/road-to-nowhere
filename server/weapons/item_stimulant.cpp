@@ -29,8 +29,26 @@ void CItemStimulant::Precache()
 
 int CItemStimulant::AddToPlayer(CBasePlayer *pPlayer)
 {
+	// RTN cumulative: if player already has a stimulant, just add a dose
+	for( int i = 0; i < MAX_ITEM_TYPES; i++ )
+	{
+		CBasePlayerItem *pItem = pPlayer->m_rgpPlayerItems[i];
+		while( pItem )
+		{
+			if( pItem->iItemSlot() == 1 && pItem->m_pWeaponContext &&
+				pItem->m_pWeaponContext->m_iId == WEAPON_STIMULANT )
+			{
+				pItem->m_pWeaponContext->AddDose( 1 );
+				return TRUE;  // picked up, no duplicate entity added
+			}
+			pItem = pItem->m_pNext;
+		}
+	}
+
+	// first time: add normally (starts with 1 dose)
 	if( CBasePlayerWeapon::AddToPlayer(pPlayer) )
 	{
+		m_pWeaponContext->m_iClip = 1;
 		return TRUE;
 	}
 	return FALSE;
