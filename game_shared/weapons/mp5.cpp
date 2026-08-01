@@ -85,6 +85,18 @@ void CMP5WeaponContext::PrimaryAttack()
 	if( !m_bInIronSight )
 		vecSrc = vecSrc - cameraTransform.GetForward() * 15.0f;
 
+	// RTN F5: lean offset - shot follows the leaned eye position (Tarkov-style)
+#ifndef CLIENT_DLL
+	CBasePlayer *pLeanPlayer = m_pLayer->GetWeaponEntity()->m_pPlayer;
+	if( pLeanPlayer )
+	{
+		if( pLeanPlayer->pev->button & IN_ALT1 )
+			vecSrc = vecSrc - cameraTransform.GetRight() * 12.0f;  // lean left (Q)
+		else if( pLeanPlayer->pev->button & IN_CANCEL )
+			vecSrc = vecSrc + cameraTransform.GetRight() * 12.0f;  // lean right (E)
+	}
+#endif
+
 	// spread depends on ironsight: normal = 3deg, aiming = 1deg (more accurate)
 	Vector spread;
 	if( m_bInIronSight )
