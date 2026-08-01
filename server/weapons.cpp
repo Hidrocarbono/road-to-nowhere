@@ -360,6 +360,7 @@ void W_Precache(void)
 	// RTN custom weapons (registrados na ItemInfoArray -> HUD/scroll do mouse)
 	UTIL_PrecacheOtherWeapon( "weapon_mp5" );       // MP5 hardcoded (tambem linkada a weapon_9mmAR)
 	UTIL_PrecacheOtherWeapon( "item_stimulant" );   // estimulante (slot 1 pos 5)
+	UTIL_PrecacheOtherWeapon( "item_nvg" );         // visao noturna (slot 1 pos 4)
 
 	if ( g_pGameRules->IsDeathmatch() )
 	{
