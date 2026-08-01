@@ -94,7 +94,10 @@ kbutton_t	in_down;
 kbutton_t	in_duck;
 kbutton_t	in_reload;
 kbutton_t	in_alt1;
+kbutton_t	in_alt2;
 kbutton_t	in_score;
+kbutton_t	in_leanleft;
+kbutton_t	in_leanright;
 kbutton_t	in_break;
 kbutton_t	in_graph;		// Display the netgraph
 
@@ -400,6 +403,12 @@ void IN_ReloadDown( void )	{ KeyDown( &in_reload ); }
 void IN_ReloadUp( void )	{ KeyUp( &in_reload ); }
 void IN_Alt1Down( void )	{ KeyDown( &in_alt1 ); }
 void IN_Alt1Up( void )	{ KeyUp( &in_alt1 ); }
+void IN_Alt2Down( void )	{ KeyDown( &in_alt2 ); }
+void IN_Alt2Up( void )	{ KeyUp( &in_alt2 ); }
+void IN_LeanLeftDown( void )	{ KeyDown( &in_leanleft ); }
+void IN_LeanLeftUp( void )	{ KeyUp( &in_leanleft ); }
+void IN_LeanRightDown( void )	{ KeyDown( &in_leanright ); }
+void IN_LeanRightUp( void )	{ KeyUp( &in_leanright ); }
 void IN_GraphDown( void )	{ KeyDown( &in_graph ); }
 void IN_GraphUp( void )	{ KeyUp( &in_graph ); }
 void IN_AttackDown( void )	{ KeyDown( &in_attack ); }
@@ -579,12 +588,12 @@ void CL_CreateMove( float frametime, usercmd_t *cmd, int active )
 			cmd->forwardmove -= cl_backspeed->value * CL_KeyState( &in_back );
 		}	
 
-		// adjust for speed key
+		// RTN: Shift = run (speed UP 1.3x instead of HL slow-walk 0.52x)
 		if( in_speed.state & BUTTON_DOWN )
 		{
-			cmd->forwardmove *= cl_movespeedkey->value;
-			cmd->sidemove *= cl_movespeedkey->value;
-			cmd->upmove *= cl_movespeedkey->value;
+			cmd->forwardmove *= 1.3f;
+			cmd->sidemove *= 1.3f;
+			cmd->upmove *= 1.3f;
 		}
 
 		// clip to maxspeed
@@ -712,6 +721,26 @@ int CL_ButtonBits( int bResetState )
 		bits |= IN_ALT1;
 	}
 
+	if( in_alt2.state & (BUTTON_DOWN|IMPULSE_DOWN))
+	{
+		bits |= IN_ALT2;
+	}
+
+	if( in_leanleft.state & (BUTTON_DOWN|IMPULSE_DOWN))
+	{
+		bits |= IN_ALT1;  // RTN lean left (Q)
+	}
+
+	if( in_leanright.state & (BUTTON_DOWN|IMPULSE_DOWN))
+	{
+		bits |= IN_ALT2;  // RTN lean right (E)
+	}
+
+	if( in_speed.state & (BUTTON_DOWN|IMPULSE_DOWN))
+	{
+		bits |= IN_RUN;  // RTN: Shift = run
+	}
+
 	if( in_score.state & (BUTTON_DOWN|IMPULSE_DOWN))
 	{
 		bits |= IN_SCORE;
@@ -737,6 +766,10 @@ int CL_ButtonBits( int bResetState )
 		in_attack2.state &= ~IMPULSE_DOWN;
 		in_reload.state &= ~IMPULSE_DOWN;
 		in_alt1.state &= ~IMPULSE_DOWN;
+		in_alt2.state &= ~IMPULSE_DOWN;
+		in_leanleft.state &= ~IMPULSE_DOWN;
+		in_leanright.state &= ~IMPULSE_DOWN;
+		in_speed.state &= ~IMPULSE_DOWN;
 		in_score.state &= ~IMPULSE_DOWN;
 	}
 
@@ -821,6 +854,12 @@ void InitInput( void )
 	ADD_COMMAND ("-reload", IN_ReloadUp);
 	ADD_COMMAND ("+alt1", IN_Alt1Down);
 	ADD_COMMAND ("-alt1", IN_Alt1Up);
+	ADD_COMMAND ("+alt2", IN_Alt2Down);
+	ADD_COMMAND ("-alt2", IN_Alt2Up);
+	ADD_COMMAND ("+leanleft", IN_LeanLeftDown);
+	ADD_COMMAND ("-leanleft", IN_LeanLeftUp);
+	ADD_COMMAND ("+leanright", IN_LeanRightDown);
+	ADD_COMMAND ("-leanright", IN_LeanRightUp);
 	ADD_COMMAND ("+graph", IN_GraphDown);
 	ADD_COMMAND ("-graph", IN_GraphUp);
 	ADD_COMMAND ("+score", IN_ScoreDown);
