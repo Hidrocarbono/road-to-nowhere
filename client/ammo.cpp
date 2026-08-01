@@ -251,6 +251,7 @@ int CHudAmmo::Init( void )
 	HOOK_COMMAND( "cancelselect", Close );
 	HOOK_COMMAND( "invnext", NextWeapon );
 	HOOK_COMMAND( "invprev", PrevWeapon );
+	HOOK_COMMAND( "nvg", NVG_Toggle );
 
 	Reset();
 
@@ -645,6 +646,12 @@ int CHudAmmo::MsgFunc_WeaponList( const char *pszName, int iSize, void *pbuf )
 //------------------------------------------------------------------------
 // Command Handlers
 //------------------------------------------------------------------------
+// RTN F8: NVG on/off (bind: bind n "nvg") - envia comando ao server que aplica o postfx
+void CHudAmmo::NVG_Toggle( void )
+{
+	gEngfuncs.pfnServerCmd( "nvg_toggle" );
+}
+
 // Slot button pressed
 void CHudAmmo::SlotInput( int iSlot )
 {
