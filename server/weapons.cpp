@@ -299,6 +299,8 @@ void W_Precache(void)
 	giAmmoIndex = 0;
 
 	// custom items...
+	UTIL_PrecacheOther( "item_painkiller" );   // painkiller (Paranoia 2 style, ammo "painkillers")
+	AddAmmoNameToAmmoRegistry( "painkillers" );
 
 	// common world objects
 	UTIL_PrecacheOther( "item_suit" );
