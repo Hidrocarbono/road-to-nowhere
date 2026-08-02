@@ -40,6 +40,7 @@
 #include "weapons/rpg.h"
 #include "user_messages.h"
 #include "weapon_context.h"
+#include "weapons/stimulant.h"
 #include "weapons/satchel.h"
 #include "weapons/handgrenade.h"
 #include "weapons/egon.h"
@@ -477,13 +478,22 @@ void ClientCommand( edict_t *pEntity )
 			// sinaliza uso automatico: o WeaponIdle do estimulante dispara o PrimaryAttack
 			CBasePlayerWeapon *pWeap = dynamic_cast<CBasePlayerWeapon *>( pStim );
 			if( pWeap && pWeap->m_pWeaponContext )
-				pWeap->m_pWeaponContext->m_bPendingUse = true;
+			{
+				// m_bPendingUse vive no CStimulantWeaponContext (subclasse)
+				CStimulantWeaponContext *pCtx = dynamic_cast<CStimulantWeaponContext *>( pWeap->m_pWeaponContext );
+				if( pCtx )
+					pCtx->m_bPendingUse = true;
+			}
 		}
 		else if( pStim && pStim == pPlayer->m_pActiveItem )
 		{
 			CBasePlayerWeapon *pWeap = dynamic_cast<CBasePlayerWeapon *>( pStim );
 			if( pWeap && pWeap->m_pWeaponContext )
-				pWeap->m_pWeaponContext->m_bPendingUse = true;
+			{
+				CStimulantWeaponContext *pCtx = dynamic_cast<CStimulantWeaponContext *>( pWeap->m_pWeaponContext );
+				if( pCtx )
+					pCtx->m_bPendingUse = true;
+			}
 		}
 	}
 	else if ( FStrEq(pcmd, "painkiller_use" ) )
