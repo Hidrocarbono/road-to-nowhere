@@ -8,6 +8,9 @@
 #include "cbase.h"
 #include "weapons.h"
 #include "player.h"
+#include "client.h"
+// RTN F9: atualiza o HUD lateral de doses (declarada em server/client.cpp)
+void SendRTNItemsHUD( CBasePlayer *pPlayer );
 #endif
 
 CStimulantWeaponContext::CStimulantWeaponContext(std::unique_ptr<IWeaponLayer> &&layer) :
@@ -51,6 +54,9 @@ void CStimulantWeaponContext::PrimaryAttack()
 	if( m_bUseInProgress )
 		return;  // already animating
 
+	m_bPendingUse = false;  // consumida
+	m_bUsedThisFire = true;
+
 	// play the use animation (hitme_1 = anim 1)
 	SendWeaponAnim( 1 );
 
@@ -71,6 +77,14 @@ void CStimulantWeaponContext::PrimaryAttack()
 void CStimulantWeaponContext::WeaponIdle()
 {
 	ResetEmptySound();
+
+	// RTN F9: uso via tecla V - o ClientCommand setou m_bPendingUse -> dispara o uso
+	// (o deploy ja completou, pois WeaponIdle roda apos o DefaultDeploy)
+	if( m_bPendingUse && !m_bUseInProgress )
+	{
+		PrimaryAttack();
+		return;
+	}
 
 	// RTN F6 fix: ShouldWeaponIdle()=true -> o ItemPostFrame base chama WeaponIdle()
 	// TODO frame (inclusive com o botao de ataque pressionado - catch-all no final).
@@ -101,7 +115,13 @@ void CStimulantWeaponContext::WeaponIdle()
 				{
 					player->RemovePlayerItem( m_pLayer->GetWeaponEntity() );
 					UTIL_Remove( (CBaseEntity *)m_pLayer->GetWeaponEntity() );
+					player->SelectLastItem();  // RTN F9: volta pra arma anterior
 				}
+				else
+				{
+					player->SelectLastItem();  // RTN F9: ainda tem dose, mas volta pra arma
+				}
+				SendRTNItemsHUD( player );  // RTN F9: atualiza contador lateral
 			}
 #endif
 		}
