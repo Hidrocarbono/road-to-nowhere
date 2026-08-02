@@ -1,3 +1,4 @@
+#include "hud.h"          // primeiro: define CHudBase e inclui hud_rtn_items.h (pos CHudBase)
 #include "hud_rtn_items.h"
 #include "utils.h"
 #include "parsemsg.h"
