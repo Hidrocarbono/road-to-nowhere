@@ -23,6 +23,7 @@ void CHud :: Init( void )
 	m_AmmoSecondary.Init();
 	m_TextMessage.Init();
 	m_StatusIcons.Init();
+	m_RTNItems.Init();  // RTN F9
  	m_SayText.Init();
 	m_Menu.Init();
 	m_MOTD.Init();
@@ -187,6 +188,7 @@ void CHud :: VidInit( void )
 	m_AmmoSecondary.VidInit();
 	m_TextMessage.VidInit();
 	m_StatusIcons.VidInit();
+	m_RTNItems.VidInit();  // RTN F9
 }
 
 void CHud::AddHudElem( CHudBase *phudelem )
