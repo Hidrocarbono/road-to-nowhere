@@ -23,6 +23,8 @@ public:
 	bool UsePredicting() override { return false; }
 	bool ShouldWeaponIdle() override { return true; }  // run WeaponIdle every frame (use timer)
 	bool m_bUseInProgress = false;
+	bool m_bPendingUse = false;       // RTN F9: tecla V pediu uso -> WeaponIdle dispara PrimaryAttack
+	bool m_bUsedThisFire = false;     // RTN F9: evita reuso no mesmo frame
 	float m_flUseFinishTime = 0.0f;
 	int GetItemInfo(ItemInfo *p) const override;
 	bool Deploy() override;
