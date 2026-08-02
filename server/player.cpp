@@ -1758,9 +1758,11 @@ void CBasePlayer::PreThink(void)
 		else if ( pev->maxspeed == 400 )
 			pev->maxspeed = 320;
 
-		// LEAN: IN_ALT1 (Q) left, IN_ALT2 (E) right -> offset eye laterally
-		// view_ofs is in WORLD space, so rotate the offset by the player's yaw
-		// (right vector: x = -sin(yaw), y = cos(yaw))
+		// LEAN: IN_ALT1 (Q) left, IN_CANCEL (E) right -> offset eye laterally
+		// view_ofs is in WORLD space, so rotate the offset by the player's yaw.
+		// GOLD_SRC right vector = (sin(yaw), -cos(yaw)). O client (r_view.cpp)
+		// usa +right; aqui usamos a MESMA convencao para o tiro acompanhar a mira.
+		// (Antes era (-sin, +cos) = -right -> tiro saia invertido no lean!)
 		float leanTarget = 0.0f;
 		if ( pev->button & IN_ALT1 )
 			leanTarget = -12.0f;
@@ -1768,8 +1770,8 @@ void CBasePlayer::PreThink(void)
 			leanTarget = 12.0f;
 
 		float leanYaw = pev->v_angle.y * ( M_PI / 180.0f );
-		float leanOfsX = -sin( leanYaw ) * leanTarget;
-		float leanOfsY =  cos( leanYaw ) * leanTarget;
+		float leanOfsX =  sin( leanYaw ) * leanTarget;
+		float leanOfsY = -cos( leanYaw ) * leanTarget;
 
 		// smooth approach (~0.12s) on both axes
 		float leanNewX = pev->view_ofs.x + (leanOfsX - pev->view_ofs.x) * Q_min( 1.0f, gpGlobals->frametime * 12.0f );
