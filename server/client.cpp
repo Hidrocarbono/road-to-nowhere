@@ -457,6 +457,12 @@ void ClientCommand( edict_t *pEntity )
 	{
 		GetClassPtr((CBasePlayer *)pev)->SelectItem((char *)CMD_ARGV(1));
 	}
+	else if ( FStrEq(pcmd, "nvg_toggle" ) )
+	{
+		// RTN Fase 8: NVG on/off (tecla N) - comando vem via pfnServerCmd do client
+		// (NAO chega aos pfnAddServerCommand - esse registro so pega console do host)
+		CNVGController::GetInstance().Toggle( GetClassPtr((CBasePlayer *)pev) );
+	}
 	else if (((pstr = strstr(pcmd, "weapon_")) != NULL)  && (pstr == pcmd))
 	{
 		GetClassPtr((CBasePlayer *)pev)->SelectItem(pcmd);
