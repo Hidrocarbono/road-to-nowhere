@@ -55,6 +55,7 @@ int gmsgRainData = 0;
 int gmsgStatusIcon = 0;
 int gmsgSetupBones = 0;
 int gmsgPostFxSettings = 0;
+int gmsgRTNItems = 0;  // RTN F9: doses de estimulante e painkiller (2 shorts)
 
 void LinkUserMessages()
 {
@@ -112,4 +113,5 @@ void LinkUserMessages()
 	gmsgSetupBones = REG_USER_MSG("SetupBones", -1);
 	gmsgRTNItems = REG_USER_MSG("RTNItems", 4);  // RTN F9: 2 shorts (doses estimulante, doses painkiller)
 	gmsgPostFxSettings = REG_USER_MSG("PostFxSettings", -1);
+	gmsgRTNItems = REG_USER_MSG("RTNItems", 4);  // RTN F9: 2 shorts (stim, pain)
 }
