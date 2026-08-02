@@ -58,24 +58,26 @@ void CNVGController::ApplyState( CBaseEntity *pPlayer, bool active )
 
 	if( active )
 	{
+		// RTN F8 v2: NVG de fosforo verde - calibracao Tarkov/Paranoia:
+		// brightness alto = amplifica a luz (ve no escuro, detalhes estouram)
 		// fade-in time
 		WRITE_FLOAT( 0.25f );
-		// brightness (IR gain)
-		WRITE_FLOAT( 0.12f );
-		// saturation 0 = full desaturation (monochrome green)
+		// brightness (IR gain - AMPLIFICA luz; 0.3 soma luz visivel no escuro)
+		WRITE_FLOAT( 0.30f );
+		// saturation 0 = full desaturation (monochrome)
 		WRITE_FLOAT( 0.0f );
-		// contrast (crush blacks, boost highlights)
-		WRITE_FLOAT( 1.45f );
-		// red level (kill red -> green palette)
-		WRITE_FLOAT( 0.15f );
-		// green level (dominant)
-		WRITE_FLOAT( 1.15f );
-		// blue level (kill blue)
-		WRITE_FLOAT( 0.2f );
-		// vignette (lens edge darkening)
-		WRITE_FLOAT( 1.0f );
-		// film grain (analog sensor noise, animated in shader)
-		WRITE_FLOAT( 0.8f );
+		// contrast (crush blacks + estoura highlights)
+		WRITE_FLOAT( 1.65f );
+		// red level (quase zero -> nada de vermelho)
+		WRITE_FLOAT( 0.05f );
+		// green level (dominante - fosforo verde)
+		WRITE_FLOAT( 1.35f );
+		// blue level (quase zero -> nada de azul)
+		WRITE_FLOAT( 0.05f );
+		// vignette (escurece TODAS as laterais - efeito de lente)
+		WRITE_FLOAT( 2.2f );
+		// film grain (chuvisco BEM mais transparente - 0.8 misturava 50% cinza!)
+		WRITE_FLOAT( 0.25f );
 		// color accent scale (0 = no accent)
 		WRITE_FLOAT( 0.0f );
 		// accent color (unused, white)
