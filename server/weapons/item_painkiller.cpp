@@ -1,4 +1,7 @@
 #include "item_painkiller.h"
+#include "client.h"
+// RTN F9: atualiza HUD lateral de doses (declarada em server/client.cpp)
+void SendRTNItemsHUD( CBasePlayer *pPlayer );
 
 // RTN F9: painkiller estilo Paranoia 2 - item de mundo que dá 1 dose de "painkillers".
 // O som de uso é tocado pelo comando painkiller_use (server client.cpp).
@@ -25,6 +28,7 @@ BOOL CItemPainkiller::AddAmmo( CBaseEntity *pOther )
 	{
 		EMIT_SOUND( ENT( pev ), CHAN_ITEM, "items/painkiller_pickup.wav", 1, ATTN_NORM );
 		pOther->pev->weapons |= ( 1 << 31 );  // flag de posse (bit 31, igual WEAPON_PAINKILLER do Paranoia)
+		SendRTNItemsHUD( (CBasePlayer *)pOther );  // RTN F9: atualiza contador lateral
 	}
 	return bResult;
 }
