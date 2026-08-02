@@ -50,6 +50,7 @@ extern int gmsgMusicFade;
 extern int gmsgRainData;
 extern int gmsgStatusIcon;
 extern int gmsgSetupBones;
+extern int gmsgRTNItems;  // RTN F9: doses de estimulante e painkiller (2 shorts)
 extern int gmsgPostFxSettings;
 
 void LinkUserMessages();
