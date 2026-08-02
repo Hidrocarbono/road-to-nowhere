@@ -2,6 +2,9 @@
 #include "server_weapon_layer_impl.h"
 #include "weapon_layer.h"
 #include "weapons/stimulant.h"
+#include "client.h"
+// RTN F9: atualiza HUD lateral de doses (declarada em server/client.cpp)
+void SendRTNItemsHUD( CBasePlayer *pPlayer );
 
 LINK_ENTITY_TO_CLASS( item_stimulant, CItemStimulant );
 
@@ -33,6 +36,7 @@ int CItemStimulant::AddToPlayer(CBasePlayer *pPlayer)
 	if( CBasePlayerWeapon::AddToPlayer(pPlayer) )
 	{
 		m_pWeaponContext->m_iClip = 1;
+		SendRTNItemsHUD( pPlayer );  // RTN F9: atualiza contador lateral
 		return TRUE;
 	}
 	return FALSE;
@@ -46,6 +50,9 @@ int CItemStimulant::AddDuplicate(CBasePlayerItem *pItem)
 	if( pWeapon && pWeapon->m_pWeaponContext )
 	{
 		pWeapon->m_pWeaponContext->m_iClip += 1;  // +1 dose (m_iClip is public)
+		CBasePlayer *pPlayer = dynamic_cast<CBasePlayer *>( CBaseEntity::Instance( pWeapon->pev->owner ) );
+		if( pPlayer )
+			SendRTNItemsHUD( pPlayer );  // RTN F9: atualiza contador lateral
 		return TRUE;  // new pickup is consumed, existing item keeps the doses
 	}
 	return FALSE;
