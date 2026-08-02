@@ -94,6 +94,7 @@ struct HUDLIST
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
+#include "hud_rtn_items.h"
 #include "cl_entity.h"
 
 //
@@ -475,8 +476,6 @@ private:
 //-----------------------------------------------------
 //
 #define MAX_SPRITE_NAME_LENGTH	32
-
-class CHudRTNItems: public CHudBase;  // RTN F9: contadores laterais
 
 class CHudStatusIcons: public CHudBase
 {
