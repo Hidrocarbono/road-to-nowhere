@@ -84,8 +84,7 @@ void CMP5WeaponContext::PrimaryAttack()
 	// (igual Half-Life classico / Paranoia 2: so usam autoaim se a flag existir).
 	// O GetAutoaimVector puxava o tiro ate 25 graus para grudar em qualquer entidade
 	// (inimigo OU aliado), causando o tiro mirado sair deslocado (esquerda/cima).
-	// Direcao pura = v_angle + punchangle (o que a camera do client ve).
-	cameraTransform.SetForward(m_pLayer->GetViewAngles() + m_pLayer->GetPunchAngle());
+	// GetCameraOrientation() ja retorna v_angle + punchangle (direcao pura da mira).
 	// pull gun origin back 12u when not aiming (user: 15u was too close, -3 => 12u)
 	if( !m_bInIronSight )
 		vecSrc = vecSrc - cameraTransform.GetForward() * 12.0f;
