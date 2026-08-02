@@ -18,6 +18,7 @@ list(APPEND CLDLL_SOURCES
 	"entity.cpp"
 	"hud.cpp"
 	"hud_msg.cpp"
+	"hud_rtn_items.cpp"
 	"hud_redraw.cpp"
 	"hud_update.cpp"
 	"hud_flashlight.cpp"
