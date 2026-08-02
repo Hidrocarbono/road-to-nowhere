@@ -463,6 +463,45 @@ void ClientCommand( edict_t *pEntity )
 		// (NAO chega aos pfnAddServerCommand - esse registro so pega console do host)
 		CNVGController::GetInstance().Toggle( GetClassPtr((CBasePlayer *)pev) );
 	}
+	else if ( FStrEq(pcmd, "stimulant_use" ) )
+	{
+		// RTN F9: estimulante (tecla V) - estilo Paranoia 2: equipa temporariamente
+		// (viewmodel v_antidote + anim fire), aplica efeitos e volta pra arma anterior.
+		CBasePlayer *pPlayer = GetClassPtr((CBasePlayer *)pev);
+		CBasePlayerItem *pStim = pPlayer->HasNamedPlayerItem( "item_stimulant" ) ? FindPlayerItemByName( pPlayer, "item_stimulant" ) : NULL;
+		if( pStim && pStim != pPlayer->m_pActiveItem )
+		{
+			pPlayer->SelectItem( "item_stimulant" );   // equipa (deploy + viewmodel)
+			// sinaliza uso automatico: o WeaponIdle do estimulante dispara o PrimaryAttack
+			CBasePlayerWeapon *pWeap = dynamic_cast<CBasePlayerWeapon *>( pStim );
+			if( pWeap && pWeap->m_pWeaponContext )
+				pWeap->m_pWeaponContext->m_bPendingUse = true;
+		}
+		else if( pStim && pStim == pPlayer->m_pActiveItem )
+		{
+			CBasePlayerWeapon *pWeap = dynamic_cast<CBasePlayerWeapon *>( pStim );
+			if( pWeap && pWeap->m_pWeaponContext )
+				pWeap->m_pWeaponContext->m_bPendingUse = true;
+		}
+	}
+	else if ( FStrEq(pcmd, "painkiller_use" ) )
+	{
+		// RTN F9: painkiller (tecla H) - estilo Paranoia 2: cura 25 sem mexer stamina
+		CBasePlayer *pPlayer = GetClassPtr((CBasePlayer *)pev);
+		int iAmmo = pPlayer->GetAmmoIndex( "painkillers" );
+		if( iAmmo >= 0 && pPlayer->m_rgAmmo[iAmmo] > 0 )
+		{
+			if( pPlayer->TakeHealth( 25.0f, DMG_GENERIC ) )
+			{
+				pPlayer->m_rgAmmo[iAmmo]--;
+				EMIT_SOUND( ENT( pPlayer ), CHAN_ITEM, "items/painkiller_use.wav", 1.0, ATTN_NORM );
+				// flash leve branco (sem droga)
+				UTIL_ScreenFade( pPlayer, Vector(255, 255, 255), 0.15f, 0.3f, 120, 0 );
+				// atualiza HUD lateral
+				SendRTNItemsHUD( pPlayer );
+			}
+		}
+	}
 	else if (((pstr = strstr(pcmd, "weapon_")) != NULL)  && (pstr == pcmd))
 	{
 		GetClassPtr((CBasePlayer *)pev)->SelectItem(pcmd);
