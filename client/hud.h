@@ -476,6 +476,8 @@ private:
 //
 #define MAX_SPRITE_NAME_LENGTH	32
 
+class CHudRTNItems: public CHudBase;  // RTN F9: contadores laterais
+
 class CHudStatusIcons: public CHudBase
 {
 public:
@@ -578,6 +580,7 @@ public:
 	CHudAmmoSecondary	m_AmmoSecondary;
 	CHudTextMessage	m_TextMessage;
 	CHudStatusIcons	m_StatusIcons;
+	CHudRTNItems	m_RTNItems;  // RTN F9: contadores laterais (estimulante/painkiller)
 	CHudMOTD		m_MOTD;
 
 	ViewSmoothingData_t	m_ViewSmoothingData;
