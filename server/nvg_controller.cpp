@@ -4,10 +4,11 @@
 
 // RTN Fase 8: controlador NVG global (tecla N). Usa o sistema de post-fx nativo.
 
-static CNVGController g_NVGController;
+// Meyers singleton: instancia estatica local (construtor privado)
 CNVGController &CNVGController::GetInstance()
 {
-	return g_NVGController;
+	static CNVGController instance;
+	return instance;
 }
 
 void NVG_Toggle_f( void )
