@@ -110,5 +110,6 @@ void LinkUserMessages()
 	gmsgMusicFade = REG_USER_MSG("MusicFade", 2);
 	gmsgStatusIcon = REG_USER_MSG("StatusIcon", -1);
 	gmsgSetupBones = REG_USER_MSG("SetupBones", -1);
+	gmsgRTNItems = REG_USER_MSG("RTNItems", 4);  // RTN F9: 2 shorts (doses estimulante, doses painkiller)
 	gmsgPostFxSettings = REG_USER_MSG("PostFxSettings", -1);
 }
