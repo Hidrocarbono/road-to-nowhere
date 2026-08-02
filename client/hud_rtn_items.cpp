@@ -11,6 +11,8 @@
 #define RTN_PAIN_Y		340	// painkiller (branco/azul)
 #define RTN_ICON_SIZE	24
 
+DECLARE_MESSAGE( m_RTNItems, RTNItems );  // gera __MsgFunc_RTNItems -> gHUD.m_RTNItems.MsgFunc_RTNItems
+
 int CHudRTNItems::Init( void )
 {
 	gHUD.AddHudElem( this );
