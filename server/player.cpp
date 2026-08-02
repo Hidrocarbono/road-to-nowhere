@@ -28,6 +28,7 @@
 #include "trains.h"
 #include "nodes.h"
 #include "weapons.h"
+#include "client.h"
 #include "soundent.h"
 #include "monsters.h"
 #include "shake.h"
@@ -4278,6 +4279,8 @@ void CBasePlayer :: UpdateClientData( void )
 		MESSAGE_BEGIN( MSG_ONE, gmsgResetHUD, NULL, pev );
 			WRITE_BYTE( 0 );
 		MESSAGE_END();
+
+		SendRTNItemsHUD( this );  // RTN F9: inicializa contadores laterais
 
 		if ( !m_fGameHUDInitialized )
 		{
