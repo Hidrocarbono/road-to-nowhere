@@ -38,6 +38,8 @@
 #include "weaponinfo.h"
 #include "nvg_controller.h"
 #include "weapons/rpg.h"
+#include "user_messages.h"
+#include "weapon_context.h"
 #include "weapons/satchel.h"
 #include "weapons/handgrenade.h"
 #include "weapons/egon.h"
@@ -1962,6 +1964,59 @@ ShouldCollide
   touch function.
 ================================
 */
+//=========================================================
+// RTN F9: acha um item no inventario do jogador pelo classname
+//=========================================================
+CBasePlayerItem *FindPlayerItemByName( CBasePlayer *pPlayer, const char *pszName )
+{
+	if( !pPlayer || !pszName )
+		return NULL;
+
+	for( int i = 0; i < MAX_ITEM_TYPES; i++ )
+	{
+		CBasePlayerItem *pItem = pPlayer->m_rgpPlayerItems[i];
+		while( pItem )
+		{
+			if( FClassnameIs( pItem->pev, pszName ) )
+				return pItem;
+			pItem = pItem->m_pNext;
+		}
+	}
+	return NULL;
+}
+
+//=========================================================
+// RTN F9: envia as doses de estimulante/painkiller pro HUD lateral
+// (gmsgRTNItems = 2 shorts: doses estimulante, doses painkiller)
+//=========================================================
+void SendRTNItemsHUD( CBasePlayer *pPlayer )
+{
+	if( !pPlayer || !gmsgRTNItems )
+		return;
+
+	int iStimDoses = 0;
+	int iPainDoses = 0;
+
+	// estimulante: doses = m_iClip do item no inventario
+	CBasePlayerItem *pStim = FindPlayerItemByName( pPlayer, "item_stimulant" );
+	if( pStim )
+	{
+		CBasePlayerWeapon *pWeap = dynamic_cast<CBasePlayerWeapon *>( pStim );
+		if( pWeap && pWeap->m_pWeaponContext )
+			iStimDoses = pWeap->m_pWeaponContext->m_iClip;
+	}
+
+	// painkiller: doses = ammo "painkillers"
+	int iPainIdx = pPlayer->GetAmmoIndex( "painkillers" );
+	if( iPainIdx >= 0 )
+		iPainDoses = pPlayer->m_rgAmmo[iPainIdx];
+
+	MESSAGE_BEGIN( MSG_ONE, gmsgRTNItems, NULL, pPlayer->pev );
+		WRITE_SHORT( iStimDoses );
+		WRITE_SHORT( iPainDoses );
+	MESSAGE_END();
+}
+
 int ShouldCollide( edict_t *pentTouched, edict_t *pentOther )
 {
 	CBaseEntity *pTouch = CBaseEntity::Instance( pentTouched );
