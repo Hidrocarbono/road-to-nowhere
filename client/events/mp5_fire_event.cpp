@@ -21,16 +21,7 @@ GNU General Public License for more details.
 #include "event_api.h"
 #include "event_args.h"
 #include "weapons/mp5.h"
-#include "gl_aurora.h"
-#include "r_efx.h"
-#include "dlight.h"
 #include "const.h"
-#include "gl_studio.h"
-
-// RTN: funcoes nativas do PrimeXT (mesmo sistema do Paranoia 2 - evento 5001)
-// Chamadas diretas porque o viewmodel padrao nao tem o evento 5001 embutido.
-extern void HUD_MuzzleFlash( const cl_entity_t *e, const Vector &pos, const Vector &fwd, int type, float mul );
-extern void DlightFlash( const Vector &origin, int index );
 
 CMP5FireEvent::CMP5FireEvent(event_args_t *args) :
 	CBaseGameEvent(args)
@@ -54,25 +45,10 @@ void CMP5FireEvent::HandleShot()
 
 	if (IsEventLocal())
 	{
+		// RTN: efeitos de tiro (flash 3D + dlight + fumaça) sao 100% nativos via
+		// evento 5001 no QC do viewmodel (HUD_StudioEvent -> HUD_MuzzleFlash + DlightFlash + GunSmoke),
+		// igual ao Paranoia 2. SpawnMuzzleflash() = flash de sprite 2D complementar.
 		GameEventUtils::SpawnMuzzleflash();
-
-		// RTN: smoke puff on the barrel (Paranoia 2 style) - weapon_hot.aur exists in game_dir/particles
-		cl_entity_t *viewEnt = gEngfuncs.GetViewModel();
-		if( viewEnt )
-			UTIL_CreateAurora( viewEnt, "particles/weapon_hot.aur", 1, 0.4f );
-
-		// RTN: 3D muzzle flash + dlight + smoke - sistema NATIVO do PrimeXT (Paranoia 2 style).
-		// Mesma sequencia do evento 5001 (HUD_StudioEvent): attachment 0 do viewmodel ->
-		// HUD_MuzzleFlash (modelo m_flash1.mdl, kRenderGlow) + DlightFlash + fumaça aurora.
-		cl_entity_t *viewEnt2 = gEngfuncs.GetViewModel();
-		if( viewEnt2 )
-		{
-			Vector flashPos, flashDir;
-			R_StudioAttachmentPosDir( viewEnt2, 0, &flashPos, &flashDir );
-			// type = body do flash (0-4); mul 8.0 p/ viewmodel (mesmo do Paranoia 2)
-			HUD_MuzzleFlash( viewEnt2, flashPos, flashDir, gEngfuncs.pfnRandomLong(0, 4), 8.0f );
-			DlightFlash( flashPos, viewEnt2->index );
-		}
 
 		if( m_arguments->bparam1 )
 			gEngfuncs.pEventAPI->EV_WeaponAnimation( MP5_ANIM_SHOOT1_AIM + gEngfuncs.pfnRandomLong(0,2), 2 );
