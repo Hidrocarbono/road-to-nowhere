@@ -27,7 +27,7 @@ BOOL CItemPainkiller::AddAmmo( CBaseEntity *pOther )
 	if ( bResult )
 	{
 		EMIT_SOUND( ENT( pev ), CHAN_ITEM, "items/painkiller_pickup.wav", 1, ATTN_NORM );
-		pOther->pev->weapons |= ( 1 << 31 );  // flag de posse (bit 31, igual WEAPON_PAINKILLER do Paranoia)
+		pOther->pev->weapons |= ( 1u << WEAPON_PAINKILLER );  // flag de posse (bit 31)
 		SendRTNItemsHUD( (CBasePlayer *)pOther );  // RTN F9: atualiza contador lateral
 	}
 	return bResult;
