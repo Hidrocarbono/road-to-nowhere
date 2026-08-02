@@ -507,7 +507,8 @@ void ClientCommand( edict_t *pEntity )
 			if( pPlayer->TakeHealth( 25.0f, DMG_GENERIC ) )
 			{
 				pPlayer->m_rgAmmo[iAmmo]--;
-				EMIT_SOUND( ENT( pPlayer ), CHAN_ITEM, "items/painkiller_use.wav", 1.0, ATTN_NORM );
+				// smallmedkit1.wav = som de uso do medkit do HL base (o Paranoia 2 usa painkiller_use.wav, mesmo som renomeado)
+				EMIT_SOUND( ENT( pPlayer ), CHAN_ITEM, "items/smallmedkit1.wav", 1.0, ATTN_NORM );
 				// flash leve branco (sem droga)
 				UTIL_ScreenFade( pPlayer, Vector(255, 255, 255), 0.15f, 0.3f, 120, 0 );
 				// atualiza HUD lateral
