@@ -76,8 +76,9 @@ void CNVGController::ApplyState( CBaseEntity *pPlayer, bool active )
 		WRITE_FLOAT( 0.05f );
 		// vignette (escurece TODAS as laterais - efeito de lente)
 		WRITE_FLOAT( 2.2f );
-		// film grain (chuvisco BEM mais transparente - 0.8 misturava 50% cinza!)
-		WRITE_FLOAT( 0.25f );
+		// film grain (chuvisco SUBTIL - 0.05 = 80% mais transparente que 0.25;
+		// o contraste 1.65 do NVG amplifica o noise, entao tem que ser bem baixo)
+		WRITE_FLOAT( 0.05f );
 		// color accent scale (0 = no accent)
 		WRITE_FLOAT( 0.0f );
 		// accent color (unused, white)
