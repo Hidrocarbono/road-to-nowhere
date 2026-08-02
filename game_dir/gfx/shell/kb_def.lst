@@ -14,7 +14,6 @@
 "TAB"			"+showscores"
 "e"				"+leanright"
 "v"				"stimulant_use"
-"v"				"+moveup"
 "'"				"+moveup"
 "c"				"+movedown"
 "/"				"+movedown"
