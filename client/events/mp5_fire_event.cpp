@@ -25,6 +25,12 @@ GNU General Public License for more details.
 #include "r_efx.h"
 #include "dlight.h"
 #include "const.h"
+#include "gl_studio.h"
+
+// RTN: funcoes nativas do PrimeXT (mesmo sistema do Paranoia 2 - evento 5001)
+// Chamadas diretas porque o viewmodel padrao nao tem o evento 5001 embutido.
+extern void HUD_MuzzleFlash( const cl_entity_t *e, const Vector &pos, const Vector &fwd, int type, float mul );
+extern void DlightFlash( const Vector &origin, int index );
 
 CMP5FireEvent::CMP5FireEvent(event_args_t *args) :
 	CBaseGameEvent(args)
@@ -55,42 +61,17 @@ void CMP5FireEvent::HandleShot()
 		if( viewEnt )
 			UTIL_CreateAurora( viewEnt, "particles/weapon_hot.aur", 1, 0.4f );
 
-		// RTN: 3D muzzle flash (Paranoia 2 style) - m_flash models, additive, short-lived
-		static const char *flashModels[] = { "models/m_flash.mdl", "models/m_flash1.mdl", "models/m_flash2.mdl", "models/m_flash.mdl" };
-		int flashIdx = 0;
-		struct model_s *flashModel = gEngfuncs.CL_LoadModel( flashModels[gEngfuncs.pfnRandomLong(0, 3)], &flashIdx );
-		if( flashModel )
+		// RTN: 3D muzzle flash + dlight + smoke - sistema NATIVO do PrimeXT (Paranoia 2 style).
+		// Mesma sequencia do evento 5001 (HUD_StudioEvent): attachment 0 do viewmodel ->
+		// HUD_MuzzleFlash (modelo m_flash1.mdl, kRenderGlow) + DlightFlash + fumaça aurora.
+		cl_entity_t *viewEnt2 = gEngfuncs.GetViewModel();
+		if( viewEnt2 )
 		{
-			Vector flashOrigin = GetOrigin() + forward * 30.0f + up * 2.0f;
-			TEMPENTITY *flash = gEngfuncs.pEfxAPI->CL_TempEntAllocHigh( flashOrigin, flashModel );
-			if( flash )
-			{
-				flash->flags = FTENT_SPRANIMATE | FTENT_FADEOUT;
-				flash->die = gEngfuncs.GetClientTime() + 0.08f;
-				flash->entity.curstate.rendermode = kRenderTransAdd;
-				flash->entity.curstate.renderamt = 255;
-				flash->entity.curstate.scale = gEngfuncs.pfnRandomFloat(0.4f, 0.7f);
-				flash->entity.curstate.frame = gEngfuncs.pfnRandomLong(0, 3);  // random flash frame
-				flash->entity.curstate.framerate = 200.0f;  // animate fast (petal expansion)
-				flash->entity.curstate.body = 0;
-				flash->entity.angles = GetAngles();  // face the camera (billboard-like)
-				flash->entity.curstate.angles = GetAngles();
-			}
-		}
-
-		// RTN: dynamic muzzle light (dlight) - warm yellow/orange, syncs with flash life
-		dlight_t *muzzleLight = gEngfuncs.pEfxAPI->CL_AllocDlight( m_arguments->entindex );
-		if( muzzleLight )
-		{
-			Vector lightOrigin = GetOrigin() + forward * 30.0f + up * 2.0f;
-			muzzleLight->origin = lightOrigin;
-			muzzleLight->radius = 110.0f;
-			muzzleLight->color.r = 255;
-			muzzleLight->color.g = 170;
-			muzzleLight->color.b = 60;
-			muzzleLight->die = gEngfuncs.GetClientTime() + 0.08f;
-			muzzleLight->decay = 1500.0f;
-			muzzleLight->minlight = 16.0f;
+			Vector flashPos, flashDir;
+			R_StudioAttachmentPosDir( viewEnt2, 0, &flashPos, &flashDir );
+			// type = body do flash (0-4); mul 8.0 p/ viewmodel (mesmo do Paranoia 2)
+			HUD_MuzzleFlash( viewEnt2, flashPos, flashDir, gEngfuncs.pfnRandomLong(0, 4), 8.0f );
+			DlightFlash( flashPos, viewEnt2->index );
 		}
 
 		if( m_arguments->bparam1 )
