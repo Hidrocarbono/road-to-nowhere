@@ -480,7 +480,8 @@ void ClientCommand( edict_t *pEntity )
 			if( pWeap && pWeap->m_pWeaponContext )
 			{
 				// m_bPendingUse vive no CStimulantWeaponContext (subclasse)
-				CStimulantWeaponContext *pCtx = dynamic_cast<CStimulantWeaponContext *>( pWeap->m_pWeaponContext );
+				// m_pWeaponContext e unique_ptr: usar .get() antes do dynamic_cast
+				CStimulantWeaponContext *pCtx = dynamic_cast<CStimulantWeaponContext *>( pWeap->m_pWeaponContext.get() );
 				if( pCtx )
 					pCtx->m_bPendingUse = true;
 			}
@@ -490,7 +491,7 @@ void ClientCommand( edict_t *pEntity )
 			CBasePlayerWeapon *pWeap = dynamic_cast<CBasePlayerWeapon *>( pStim );
 			if( pWeap && pWeap->m_pWeaponContext )
 			{
-				CStimulantWeaponContext *pCtx = dynamic_cast<CStimulantWeaponContext *>( pWeap->m_pWeaponContext );
+				CStimulantWeaponContext *pCtx = dynamic_cast<CStimulantWeaponContext *>( pWeap->m_pWeaponContext.get() );
 				if( pCtx )
 					pCtx->m_bPendingUse = true;
 			}
