@@ -18,7 +18,7 @@ void CItemPainkiller::Spawn( void )
 void CItemPainkiller::Precache( void )
 {
 	PRECACHE_MODEL( "models/w_antidote.mdl" );
-	PRECACHE_SOUND( "items/painkiller_pickup.wav" );
+	PRECACHE_SOUND( "items/smallmedkit1.wav" );
 }
 
 BOOL CItemPainkiller::AddAmmo( CBaseEntity *pOther )
@@ -26,7 +26,8 @@ BOOL CItemPainkiller::AddAmmo( CBaseEntity *pOther )
 	int bResult = ( pOther->GiveAmmo( 1, "painkillers", PAINKILLER_MAX_CARRY ) != -1 );
 	if ( bResult )
 	{
-		EMIT_SOUND( ENT( pev ), CHAN_ITEM, "items/painkiller_pickup.wav", 1, ATTN_NORM );
+		// smallmedkit1.wav = som do healthkit do HL base (painkiller_pickup.wav do Paranoia 2 era custom)
+		EMIT_SOUND( ENT( pev ), CHAN_ITEM, "items/smallmedkit1.wav", 1, ATTN_NORM );
 		pOther->pev->weapons |= ( 1u << WEAPON_PAINKILLER );  // flag de posse (bit 31)
 		SendRTNItemsHUD( (CBasePlayer *)pOther );  // RTN F9: atualiza contador lateral
 	}
