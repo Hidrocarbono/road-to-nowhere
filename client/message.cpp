@@ -144,9 +144,19 @@ void CHudMessage::MessageScanNextChar( void )
 	int destRed, destGreen, destBlue;
 	int blend;
 
-	srcRed = m_parms.pMessage->r1;
-	srcGreen = m_parms.pMessage->g1;
-	srcBlue = m_parms.pMessage->b1;
+	// RTN F10: titulo (linha 0) usa $color, mensagem (demais linhas) usa $color2
+	if( m_parms.useColor2 )
+	{
+		srcRed = m_parms.pMessage->r2;
+		srcGreen = m_parms.pMessage->g2;
+		srcBlue = m_parms.pMessage->b2;
+	}
+	else
+	{
+		srcRed = m_parms.pMessage->r1;
+		srcGreen = m_parms.pMessage->g1;
+		srcBlue = m_parms.pMessage->b1;
+	}
 	destRed = destGreen = destBlue = 0;
 	blend = 0; // pure source
 
@@ -286,6 +296,7 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 	{
 		m_parms.lineLength = 0;
 		m_parms.width = 0;
+		m_parms.useColor2 = ( i > 0 );  // RTN F10: linha 0 = titulo (cor1), resto = mensagem (cor2)
 
 		while( *pText && *pText != '\n' )
 		{
