@@ -18,6 +18,7 @@ int CHudRTNItems::Init( void )
 {
 	gHUD.AddHudElem( this );
 	HOOK_MESSAGE( RTNItems );
+	m_iFlags |= HUD_ACTIVE;  // RTN F10 fix: sem isso o Redraw() nao chama Draw() -> numeros somem
 	return 1;
 }
 
