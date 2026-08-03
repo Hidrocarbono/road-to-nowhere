@@ -422,6 +422,7 @@ struct message_parms_t
 	int r, g, b;
 	int text;
 	int fadeBlend;
+	int useColor2;	// RTN F10: linha 0 = $color (titulo), demais = $color2 (mensagem)
 	float charTime;
 	float fadeTime;
 };
