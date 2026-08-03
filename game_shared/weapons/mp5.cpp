@@ -151,36 +151,24 @@ void CMP5WeaponContext::SecondaryAttack()
 	// Toggle ironsight on right-click
 	m_bInIronSight = !m_bInIronSight;
 
-	// Play the ironsight transition animation
+	// RTN F10 IRONSIGHT (plano do user: "enganacao do modelo" em vez de zoom da camera):
+	// A CAMERA NAO MUDA (FOV fixo 90). O que se aproxima e o VIEWMODEL via
+	// cl_viewmodel_fov ALTO (110 = arma grande, parece colada no rosto).
+	// Por que resolve: o engine compensa o viewmodel com flFOVOffset = 90 - fov_camera.
+	// Com camera 90, offset = 0 -> viewmodel FOV puro -> o attachment (fumaca) e o
+	// tracante usam a MESMA projecao -> alinhados por construcao (sem desvio esq/cima).
 	if( m_bInIronSight )
-	{
 		SendWeaponAnim( MP5_ANIM_AIM_IN );
-		// start FOV lerp 90 -> 55 (GetTime = real time; GetWeaponTimeBase(true) is always 0 on server!)
-		m_fFOVFrom = 90.0f;
-		m_fFOVTo = 55.0f;
-		m_fFOVLerpStart = m_pLayer->GetTime();
-		m_bFOVLerpActive = true;
-		// subtle camera dip (Tarkov-style)
-		m_pLayer->AddPlayerPunchangle( 1.5f, 0.f, 0.f );
-	}
 	else
-	{
 		SendWeaponAnim( MP5_ANIM_AIM_OUT );
-		// start FOV lerp 55 -> 90 (GetTime = real time)
-		m_fFOVFrom = 55.0f;
-		m_fFOVTo = 90.0f;
-		m_fFOVLerpStart = m_pLayer->GetTime();
-		m_bFOVLerpActive = true;
-		m_pLayer->AddPlayerPunchangle( -1.5f, 0.f, 0.f );
-	}
 
-	// dynamic cl_viewmodel_fov: 62 when hip (gun smaller/pulled back), 54 when aiming (unchanged)
 #ifndef CLIENT_DLL
 	CBasePlayer *player = m_pLayer->GetWeaponEntity()->m_pPlayer;
 	if( player )
 	{
+		// viewmodel aproximado quando mirado (110), recuado quando nao (62)
 		if( m_bInIronSight )
-			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 65\n" );  // user: ainda perto -> 65 (mais longe)
+			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 110\n" );
 		else
 			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 62\n" );
 	}
@@ -203,22 +191,8 @@ void CMP5WeaponContext::WeaponIdle()
 	ResetEmptySound();
 	m_pLayer->GetAutoaimVector(AUTOAIM_5DEGREES);
 
-	// FOV lerp for smooth ironsight transition (GetTime = real time!)
-	if( m_bFOVLerpActive )
-	{
-		float curTime = m_pLayer->GetTime();
-		float progress = (curTime - m_fFOVLerpStart) / 0.15f;  // ~150ms transition
-		if( progress >= 1.0f )
-		{
-			m_bFOVLerpActive = false;
-			m_pLayer->SetPlayerFOV( m_fFOVTo );
-		}
-		else
-		{
-			m_pLayer->SetPlayerFOV( m_fFOVFrom + (m_fFOVTo - m_fFOVFrom) * progress );
-		}
-	}
-
+	// RTN F10: camera fixa (sem FOV lerp) - o ironsight aproxima so o viewmodel.
+	// A transicao suave vem da animacao AIM_IN/AIM_OUT do modelo.
 	if (m_flTimeWeaponIdle > m_pLayer->GetWeaponTimeBase(UsePredicting()))
 		return;
 
