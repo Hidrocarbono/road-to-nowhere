@@ -122,7 +122,10 @@ int CHudMessage::YPosition( float y, int height )
 	else
 	{
 		if( y < 0 )
-			yPos = (1.0 + y) * ScreenHeight - height;	// Alight bottom
+			// RTN F10 fix: semantica INTUITIVA - y negativo = distancia do fundo.
+			// HL original: (1.0+y)*H - height -> y=-0.9 ia pro TOPO (invertido!).
+			// Agora: y=-0.1 = 10% acima do fundo (ideal pra legenda).
+			yPos = ScreenHeight + y * ScreenHeight - height;	// distancia do fundo
 		else
 			yPos = y * ScreenHeight;
 	}
