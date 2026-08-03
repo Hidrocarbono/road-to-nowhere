@@ -79,33 +79,38 @@ void CMessage::KeyValue( KeyValueData *pkvd )
 }
 
 // RTN F10: substitui %player_name% pelo nome do jogador (se presente)
+// Usa Q_snprintf (3 args - Q_strncat nao tem limite de copia!)
 static void RTN_SubstitutePlayerName( const char *src, char *dst, int dstSize, CBaseEntity *pPlayer )
 {
 	const char *pName = "%player_name%";
 	const char *pFound = NULL;
 	const char *pStart = src;
+	int written = 0;
+
+	const char *playerName = "Jogador";
+	if( pPlayer && pPlayer->IsNetClient() )
+	{
+		playerName = STRING( pPlayer->pev->netname );
+		if( !playerName || !playerName[0] )
+			playerName = "Jogador";
+	}
+
+	dst[0] = 0;
 
 	while( ( pFound = Q_strstr( pStart, pName ) ) != NULL )
 	{
 		// copia o trecho antes do %player_name%
 		int preLen = pFound - pStart;
-		if( preLen > 0 )
-		{
-			Q_strncat( dst, pStart, dstSize, preLen );
-		}
+		if( preLen > 0 && written < dstSize - 1 )
+			written += Q_snprintf( dst + written, dstSize - written, "%.*s", preLen, pStart );
 		// insere o nome do jogador
-		const char *playerName = "Jogador";
-		if( pPlayer && pPlayer->IsNetClient() )
-		{
-			playerName = STRING( pPlayer->pev->netname );
-			if( !playerName || !playerName[0] )
-				playerName = "Jogador";
-		}
-		Q_strncat( dst, playerName, dstSize, Q_strlen( playerName ) );
+		if( written < dstSize - 1 )
+			written += Q_snprintf( dst + written, dstSize - written, "%s", playerName );
 		pStart = pFound + Q_strlen( pName );
 	}
 	// copia o restante
-	Q_strncat( dst, pStart, dstSize, Q_strlen( pStart ) );
+	if( written < dstSize - 1 )
+		Q_snprintf( dst + written, dstSize - written, "%s", pStart );
 }
 
 void CMessage::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
