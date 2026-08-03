@@ -1,0 +1,111 @@
+// ============================================================================
+//  titles.txt - SISTEMA DE FALAS E DOCUMENTOS DO ROAD TO NOWHERE
+//  Criado por Hermes e Hidrocarboneto.
+//
+//  COMO FUNCIONA (orientações para uso futuro):
+//  ----------------------------------------------------------------------------
+//  Este é o ARQUIVO CENTRAL de mensagens do jogo. Ele não fica no mapa:
+//  as entidades no mapa guardam apenas o NOME da mensagem, e o texto
+//  (com formatação) é buscado aqui pelo client.
+//
+//  FLUXO:
+//    entidade no mapa (ex: env_message ou game_text)
+//      -> keyvalue "message" = "#NOME_DA_MENSAGEM" (com # na frente!)
+//      -> server envia "HudText" ao client
+//      -> client busca NOME_DA_MENSAGEM neste arquivo
+//      -> desenha na tela com os atributos abaixo
+//
+//  FORMATO DE CADA MENSAGEM:
+//    (linhas com // no início são comentários e são ignoradas)
+//
+//    $position x y      -> posição na tela. x e y vão de 0 a 1
+//                          (0 = esquerda/topo, 1 = direita/fundo).
+//                          -1 centraliza no eixo.
+//                          NEGATIVO no y = DISTÂNCIA DO FUNDO:
+//                          y -0.1 = 10% acima do fundo (ideal p/ legenda).
+//    $effect 0..2       -> 0 = fade in/out | 1 = flicker (creditos)
+//                          2 = escrever letra por letra (scan)
+//    $color  R G B      -> cor do TÍTULO (linha 1) - 0 a 255
+//    $color2 R G B      -> cor da MENSAGEM (linhas 2 em diante)
+//    $fadein  seg       -> tempo de fade-in (ou tempo por caractere no effect 2)
+//    $fadeout seg       -> tempo de fade-out
+//    $holdtime seg      -> tempo que fica na tela
+//
+//    NOME_DA_MENSAGEM   <- nome usado pela entidade (SEM # aqui)
+//    {
+//    Linha 1 do texto   <- TÍTULO (cor = $color)
+//    Linha 2 do texto   <- MENSAGEM (cor = $color2)
+//    }
+//
+//  SUBSTITUIÇÃO AUTOMÁTICA:
+//    %player_name% no texto é trocado pelo nome do jogador (feito no server).
+//
+//  QUEBRA DE LINHA:
+//    Cada linha dentro das chaves { } vira uma linha na tela.
+//    Linha 1 = título (cor $color), linhas seguintes = mensagem ($color2).
+//
+//  FONTE:
+//    O HUD usa a fonte bitmap global do engine (gfx/creditsfont.fnt).
+//    Fontes custom (imagem .tga + .chw) podem ser apontadas via con_charset.
+//
+//  DICAS:
+//    - Mensagem com # na frente (ex: "#Doutor_Intro") busca aqui.
+//    - Texto sem # é exibido literalmente (com %player_name% e \n funcionando).
+//    - Para legenda estilo filme: $position -1 -0.1 (centralizada no fundo).
+// ============================================================================
+
+
+// ============================================================================
+//  EXEMPLO 1 - Fala de NPC (legenda no canto inferior, centralizada)
+//  Uso no mapa: env_message com message = "#Doutor_Intro"
+// ============================================================================
+$position -1 -0.1
+$effect 0
+$color 255 200 0
+$color2 255 255 255
+$fadein 0.3
+$fadeout 0.5
+$holdtime 4
+Doutor_Intro
+{
+Dr. Freeman:
+Bem-vindo a Black Mesa, %player_name%.
+Espero que goste do trabalho.
+}
+
+
+// ============================================================================
+//  EXEMPLO 2 - Documento / arquivo coletável (estilo lore)
+//  Uso no mapa: env_message com message = "#Doc_Primera_Anotacion"
+// ============================================================================
+$position -1 0.2
+$effect 0
+$color 180 180 200
+$color2 230 230 230
+$fadein 0.2
+$fadeout 0.4
+$holdtime 6
+Doc_Primera_Anotacion
+{
+ARQUIVO 001 - DIARIO
+Hoje chegamos ao fim da estrada.
+Ninguem sabe o que existe alem do desvio.
+}
+
+
+// ============================================================================
+//  EXEMPLO 3 - Mensagem central clássica (aviso / tutorial)
+//  Uso no mapa: env_message com message = "#Aviso_Estrada"
+// ============================================================================
+$position -1 -1
+$effect 0
+$color 255 80 80
+$color2 255 255 255
+$fadein 0.4
+$fadeout 0.6
+$holdtime 3
+Aviso_Estrada
+{
+ATENCAO
+A estrada nao tem volta.
+}
