@@ -61,7 +61,23 @@ void CMP5FireEvent::HandleShot()
 	Vector shellOrigin = GetOrigin() + up * -12.0f + forward * 20.0f + right * 4.0f;
 
 	GameEventUtils::EjectBrass(shellOrigin, GetAngles(), shellVelocity, brassModelIndex, TE_BOUNCE_SHELL);
-	GameEventUtils::FireBullet(m_arguments->entindex, cameraMatrix, GetOrigin(), GetShootDirection(cameraMatrix), 2);
+
+	// RTN F10 fix: origem do TRACANTE = ponta do cano (attachment[0] do viewmodel).
+	// Antes o tracante nascia no olho (centro da tela) - agora nasce no mesmo
+	// ponto da fumaca/flash (evento 5001), alinhado no ironsight e no lean.
+	Vector muzzleOrigin = GetOrigin();
+	cl_entity_t *viewModel = gEngfuncs.GetViewModel();
+	if (viewModel && viewModel->model)
+	{
+		// attachment[0] esta em coordenadas de mundo (calculado pelo renderer)
+		if (viewModel->attachment[0].Length() > 0.01f)
+			muzzleOrigin = Vector(viewModel->attachment[0]);
+	}
+	// fallback: se o modelo nao tem attachment, offset classico do HL (direita+baixo)
+	if (muzzleOrigin == GetOrigin())
+		muzzleOrigin = GetOrigin() + cameraMatrix.GetForward() * 8.0f + cameraMatrix.GetRight() * 8.0f + cameraMatrix.GetUp() * -4.0f;
+
+	GameEventUtils::FireBullet(m_arguments->entindex, cameraMatrix, GetOrigin(), muzzleOrigin, GetShootDirection(cameraMatrix), 2);
 
 	const char *soundName = gEngfuncs.pfnRandomLong(0, 1) == 0 ? "weapons/hks1.wav" : "weapons/hks2.wav";
 	gEngfuncs.pEventAPI->EV_PlaySound( GetEntityIndex(), GetOrigin(), CHAN_WEAPON, soundName, 1.f, ATTN_NORM, 0, 94 + gEngfuncs.pfnRandomLong(0, 15));
