@@ -127,8 +127,10 @@ void CStimulantWeaponContext::WeaponIdle()
 		}
 		else
 		{
-			// keep checking while animation plays
+			// keep checking while animation plays - RETURN pra nao deixar a
+			// linha "+5.0f" abaixo sobrescrever (bug: animacao nunca completava)
 			m_flTimeWeaponIdle = m_pLayer->GetTime();
+			return;
 		}
 	}
 
