@@ -17,8 +17,8 @@
 
 DECLARE_MESSAGE( m_RTNItems, RTNItems );  // gera __MsgFunc_RTNItems -> gHUD.m_RTNItems.MsgFunc_RTNItems
 
-static TextureHandle g_hStimIcon = 0;
-static TextureHandle g_hPainIcon = 0;
+static TextureHandle g_hStimIcon = TextureHandle::Null();
+static TextureHandle g_hPainIcon = TextureHandle::Null();
 
 // desenha um quad com a textura ativa (coords de tela)
 static void RTN_DrawQuad( float xmin, float ymin, float xmax, float ymax )
@@ -45,7 +45,7 @@ static void RTN_DrawItemSlot( int y, int r, int g, int b, TextureHandle hTex, co
 	FillRGBA( RTN_ITEMS_X, y, 2, RTN_ICON_SIZE, 255, 255, 255, 120 );
 	FillRGBA( RTN_ITEMS_X + RTN_ICON_SIZE - 2, y, 2, RTN_ICON_SIZE, 255, 255, 255, 120 );
 
-	if( hTex )
+	if( hTex.Initialized() )
 	{
 		// icone TGA com alpha (GL_Bind + quad, sem converter p/ .spr)
 		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
@@ -59,7 +59,8 @@ static void RTN_DrawItemSlot( int y, int r, int g, int b, TextureHandle hTex, co
 		// fallback: letra inicial centralizada
 		int tx = RTN_ITEMS_X + RTN_ICON_SIZE / 2 - 4;
 		int ty = y + RTN_ICON_SIZE / 2 - 6;
-		gHUD.DrawHudString( tx, ty, tx + 20, pszLetter, 255, 255, 255 );
+		char szLetter[2] = { pszLetter[0], '\0' };
+		gHUD.DrawHudString( tx, ty, tx + 20, szLetter, 255, 255, 255 );
 	}
 
 	// contador de doses ao lado
