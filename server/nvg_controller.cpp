@@ -58,28 +58,28 @@ void CNVGController::ApplyState( CBaseEntity *pPlayer, bool active )
 
 	if( active )
 	{
-		// RTN F8 v2: NVG de fosforo verde - calibracao Tarkov/Paranoia:
-		// brightness alto = amplifica a luz (ve no escuro, detalhes estouram)
+		// RTN F10 v3: NVG fosforo verde com GANHO DE LUZ no escuro.
+		// Ordem do shader: sat->brightness->levels->contrast->grain->vignette.
+		// O brightness soma luz AINDA EM CINZA (depois da saturation), e o
+		// colorlevels tinge de verde PURO por ultimo - sem reintroduzir R/B.
 		// fade-in time
 		WRITE_FLOAT( 0.25f );
-		// brightness (IR gain - AMPLIFICA luz; 0.3 soma luz visivel no escuro)
-		WRITE_FLOAT( 0.30f );
+		// brightness (IR gain: 0.35 ilumina escuros em cinza - ve no escuro)
+		WRITE_FLOAT( 0.35f );
 		// saturation 0 = full desaturation (monochrome)
 		WRITE_FLOAT( 0.0f );
-		// contrast (crush blacks + estoura highlights)
-		WRITE_FLOAT( 1.65f );
-		// red level (quase zero -> nada de vermelho)
-		WRITE_FLOAT( 0.05f );
-		// green level (dominante - fosforo verde)
-		WRITE_FLOAT( 1.35f );
-		// blue level (quase zero -> nada de azul)
-		WRITE_FLOAT( 0.05f );
+		// contrast 0.75 comprime claros (o gain alto estouraria com 1.65)
+		WRITE_FLOAT( 0.75f );
+		// red level ZERO (verde puro, sem vermelho)
+		WRITE_FLOAT( 0.0f );
+		// green level 0.65 (fosforo verde intenso e escuro - #006400 estilo)
+		WRITE_FLOAT( 0.65f );
+		// blue level ZERO (verde puro, sem azul)
+		WRITE_FLOAT( 0.0f );
 		// vignette (escurece TODAS as laterais - efeito de lente)
 		WRITE_FLOAT( 2.2f );
-		// film grain restaurado (0.15 = chuvisco sutil de sensor analogico).
-		// O problema do "verde sumindo" era a ORDEM do shader (saturation apagava
-		// o ColorLevels), NAO o granulado - corrigido no postprocessing_fp.glsl.
-		WRITE_FLOAT( 0.15f );
+		// film grain 0.25 (chuvisco analogico pedido pelo user)
+		WRITE_FLOAT( 0.25f );
 		// color accent scale (0 = no accent)
 		WRITE_FLOAT( 0.0f );
 		// accent color (unused, white)
