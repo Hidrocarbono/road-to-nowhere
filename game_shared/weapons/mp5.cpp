@@ -54,7 +54,7 @@ bool CMP5WeaponContext::Deploy()
 #ifndef CLIENT_DLL
 	CBasePlayer *player = m_pLayer->GetWeaponEntity()->m_pPlayer;
 	if( player )
-		g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 62\n" );
+		g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 64\n" );
 #endif
 	return DefaultDeploy( "models/v_mp5.mdl", "models/p_mp5.mdl", MP5_ANIM_DEPLOY, "mp5" );
 }
@@ -166,11 +166,14 @@ void CMP5WeaponContext::SecondaryAttack()
 	CBasePlayer *player = m_pLayer->GetWeaponEntity()->m_pPlayer;
 	if( player )
 	{
-		// viewmodel aproximado quando mirado (110), recuado quando nao (62)
+		// RTN F10 v2: FOV do viewmodel INVERTIDO.
+		// cl_viewmodel_fov ALTO = modelo pequeno (parece longe) - era o bug.
+		// cl_viewmodel_fov BAIXO = modelo grande (parece perto do rosto).
+		// Mirado: 50 (max aproximacao, arma na cara) | Normal: 64 (user pediu +2 vs 62)
 		if( m_bInIronSight )
-			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 110\n" );
+			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 50\n" );
 		else
-			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 62\n" );
+			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 64\n" );
 	}
 #endif
 
