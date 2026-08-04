@@ -30,7 +30,7 @@ void GameEventUtils::EjectBrass(const Vector &origin, const Vector &angles, cons
 		2.5, modelIndex, soundType);
 }
 
-void GameEventUtils::FireBullet(int entIndex, const matrix3x3 &camera, const Vector &origin, const Vector &direction, int tracerFreq)
+void GameEventUtils::FireBullet(int entIndex, const matrix3x3 &camera, const Vector &origin, const Vector &muzzleOrigin, const Vector &direction, int tracerFreq)
 {
 	pmtrace_t tr;
 	Vector endPos = origin + direction * 8196.f;
@@ -40,7 +40,11 @@ void GameEventUtils::FireBullet(int entIndex, const matrix3x3 &camera, const Vec
 	gEngfuncs.pEventAPI->EV_SetSolidPlayers(entIndex - 1);
 	gEngfuncs.pEventAPI->EV_SetTraceHull(2); // 2 is a point hull
 	gEngfuncs.pEventAPI->EV_PlayerTrace(const_cast<float*>(&origin.x), endPos, PM_NORMAL, -1, &tr);
-	CreateTracer(camera, origin, tr.endpos, tracerFreq);
+	// RTN F10 fix: o TRACANTE nasce na PONTA DO CANO (muzzleOrigin = attachment[0] do
+	// viewmodel), nao no olho. Antes usava origin (centro da tela) e ficava visivel
+	// que o tracante nao vinha da arma (principalmente no ironsight/lean).
+	// O trace (hitscan) continua do olho - precisao do dano inalterada.
+	CreateTracer(camera, muzzleOrigin, tr.endpos, tracerFreq);
 	gEngfuncs.pEventAPI->EV_PopPMStates();
 }
 
