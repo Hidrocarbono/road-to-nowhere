@@ -81,10 +81,14 @@ vec3 ApplyColorAccent(vec3 color)
 void main()
 {
 	vec3 color = texture(u_ScreenMap, var_TexCoord).rgb;
+	// RTN F10 fix NVG: SATURACAO ANTES do ColorLevels.
+	// Ordem antiga (levels->saturation) fazia o monochrome (sat=0) APAGAR o
+	// fosforo verde aplicado pelos levels - por isso o NVG ficava cinza.
+	// Com defaults (sat=1, levels=1,1,1) a ordem e irrelevante - seguro p/ todos.
+	color = AdjustSaturation(color);
 	color = AdjustColorLevels(color);
 	color = ApplyColorAccent(color);
 	color = AdjustBrightness(color);
-	color = AdjustSaturation(color);
 	color = AdjustContrast(color);
 	color = ApplyFilmGrain(color);
 	color = ApplyVignette(color);
