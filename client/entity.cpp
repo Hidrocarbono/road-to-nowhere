@@ -374,9 +374,12 @@ void DLLEXPORT HUD_StudioEvent( const struct mstudioevent_s *event, const struct
 		// RTN F10 IRONSIGHT FIX: viewmodel desenhado com cl_viewmodel_fov != camera 90
 		// -> corrige o attachment para o ponto onde o cano VISUAL esta (igual ao tracante)
 		{
-			if( entity == GET_VIEWMODEL() && gEngfuncs.GetLocalPlayer() )
+			if( entity == GET_VIEWMODEL() )
 			{
-				Vector eyePos = Vector(gEngfuncs.GetLocalPlayer()->origin) + Vector(gEngfuncs.GetLocalPlayer()->curstate.view_ofs);
+				// eyePos = origin do viewmodel (ancorado na camera). O attachment[0]
+				// e calculado na matriz do viewmodel, entao pos - entity->origin e
+				// exatamente o vetor camera->cano no espaco do mundo.
+				Vector eyePos = Vector(entity->origin);
 				matrix3x3 cam( entity->curstate.angles );  // camera do viewmodel = angulos da arma
 				pos = GameEventUtils::CorrectMuzzleForViewmodelFov( pos, eyePos, cam );
 			}
