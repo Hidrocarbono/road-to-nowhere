@@ -514,6 +514,12 @@ void ClientCommand( edict_t *pEntity )
 				// atualiza HUD lateral
 				SendRTNItemsHUD( pPlayer );
 			}
+			else
+			{
+				// RTN F10: vida cheia - feedback de "nao pode usar" (nao consome a dose,
+				// igual Paranoia 2: TakeHealth false = nada acontece)
+				EMIT_SOUND( ENT( pPlayer ), CHAN_ITEM, "common/wpn_denyselect.wav", 1.0, ATTN_NORM );
+			}
 		}
 	}
 	else if (((pstr = strstr(pcmd, "weapon_")) != NULL)  && (pstr == pcmd))
