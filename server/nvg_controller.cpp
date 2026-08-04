@@ -58,22 +58,26 @@ void CNVGController::ApplyState( CBaseEntity *pPlayer, bool active )
 
 	if( active )
 	{
-		// RTN F10 v3: NVG fosforo verde com GANHO DE LUZ no escuro.
+		// RTN F10 v4: NVG fosforo verde com GANHO MULTIPLICATIVO real.
 		// Ordem do shader: sat->brightness->levels->contrast->grain->vignette.
-		// O brightness soma luz AINDA EM CINZA (depois da saturation), e o
-		// colorlevels tinge de verde PURO por ultimo - sem reintroduzir R/B.
+		// BUG da v3: green 0.65 MULTIPLICAVA o brilho por 0.65 (escurecia!) e o
+		// brightness 0.35 somava luz em tudo (lavava o contraste - tudo verde
+		// uniforme, "dificulta mais a visao").
+		// v4 (estilo F.E.A.R./MW): green > 1.0 = amplifica a luz EXISTENTE
+		// (pixel escuro 0.1 -> 0.18 verde, iluminado 0.5 -> 0.9), brightness baixo
+		// so levanta o preto absoluto, contrast 1.0 preserva a faixa dinamica.
 		// fade-in time
 		WRITE_FLOAT( 0.25f );
-		// brightness (IR gain: 0.35 ilumina escuros em cinza - ve no escuro)
-		WRITE_FLOAT( 0.35f );
+		// brightness (floor: so o preto absoluto ganha 0.12 - nao lava o resto)
+		WRITE_FLOAT( 0.12f );
 		// saturation 0 = full desaturation (monochrome)
 		WRITE_FLOAT( 0.0f );
-		// contrast 0.75 comprime claros (o gain alto estouraria com 1.65)
-		WRITE_FLOAT( 0.75f );
+		// contrast 1.0 = preserva contraste (o ganho vem do green, nao da compressao)
+		WRITE_FLOAT( 1.0f );
 		// red level ZERO (verde puro, sem vermelho)
 		WRITE_FLOAT( 0.0f );
-		// green level 0.65 (fosforo verde intenso e escuro - #006400 estilo)
-		WRITE_FLOAT( 0.65f );
+		// green level 1.8 = GANHO real: multiplica a luminancia em 1.8x (amplifica escuros)
+		WRITE_FLOAT( 1.8f );
 		// blue level ZERO (verde puro, sem azul)
 		WRITE_FLOAT( 0.0f );
 		// vignette (escurece TODAS as laterais - efeito de lente)

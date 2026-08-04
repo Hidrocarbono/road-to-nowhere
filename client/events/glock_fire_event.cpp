@@ -52,6 +52,8 @@ void CGlockFireEvent::Execute()
 		muzzleOrigin = Vector(viewModel->attachment[0]);
 	if (muzzleOrigin == GetOrigin())
 		muzzleOrigin = GetOrigin() + cameraMatrix.GetForward() * 8.0f + cameraMatrix.GetRight() * 8.0f + cameraMatrix.GetUp() * -4.0f;
+	// RTN F10 IRONSIGHT FIX: corrige attachment para o ponto onde o cano VISUAL esta
+	muzzleOrigin = GameEventUtils::CorrectMuzzleForViewmodelFov(muzzleOrigin, GetOrigin(), cameraMatrix);
 
 	GameEventUtils::FireBullet(m_arguments->entindex, cameraMatrix, GetOrigin(), muzzleOrigin, GetShootDirection(cameraMatrix), 1);
 	gEngfuncs.pEventAPI->EV_PlaySound( GetEntityIndex(), GetOrigin(), CHAN_WEAPON, "weapons/pl_gun3.wav", gEngfuncs.pfnRandomFloat(0.92, 1.0), ATTN_NORM, 0, 98 + gEngfuncs.pfnRandomLong(0, 3));

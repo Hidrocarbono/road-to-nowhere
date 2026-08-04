@@ -23,6 +23,7 @@
 #include "gl_rpart.h"
 #include "exportdef.h"
 #include "events/egon_fire_event.h"
+#include "events/game_event_utils.h"
 
 void Game_AddObjects( void );
 
@@ -370,9 +371,19 @@ void DLLEXPORT HUD_StudioEvent( const struct mstudioevent_s *event, const struct
 	{
 	case 5001:
 		R_StudioAttachmentPosDir( entity, 0, &pos, &dir );
+		// RTN F10 IRONSIGHT FIX: viewmodel desenhado com cl_viewmodel_fov != camera 90
+		// -> corrige o attachment para o ponto onde o cano VISUAL esta (igual ao tracante)
+		{
+			if( entity == GET_VIEWMODEL() && gEngfuncs.GetLocalPlayer() )
+			{
+				Vector eyePos = Vector(gEngfuncs.GetLocalPlayer()->origin) + Vector(gEngfuncs.GetLocalPlayer()->curstate.view_ofs);
+				matrix3x3 cam( entity->curstate.angles );  // camera do viewmodel = angulos da arma
+				pos = GameEventUtils::CorrectMuzzleForViewmodelFov( pos, eyePos, cam );
+			}
+		}
 		HUD_MuzzleFlash( entity, pos, dir, atoi( event->options), mul );
-		DlightFlash((float *)&entity->attachment[0], entity->index ); 		
-		g_pParticles.GunSmoke(entity->attachment[0], 2);
+		DlightFlash((float *)&pos, entity->index ); 		
+		g_pParticles.GunSmoke(pos, 2);
 		break;
 	case 5007:		 		
 		g_pParticles.GunSmoke(entity->attachment[0], 2);
