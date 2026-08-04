@@ -76,9 +76,10 @@ void CNVGController::ApplyState( CBaseEntity *pPlayer, bool active )
 		WRITE_FLOAT( 0.05f );
 		// vignette (escurece TODAS as laterais - efeito de lente)
 		WRITE_FLOAT( 2.2f );
-		// film grain: ZERO (eliminado a pedido do user - mesmo com alpha baixo o
-		// noise do shader dominava a tela junto com o contraste 1.65)
-		WRITE_FLOAT( 0.0f );
+		// film grain restaurado (0.15 = chuvisco sutil de sensor analogico).
+		// O problema do "verde sumindo" era a ORDEM do shader (saturation apagava
+		// o ColorLevels), NAO o granulado - corrigido no postprocessing_fp.glsl.
+		WRITE_FLOAT( 0.15f );
 		// color accent scale (0 = no accent)
 		WRITE_FLOAT( 0.0f );
 		// accent color (unused, white)
