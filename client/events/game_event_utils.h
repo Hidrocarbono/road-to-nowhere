@@ -23,6 +23,4 @@ namespace GameEventUtils
 	void FireBullet(int entIndex, const matrix3x3 &camera, const Vector &origin, const Vector &muzzleOrigin, const Vector &direction, int tracerFreq);
 	void CreateTracer(const matrix3x3 &camera, const Vector &origin, const Vector &end, int frequency);
 	void SpawnMuzzleflash();
-	// RTN F10: corrige attachment[0] para casar com a projecao visual do viewmodel (iron sight)
-	Vector CorrectMuzzleForViewmodelFov(const Vector &muzzleWorld, const Vector &eyePos, const matrix3x3 &camera);
 }

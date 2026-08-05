@@ -90,35 +90,3 @@ void GameEventUtils::SpawnMuzzleflash()
 		ent->curstate.effects |= EF_MUZZLEFLASH;
 	}
 }
-
-// RTN F10 IRONSIGHT FIX: corrige a posicao do cano (attachment[0]) para casar com a
-// projecao VISUAL do viewmodel. O attachment geométrico e calculado pela matriz do
-// modelo (camera 90), mas o viewmodel e DESENHADO com cl_viewmodel_fov proprio
-// (50 mirado / 64 normal) -> o cano visual aparece deslocado na tela, e a fumaca/
-// tracante nascendo na posicao geometrica ficam "para o lado" da ponta da arma.
-// Correcao: escalar as componentes laterais (direita/cima) do vetor camera->cano por
-// fator = tan(fov_cam/2)/tan(fov_vm/2). fov_vm lido do cvar cl_viewmodel_fov.
-Vector GameEventUtils::CorrectMuzzleForViewmodelFov(const Vector &muzzleWorld, const Vector &eyePos, const matrix3x3 &camera)
-{
-	const float fovCam = 90.0f; // camera RTN fixa em 90 (design do iron sight)
-	float fovVm = gEngfuncs.pfnGetCvarFloat("cl_viewmodel_fov");
-	if (fovVm < 10.0f || fovVm > 120.0f)
-		fovVm = 90.0f; // default: sem correcao
-
-	// fator = tan(fovCam/2) / tan(fovVm/2) — com fovVm == fovCam vira 1.0 (identidade)
-	const float radCam = fovCam * 0.5f * (float)M_PI / 180.0f;
-	const float radVm  = fovVm  * 0.5f * (float)M_PI / 180.0f;
-	const float factor = tanf(radCam) / tanf(radVm);
-
-	if (fabsf(factor - 1.0f) < 0.005f)
-		return muzzleWorld; // sem zoom de viewmodel: attachment geometrico ja e o visual
-
-	// decompoe o vetor camera->cano nos eixos da camera
-	const Vector rel = muzzleWorld - eyePos;
-	const float f = rel.Dot(camera.GetForward());
-	const float r = rel.Dot(camera.GetRight()) * factor;
-	const float u = rel.Dot(camera.GetUp()) * factor;
-
-	// recompoe: forward inalterado, laterais escaladas -> ponto onde o cano APARECE
-	return eyePos + camera.GetForward() * f + camera.GetRight() * r + camera.GetUp() * u;
-}

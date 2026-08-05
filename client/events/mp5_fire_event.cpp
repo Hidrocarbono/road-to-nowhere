@@ -76,9 +76,6 @@ void CMP5FireEvent::HandleShot()
 	// fallback: se o modelo nao tem attachment, offset classico do HL (direita+baixo)
 	if (muzzleOrigin == GetOrigin())
 		muzzleOrigin = GetOrigin() + cameraMatrix.GetForward() * 8.0f + cameraMatrix.GetRight() * 8.0f + cameraMatrix.GetUp() * -4.0f;
-	// RTN F10 IRONSIGHT FIX: com cl_viewmodel_fov 50 (mirado) o cano VISUAL aparece
-	// deslocado na tela; corrige o attachment para o ponto onde o cano realmente esta
-	muzzleOrigin = GameEventUtils::CorrectMuzzleForViewmodelFov(muzzleOrigin, GetOrigin(), cameraMatrix);
 
 	GameEventUtils::FireBullet(m_arguments->entindex, cameraMatrix, GetOrigin(), muzzleOrigin, GetShootDirection(cameraMatrix), 2);
 
