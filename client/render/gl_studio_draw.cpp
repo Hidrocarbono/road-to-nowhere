@@ -2388,6 +2388,18 @@ void CStudioModelRenderer :: AddStudioModelToDrawList( cl_entity_t *e, bool upda
 			cl_entity_t *ent = GET_ENTITY( RI->currententity->index );
 			memcpy( ent->attachment, RI->currententity->attachment, sizeof( Vector ) * 4 );
 		}
+		// RTN F10 IRONSIGHT FIX (aprovado): o viewmodel tem index 0 e o bloco acima
+		// nunca copia o attachment para ele. O StudioCalcAttachments ja grava em
+		// RI->currententity->attachment (compensado pelo StudioFormatAttachment com
+		// o m_flViewmodelFov do frame), mas o fire event le via GetViewModel().
+		// Expor explicitamente para o viewent garante que o tracante use o attachment
+		// compensado (ponta visual do cano) em vez do fallback fixo.
+		if( m_iDrawModelType == DRAWSTUDIO_VIEWMODEL || RI->currententity->index == 0 )
+		{
+			cl_entity_t *view = gEngfuncs.GetViewModel();
+			if( view && view != RI->currententity )
+				memcpy( view->attachment, RI->currententity->attachment, sizeof( Vector ) * 4 );
+		}
 
 		// grab the static lighting from world
 		StudioStaticLight( RI->currententity, &m_pModelInstance->light );

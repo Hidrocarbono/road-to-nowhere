@@ -77,6 +77,17 @@ void CMP5FireEvent::HandleShot()
 	if (muzzleOrigin == GetOrigin())
 		muzzleOrigin = GetOrigin() + cameraMatrix.GetForward() * 8.0f + cameraMatrix.GetRight() * 8.0f + cameraMatrix.GetUp() * -4.0f;
 
+	// RTN DEBUG ironsight: mostra o que o tracante usa (remover depois)
+	if( IsEventLocal() && viewModel && viewModel->model )
+	{
+		gEngfuncs.pfnConsolePrint( va( "[RTN] tracer origin=(%.1f,%.1f,%.1f) attach=(%.1f,%.1f,%.1f) len=%.2f fov=%.0f\n",
+			muzzleOrigin.x, muzzleOrigin.y, muzzleOrigin.z,
+			viewModel->attachment[0].x, viewModel->attachment[0].y, viewModel->attachment[0].z,
+			viewModel->attachment[0].Length(),
+			gEngfuncs.pfnGetCvarFloat( "cl_viewmodel_fov" ) ) );
+	}
+
+
 	GameEventUtils::FireBullet(m_arguments->entindex, cameraMatrix, GetOrigin(), muzzleOrigin, GetShootDirection(cameraMatrix), 2);
 
 	const char *soundName = gEngfuncs.pfnRandomLong(0, 1) == 0 ? "weapons/hks1.wav" : "weapons/hks2.wav";

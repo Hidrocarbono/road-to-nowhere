@@ -58,27 +58,26 @@ void CNVGController::ApplyState( CBaseEntity *pPlayer, bool active )
 
 	if( active )
 	{
-		// RTN F10 v4: NVG fosforo verde com GANHO MULTIPLICATIVO real.
+		// RTN F10 v5 (AGGRESSIVO, aprovado): NVG fosforo verde com ganho REAL no escuro.
+		// v4 tinha brightness 0.12 + green 1.8 -> no escuro absoluto (0.0) o resultado
+		// era 0.12*1.8 = 0.216, e o SRGB final escurecia -> parecia que "nao fazia nada".
+		// v5: brightness 0.35 (levanta o preto absoluto p/ 0.35) + green 2.5 (fosforo
+		// intenso) -> pixel escuro 0.1 vira (0.1+0.35)*2.5 = 1.12 (estoura p/ verde
+		// claro), pixel 0.5 vira 2.12 (verde quase branco). Contraste 1.0 preserva.
 		// Ordem do shader: sat->brightness->levels->contrast->grain->vignette.
-		// BUG da v3: green 0.65 MULTIPLICAVA o brilho por 0.65 (escurecia!) e o
-		// brightness 0.35 somava luz em tudo (lavava o contraste - tudo verde
-		// uniforme, "dificulta mais a visao").
-		// v4 (estilo F.E.A.R./MW): green > 1.0 = amplifica a luz EXISTENTE
-		// (pixel escuro 0.1 -> 0.18 verde, iluminado 0.5 -> 0.9), brightness baixo
-		// so levanta o preto absoluto, contrast 1.0 preserva a faixa dinamica.
 		// fade-in time
 		WRITE_FLOAT( 0.25f );
-		// brightness (floor: so o preto absoluto ganha 0.12 - nao lava o resto)
-		WRITE_FLOAT( 0.12f );
+		// brightness (IR gain: 0.35 levanta TUDO - inclusive o preto absoluto)
+		WRITE_FLOAT( 0.35f );
 		// saturation 0 = full desaturation (monochrome)
 		WRITE_FLOAT( 0.0f );
-		// contrast 1.0 = preserva contraste (o ganho vem do green, nao da compressao)
+		// contrast 1.0 = preserva faixa dinamica
 		WRITE_FLOAT( 1.0f );
-		// red level ZERO (verde puro, sem vermelho)
+		// red level ZERO (verde puro)
 		WRITE_FLOAT( 0.0f );
-		// green level 1.8 = GANHO real: multiplica a luminancia em 1.8x (amplifica escuros)
-		WRITE_FLOAT( 1.8f );
-		// blue level ZERO (verde puro, sem azul)
+		// green level 2.5 = GANHO multiplicativo alto (fosforo P2 estilo vivido)
+		WRITE_FLOAT( 2.5f );
+		// blue level ZERO (verde puro)
 		WRITE_FLOAT( 0.0f );
 		// vignette (escurece TODAS as laterais - efeito de lente)
 		WRITE_FLOAT( 2.2f );
