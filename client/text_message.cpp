@@ -126,6 +126,44 @@ char *CHudTextMessage::LookupString( const char *msg, int *msg_dest )
 	}
 }
 
+// RTN F10: substitui %player_name% pelo nome do jogador LOCAL no texto do titles.txt.
+// O engine desenha o texto do titles cru (nao substitui) - o server so ve o #NOME.
+// O nome do jogador local esta no cvar "name" (padrao GoldSrc).
+char *RTN_SubstituteLocalPlayerName( char *dst, size_t dstSize, const char *src )
+{
+	if( !src || !dst || dstSize < 1 )
+		return dst ? dst : (char *)src;
+
+	dst[0] = 0;
+	if( !Q_strstr( src, "%player_name%" ) )
+	{
+		Q_strncpy( dst, src, dstSize );
+		return dst;
+	}
+
+	const char *pName = gEngfuncs.pfnGetCvarString( "name" );
+	if( !pName || !pName[0] )
+		pName = "Jogador";
+
+	const char *pFound = NULL;
+	const char *pStart = src;
+	int written = 0;
+
+	while( ( pFound = Q_strstr( pStart, "%player_name%" ) ) != NULL )
+	{
+		int preLen = pFound - pStart;
+		if( preLen > 0 && written < (int)dstSize - 1 )
+			written += Q_snprintf( dst + written, dstSize - written, "%.*s", preLen, pStart );
+		if( written < (int)dstSize - 1 )
+			written += Q_snprintf( dst + written, dstSize - written, "%s", pName );
+		pStart = pFound + Q_strlen( "%player_name%" );
+	}
+	if( written < (int)dstSize - 1 )
+		Q_snprintf( dst + written, dstSize - written, "%s", pStart );
+
+	return dst;
+}
+
 void StripEndNewlineFromString( char *str )
 {
 	int s = strlen( str ) - 1;
@@ -163,6 +201,11 @@ int CHudTextMessage::MsgFunc_TextMsg( const char *pszName, int iSize, void *pbuf
 
 	static char szBuf[6][128];
 	char *msg_text = LookupString( READ_STRING(), &msg_dest );
+	// RTN F10: substitui %player_name% pelo nome do jogador local (o engine nao faz)
+	{
+		static char szNameBuf[128];
+		msg_text = RTN_SubstituteLocalPlayerName( szNameBuf, sizeof( szNameBuf ), msg_text );
+	}
 	msg_text = strcpy( szBuf[0], msg_text );
 
 	// keep reading strings and using C format strings for subsituting the strings into the localised text string
