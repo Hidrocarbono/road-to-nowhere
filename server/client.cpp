@@ -403,7 +403,10 @@ void ClientCommand( edict_t *pEntity )
 */
 	else if ( FStrEq(pcmd, "give" ) )
 	{
-		if ( g_flWeaponCheat != 0.0)
+		// RTN F10 fix: le sv_cheats NA HORA (o g_flWeaponCheat global so e
+		// atualizado no spawn do mapa - se o user digita sv_cheats 1 depois,
+		// o give era ignorado silenciosamente)
+		if ( g_flWeaponCheat != 0.0 || CVAR_GET_FLOAT( "sv_cheats" ) != 0.0 )
 		{
 			int iszItem = ALLOC_STRING( CMD_ARGV(1) );	// Make a copy of the classname
 			GetClassPtr((CBasePlayer *)pev)->GiveNamedItem( STRING(iszItem) );
@@ -475,10 +478,14 @@ void ClientCommand( edict_t *pEntity )
 		// RTN DEBUG estimulante (remover depois): mostra o que o handler ve
 		{
 			CBasePlayerWeapon *pDbgWeap = dynamic_cast<CBasePlayerWeapon *>( pStim );
-			g_engfuncs.pfnServerPrint( va( "[RTN] stimulant_use: pStim=%s active=%s clip=%d\n",
+			CStimulantWeaponContext *pDbgCtx = NULL;
+			if( pDbgWeap && pDbgWeap->m_pWeaponContext )
+				pDbgCtx = dynamic_cast<CStimulantWeaponContext *>( pDbgWeap->m_pWeaponContext.get() );
+			g_engfuncs.pfnServerPrint( va( "[RTN] stimulant_use: pStim=%s active=%s clip=%d ctx=%s\n",
 				pStim ? STRING( pStim->pev->classname ) : "NULL",
 				pPlayer->m_pActiveItem ? STRING( pPlayer->m_pActiveItem->pev->classname ) : "NULL",
-				pDbgWeap && pDbgWeap->m_pWeaponContext ? pDbgWeap->m_pWeaponContext->m_iClip : -1 ) );
+				pDbgWeap && pDbgWeap->m_pWeaponContext ? pDbgWeap->m_pWeaponContext->m_iClip : -1,
+				pDbgCtx ? "CStimulantWeaponContext" : "CAST-FALHOU" ) );
 		}
 		if( pStim && pStim != pPlayer->m_pActiveItem )
 		{

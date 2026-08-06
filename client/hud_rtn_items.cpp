@@ -6,9 +6,14 @@
 #include "enginecallback.h"
 
 // RTN F9: contadores laterais de estimulante (V) e painkiller (H).
-// Desenho estilo Paranoia 2: caixinha com ICONE (gfx/vgui/*.tga) + numero de doses,
+// Desenho estilo Paranoia 2: caixinha com ICONE (sprite .spr) + numero de doses,
 // na lateral ESQUERDA da tela (x=10), acima da vida (que fica embaixo).
-// Fallback: se a textura nao carregar, desenha a letra inicial (E/P).
+// Fallback: se o sprite nao carregar, desenha a letra inicial (E/P).
+//
+// v3 (build #94): usa .spr nativo do engine (SPR_Load + SPR_Set + SPR_DrawAdditive)
+// em vez de TGA + pTriAPI. O pTriAPI->Color4f nao aplica cor/textura no HUD 2D
+// deste engine (o quad desenhava mas ficava invisivel). O .spr e o caminho nativo
+// que o health.cpp usa e FUNCIONA. Conversor: tools/tga2spr.py.
 
 #define RTN_ITEMS_X		10
 #define RTN_STIM_Y		300	// estimulante (verde)
@@ -17,26 +22,11 @@
 
 DECLARE_MESSAGE( m_RTNItems, RTNItems );  // gera __MsgFunc_RTNItems -> gHUD.m_RTNItems.MsgFunc_RTNItems
 
-static TextureHandle g_hStimIcon = TextureHandle::Null();
-static TextureHandle g_hPainIcon = TextureHandle::Null();
-
-// desenha um quad com a textura ativa (coords de tela)
-static void RTN_DrawQuad( float xmin, float ymin, float xmax, float ymax )
-{
-	gEngfuncs.pTriAPI->Begin( TRI_QUADS );
-	gEngfuncs.pTriAPI->TexCoord2f( 0, 0 );
-	gEngfuncs.pTriAPI->Vertex3f( xmin, ymin, 0 );
-	gEngfuncs.pTriAPI->TexCoord2f( 0, 1 );
-	gEngfuncs.pTriAPI->Vertex3f( xmin, ymax, 0 );
-	gEngfuncs.pTriAPI->TexCoord2f( 1, 1 );
-	gEngfuncs.pTriAPI->Vertex3f( xmax, ymax, 0 );
-	gEngfuncs.pTriAPI->TexCoord2f( 1, 0 );
-	gEngfuncs.pTriAPI->Vertex3f( xmax, ymin, 0 );
-	gEngfuncs.pTriAPI->End();
-}
+static SpriteHandle g_hStimIcon = 0;
+static SpriteHandle g_hPainIcon = 0;
 
 // desenha a caixinha (fundo + borda) e o conteudo (icone OU letra de fallback)
-static void RTN_DrawItemSlot( int y, int r, int g, int b, TextureHandle hTex, const char *pszLetter, int iDoses )
+static void RTN_DrawItemSlot( int y, int r, int g, int b, SpriteHandle hSpr, const char *pszLetter, int iDoses )
 {
 	FillRGBA( RTN_ITEMS_X, y, RTN_ICON_SIZE, RTN_ICON_SIZE, r, g, b, 200 );
 	// borda
@@ -45,16 +35,11 @@ static void RTN_DrawItemSlot( int y, int r, int g, int b, TextureHandle hTex, co
 	FillRGBA( RTN_ITEMS_X, y, 2, RTN_ICON_SIZE, 255, 255, 255, 120 );
 	FillRGBA( RTN_ITEMS_X + RTN_ICON_SIZE - 2, y, 2, RTN_ICON_SIZE, 255, 255, 255, 120 );
 
-	if( hTex.Initialized() )
+	if( hSpr )
 	{
-		// icone TGA com alpha (padrao Diffusion: kRenderTransAdd + GL_Bind + quad).
-		// kRenderTransAdd = somatorio (preto = transparente), evita problema de
-		// alpha blending do kRenderTransTexture com TGA de 32bpp.
-		gEngfuncs.pTriAPI->RenderMode( kRenderTransAdd );
-		GL_Bind( 0, hTex );
-		gEngfuncs.pTriAPI->Color4f( 1.0f, 1.0f, 1.0f, 1.0f );
-		RTN_DrawQuad( RTN_ITEMS_X + 1, y + 1, RTN_ITEMS_X + RTN_ICON_SIZE - 1, y + RTN_ICON_SIZE - 1 );
-		gEngfuncs.pTriAPI->RenderMode( kRenderNormal );
+		// icone .spr nativo do engine - funciona no HUD 2D (como o health.cpp)
+		SPR_Set( hSpr, 255, 255, 255 );
+		SPR_DrawAdditive( 0, RTN_ITEMS_X + 1, y + 1, NULL );
 	}
 	else
 	{
@@ -82,11 +67,10 @@ int CHudRTNItems::VidInit( void )
 	m_iStimDoses = 0;
 	m_iPainDoses = 0;
 
-	// icones do mod (gfx/vgui/). Se o arquivo nao existir, hTex fica 0 -> fallback letra.
-	// ATENCAO: o arquivo do user e "medkit.tga" (SEM i) - o codigo antigo procurava
-	// "medikit.tga" (com i) e nunca carregava -> painkiller caia no fallback da letra P.
-	g_hStimIcon = LOAD_TEXTURE( "gfx/vgui/painkiller.tga", NULL, 0, 0 );
-	g_hPainIcon = LOAD_TEXTURE( "gfx/vgui/medkit.tga", NULL, 0, 0 );
+	// icones .spr nativos (gerados dos TGA via tools/tga2spr.py).
+	// Se o arquivo nao existir, hSpr fica 0 -> fallback letra.
+	g_hStimIcon = LoadSprite( "sprites/rtn_stim.spr" );
+	g_hPainIcon = LoadSprite( "sprites/rtn_pain.spr" );
 
 	return 1;
 }

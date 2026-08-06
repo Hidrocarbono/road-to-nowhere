@@ -82,6 +82,9 @@ void CStimulantWeaponContext::WeaponIdle()
 	// (o deploy ja completou, pois WeaponIdle roda apos o DefaultDeploy)
 	if( m_bPendingUse && !m_bUseInProgress )
 	{
+#ifndef CLIENT_DLL
+		g_engfuncs.pfnServerPrint( "[RTN] stim WeaponIdle: PENDING -> PrimaryAttack\n" );
+#endif
 		PrimaryAttack();
 		return;
 	}
