@@ -40,11 +40,10 @@ void GameEventUtils::FireBullet(int entIndex, const matrix3x3 &camera, const Vec
 	gEngfuncs.pEventAPI->EV_SetSolidPlayers(entIndex - 1);
 	gEngfuncs.pEventAPI->EV_SetTraceHull(2); // 2 is a point hull
 	gEngfuncs.pEventAPI->EV_PlayerTrace(const_cast<float*>(&origin.x), endPos, PM_NORMAL, -1, &tr);
-	// RTN F10 fix: o TRACANTE nasce na PONTA DO CANO (muzzleOrigin = attachment[0] do
-	// viewmodel), nao no olho. Antes usava origin (centro da tela) e ficava visivel
-	// que o tracante nao vinha da arma (principalmente no ironsight/lean).
-	// O trace (hitscan) continua do olho - precisao do dano inalterada.
-	CreateTracer(camera, muzzleOrigin, tr.endpos, tracerFreq);
+	// RTN: TRACANTE CORTADO (build #90): o tracante roda no fire event ANTES do
+	// viewmodel ser desenhado -> attachment[0] ainda zerado -> nascia do olho
+	// (fallback fixo) e nao acompanhava o cano. Fumaca/flash continuam na origem
+	// (rodam durante o desenho). O dano (hitscan) e inalterado - trace do olho.
 	gEngfuncs.pEventAPI->EV_PopPMStates();
 }
 

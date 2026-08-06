@@ -472,6 +472,11 @@ void ClientCommand( edict_t *pEntity )
 		// (viewmodel v_antidote + anim fire), aplica efeitos e volta pra arma anterior.
 		CBasePlayer *pPlayer = GetClassPtr((CBasePlayer *)pev);
 		CBasePlayerItem *pStim = pPlayer->HasNamedPlayerItem( "item_stimulant" ) ? FindPlayerItemByName( pPlayer, "item_stimulant" ) : NULL;
+		// RTN DEBUG estimulante (remover depois): mostra o que o handler ve
+		g_engfuncs.pfnServerPrint( va( "[RTN] stimulant_use: pStim=%s active=%s clip=%d\n",
+			pStim ? STRING( pStim->pev->classname ) : "NULL",
+			pPlayer->m_pActiveItem ? STRING( pPlayer->m_pActiveItem->pev->classname ) : "NULL",
+			pStim && pStim->m_pWeaponContext ? pStim->m_pWeaponContext->m_iClip : -1 ) );
 		if( pStim && pStim != pPlayer->m_pActiveItem )
 		{
 			pPlayer->SelectItem( "item_stimulant" );   // equipa (deploy + viewmodel)

@@ -47,8 +47,10 @@ static void RTN_DrawItemSlot( int y, int r, int g, int b, TextureHandle hTex, co
 
 	if( hTex.Initialized() )
 	{
-		// icone TGA com alpha (GL_Bind + quad, sem converter p/ .spr)
-		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
+		// icone TGA com alpha (padrao Diffusion: kRenderTransAdd + GL_Bind + quad).
+		// kRenderTransAdd = somatorio (preto = transparente), evita problema de
+		// alpha blending do kRenderTransTexture com TGA de 32bpp.
+		gEngfuncs.pTriAPI->RenderMode( kRenderTransAdd );
 		GL_Bind( 0, hTex );
 		gEngfuncs.pTriAPI->Color4f( 1.0f, 1.0f, 1.0f, 1.0f );
 		RTN_DrawQuad( RTN_ITEMS_X + 1, y + 1, RTN_ITEMS_X + RTN_ICON_SIZE - 1, y + RTN_ICON_SIZE - 1 );
@@ -81,8 +83,10 @@ int CHudRTNItems::VidInit( void )
 	m_iPainDoses = 0;
 
 	// icones do mod (gfx/vgui/). Se o arquivo nao existir, hTex fica 0 -> fallback letra.
+	// ATENCAO: o arquivo do user e "medkit.tga" (SEM i) - o codigo antigo procurava
+	// "medikit.tga" (com i) e nunca carregava -> painkiller caia no fallback da letra P.
 	g_hStimIcon = LOAD_TEXTURE( "gfx/vgui/painkiller.tga", NULL, 0, 0 );
-	g_hPainIcon = LOAD_TEXTURE( "gfx/vgui/medikit.tga", NULL, 0, 0 );
+	g_hPainIcon = LOAD_TEXTURE( "gfx/vgui/medkit.tga", NULL, 0, 0 );
 
 	return 1;
 }

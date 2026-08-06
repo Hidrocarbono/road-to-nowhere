@@ -328,6 +328,15 @@ void HUD_MuzzleFlash( const cl_entity_t *e, const Vector &pos, const Vector &fwd
 		return;
 
 	VectorAngles( -fwd, flash_angles );
+	// RTN F10 fix: muzzle flash VERTICAL - o modelo (QC) pode ter o attachment[0]
+	// com o dir apontando pra cima (flash de pe). Para o VIEWMODEL, orienta o
+	// flash pelos ANGLES DA CAMERA (sempre horizontal, onde o jogador mira) em
+	// vez do dir do attachment. O sprite m_flash1.mdl fica deitado (normal).
+	if( e == gEngfuncs.GetViewModel( ))
+	{
+		flash_angles = e->angles;  // angulos da arma/camera (v_angle) - flash horizontal
+		flash_angles.z = 0;        // remove roll residual
+	}
 	scale *= mul;
 
 	pTemp->entity.curstate.rendermode = kRenderGlow;
