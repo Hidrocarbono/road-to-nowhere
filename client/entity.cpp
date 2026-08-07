@@ -396,7 +396,10 @@ void DLLEXPORT HUD_StudioEvent( const struct mstudioevent_s *event, const struct
 			gEngfuncs.pfnAngleVectors( entity->angles, fwdCam, NULL, NULL );
 			dir = fwdCam;
 			VectorMA( pos, 18.0f, fwdCam, pos );
-			entity->attachment[0] = pos;  // fumaca/Dlight seguem a ponta
+			// attachment[0] e const vec3_t - copia float a float
+			entity->attachment[0][0] = pos.x;
+			entity->attachment[0][1] = pos.y;
+			entity->attachment[0][2] = pos.z;
 		}
 		HUD_MuzzleFlash( entity, pos, dir, atoi( event->options), mul );
 		DlightFlash((float *)&entity->attachment[0], entity->index ); 		
