@@ -4,26 +4,23 @@
 #include "enginecallback.h"
 
 // RTN F10: HUD de sangue em tela cheia (estilo COD).
-// O bloodyhud.spr (Paranoia 2) cobre a tela toda. A intensidade (alpha)
-// combina:
-//   - pico imediato ao tomar dano (fade ~1.2s) - usa o m_flDamageTime interno
-//     setado pelo proprio Draw (comparando a vida que caiu)
-//   - nivel residual proporcional a vida baixa (quanto menos vida, mais
-//     sangue constante nas bordas - imersao/tensao)
-// O sprite e desenhado com SPR_DrawAdditive (como o 640_pain do HL).
+// O bloodyhud.spr cobre a tela TODA (esticado via pfnSPR_DrawGeneric).
+// Intensidade (alpha) INVERSA a vida: 100% HP = quase transparente,
+// 0% HP = sangue forte constante. Ao tomar dano, um pico de sangue
+// aparece e decai em ~1.2s.
 //
-// NAO hooka Health/Damage: o CHudHealth ja hookou essas mensagens e o engine
-// ignora hook duplicado (pfnHookUserMsg). Le o m_iHealth do gHUD.m_Health.
+// NAO hooka Health/Damage: o CHudHealth ja hookou e o engine ignora hook
+// duplicado. Le o m_iHealth do gHUD.m_Health (publico) a cada frame.
 
 #define BLOODY_SPRITE	"sprites/bloodyhud.spr"
 
-// residuo por vida: 0% vida = alpha ~180, 100% = 0
-static float RTN_BloodyResidue( int iHealth )
+// alpha base inverso a vida: 100 HP -> 0, 0 HP -> 220
+static float RTN_BloodyBase( int iHealth )
 {
 	float hp = (float)iHealth;
 	if( hp <= 0.0f ) hp = 0.0f;
 	if( hp >= 100.0f ) return 0.0f;
-	return ( 100.0f - hp ) * 1.8f;  // 180 no maximo
+	return ( 100.0f - hp ) * 2.2f;
 }
 
 int CHudBloody::Init( void )
@@ -63,29 +60,29 @@ int CHudBloody::Draw( float flTime )
 	}
 	m_iHealth = iHealth;
 
-	// tempo desde o ultimo dano
+	// pico de dano (decai em 1.2s)
 	float fSince = flTime - m_flDamageTime;
 	float fPeak = 0.0f;
 	if( fSince >= 0.0f && fSince < 1.2f )
-	{
-		// decai linearmente em 1.2s
 		fPeak = m_flDamageAmt * ( 1.0f - fSince / 1.2f );
-	}
 
-	// residuo por vida baixa
-	float fResidue = RTN_BloodyResidue( iHealth );
+	// base inversa a vida (100% HP = 0, 0% HP = 220)
+	float fBase = RTN_BloodyBase( iHealth );
 
-	float fAlpha = fPeak + fResidue;
+	float fAlpha = fPeak + fBase;
 	if( fAlpha <= 2.0f )
 		return 1;
 
 	int a = (int)fAlpha;
 	if( a > 255 ) a = 255;
 
-	// tela cheia (SPR_DrawAdditive usa o tamanho nativo do frame - o
-	// bloodyhud.spr do P2 e fullscreen 640x480)
-	SPR_Set( m_iBloody, 255, 255, 255 );
-	SPR_DrawAdditive( 0, 0, 0, NULL );
+	// sprite esticado em TELA CHEIA (pfnSPR_DrawGeneric com width/height).
+	// Additive: "transparencia" = brilho da cor (preto = invisivel). O
+	// ScaleColors(r,g,b,a) escurece a cor conforme o alpha -> fade real.
+	int r = 255, g = 255, b = 255;
+	ScaleColors( r, g, b, a );
+	SPR_Set( m_iBloody, r, g, b );
+	gEngfuncs.pfnSPR_DrawGeneric( 0, 0, 0, NULL, 0, 0, ScreenWidth, ScreenHeight );
 
 	// bordas vermelhas escuras quando a vida esta muito baixa (imersao)
 	if( iHealth <= 20 )

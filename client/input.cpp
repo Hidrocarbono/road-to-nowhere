@@ -588,12 +588,14 @@ void CL_CreateMove( float frametime, usercmd_t *cmd, int active )
 			cmd->forwardmove -= cl_backspeed->value * CL_KeyState( &in_back );
 		}	
 
-		// RTN: Shift = run (speed UP 1.3x instead of HL slow-walk 0.52x)
+		// RTN: Shift = run (speed UP 1.25x: 320 -> 400). O server sobe o
+		// maxspeed p/ 400 quando recebe IN_RUN (PreThink). O clip abaixo usa
+		// o GetClientMaxspeed() que ja reflete o 400 no frame seguinte.
 		if( in_speed.state & BUTTON_DOWN )
 		{
-			cmd->forwardmove *= 1.3f;
-			cmd->sidemove *= 1.3f;
-			cmd->upmove *= 1.3f;
+			cmd->forwardmove *= 1.25f;
+			cmd->sidemove *= 1.25f;
+			cmd->upmove *= 1.25f;
 		}
 
 		// clip to maxspeed

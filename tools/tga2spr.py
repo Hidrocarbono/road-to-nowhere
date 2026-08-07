@@ -50,6 +50,11 @@ def tga_to_spr(tga_path, spr_path):
         0.0,         # beamlength
         0,           # synctype
     )
+    # dframetype_t (4 bytes) OBRIGATORIO entre header e frame:
+    # Mod_SwapSprite (mod_sprite.c:173) le o frametype ANTES de cada frame.
+    # Sem ele, o engine le origin[0] como frametype e desloca tudo 4 bytes ->
+    # sprite nao carrega (fallback letra). type=0 = FRAME_SINGLE.
+    frametype = struct.pack('<i', 0)
     frame = struct.pack('<iiii', 0, 0, w, h)
 
     # pixels RGBA direto
@@ -59,10 +64,11 @@ def tga_to_spr(tga_path, spr_path):
 
     with open(spr_path, 'wb') as f:
         f.write(header)
+        f.write(frametype)
         f.write(frame)
         f.write(body)
 
-    total = len(header) + len(frame) + len(body)
+    total = len(header) + len(frametype) + len(frame) + len(body)
     print(f'{tga_path} -> {spr_path}  ({w}x{h} truecolor RGBA, {total} bytes)')
 
 if __name__ == '__main__':

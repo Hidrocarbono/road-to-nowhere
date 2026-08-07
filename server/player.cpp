@@ -2998,6 +2998,9 @@ void CBasePlayer::Spawn( void )
 		UTIL_SetSize(pev, VEC_HULL_MIN, VEC_HULL_MAX);
 
 	pev->view_ofs = VEC_VIEW;
+	// RTN F10 fix: inicializa maxspeed no spawn (antes ficava 0 -> PM limitava
+	// o movimento -> 'andar lento'). O bloco do run (PreThink) alterna 320/400.
+	pev->maxspeed = 320;
 	Precache();
 	m_HackedGunPos		= Vector( 0, 32, 0 );
 
