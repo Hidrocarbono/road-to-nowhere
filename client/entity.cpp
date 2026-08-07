@@ -390,20 +390,20 @@ void DLLEXPORT HUD_StudioEvent( const struct mstudioevent_s *event, const struct
 		// PRA CIMA (flash vertical). Usa o forward da CAMERA (onde o jogador
 		// mira - sempre horizontal) p/ orientar, e avanca a posicao ~18u p/
 		// o flash/fumaca sairem na PONTA do cano (attachment fica no meio).
-		if( entity == GET_VIEWMODEL( ))
+		// entity e const -> nao escreve no attachment; usa variavel local.
 		{
-			Vector fwdCam;
-			gEngfuncs.pfnAngleVectors( entity->angles, fwdCam, NULL, NULL );
-			dir = fwdCam;
-			VectorMA( pos, 18.0f, fwdCam, pos );
-			// attachment[0] e const vec3_t - copia float a float
-			entity->attachment[0][0] = pos.x;
-			entity->attachment[0][1] = pos.y;
-			entity->attachment[0][2] = pos.z;
+			Vector muzzlePos = pos;
+			if( entity == GET_VIEWMODEL( ))
+			{
+				Vector fwdCam;
+				gEngfuncs.pfnAngleVectors( entity->angles, fwdCam, NULL, NULL );
+				dir = fwdCam;
+				VectorMA( muzzlePos, 18.0f, fwdCam, muzzlePos );
+			}
+			HUD_MuzzleFlash( entity, muzzlePos, dir, atoi( event->options), mul );
+			DlightFlash((float *)&muzzlePos, entity->index );
+			g_pParticles.GunSmoke(muzzlePos, 2);
 		}
-		HUD_MuzzleFlash( entity, pos, dir, atoi( event->options), mul );
-		DlightFlash((float *)&entity->attachment[0], entity->index ); 		
-		g_pParticles.GunSmoke(entity->attachment[0], 2);
 		break;
 	case 5007:		 		
 		g_pParticles.GunSmoke(entity->attachment[0], 2);
