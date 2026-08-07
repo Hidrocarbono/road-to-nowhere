@@ -67,10 +67,12 @@ void CStimulantWeaponContext::PrimaryAttack()
 		EMIT_SOUND( ENT(player), CHAN_ITEM, "items/smallmedkit1.wav", 1.0, ATTN_NORM );
 #endif
 
-	// effects applied AFTER the animation finishes (hitme_1 @90fps ~0.3s)
+	// effects applied AFTER the animation finishes. A anim hitme_1 do
+	// v_antidote.mdl tem ~1s @30fps; antes usava 0.35s e o flash + troca de
+	// arma (SelectLastItem) cortavam a animacao no meio (bug "flash antes do fim").
 	m_bUseInProgress = true;
-	m_flUseFinishTime = m_pLayer->GetTime() + 0.35f;
-	m_flNextPrimaryAttack = m_pLayer->GetTime() + 0.5f;
+	m_flUseFinishTime = m_pLayer->GetTime() + 1.0f;
+	m_flNextPrimaryAttack = m_pLayer->GetTime() + 1.1f;
 	m_flTimeWeaponIdle = m_pLayer->GetTime();
 }
 

@@ -386,6 +386,18 @@ void DLLEXPORT HUD_StudioEvent( const struct mstudioevent_s *event, const struct
 	{
 	case 5001:
 		R_StudioAttachmentPosDir( entity, 0, &pos, &dir );
+		// RTN F10 fix: no viewmodel, o dir do attachment do modelo novo aponta
+		// PRA CIMA (flash vertical). Usa o forward da CAMERA (onde o jogador
+		// mira - sempre horizontal) p/ orientar, e avanca a posicao ~18u p/
+		// o flash/fumaca sairem na PONTA do cano (attachment fica no meio).
+		if( entity == GET_VIEWMODEL( ))
+		{
+			Vector fwdCam;
+			gEngfuncs.pfnAngleVectors( entity->angles, fwdCam, NULL, NULL );
+			dir = fwdCam;
+			VectorMA( pos, 18.0f, fwdCam, pos );
+			entity->attachment[0] = pos;  // fumaca/Dlight seguem a ponta
+		}
 		HUD_MuzzleFlash( entity, pos, dir, atoi( event->options), mul );
 		DlightFlash((float *)&entity->attachment[0], entity->index ); 		
 		g_pParticles.GunSmoke(entity->attachment[0], 2);

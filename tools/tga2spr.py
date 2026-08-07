@@ -55,20 +55,31 @@ def tga_to_spr(tga_path, spr_path):
         0,           # facetype
         0,           # synctype
     )
-    frame = struct.pack(
-        '<iiii',
-        0, 0,       # origin[2]
-        w, h,       # width, height
-    )
 
-    body = bytes(idx) + bytes(alpha) + bytes(pal)
+    # ORDEM CORRETA do .spr HL (engine Mod_SpriteLoadTextures):
+    # 1) header dsprite_hl_t (40 bytes)
+    # 2) short numcolors (<=256)
+    # 3) paleta (numcolors * 3 bytes)
+    # 4) dframetype_t (4 bytes: type=0 FRAME_SINGLE)
+    # 5) dspriteframe_t (16 bytes: origin[2], width, height)
+    # 6) pixels indexados (w*h)
+    # 7) alpha (w*h)
+    numcolors = 256
+    numcolors_pack = struct.pack('<H', numcolors)
+    frametype_pack = struct.pack('<I', 0)  # FRAME_SINGLE
+    frame = struct.pack('<iiii', 0, 0, w, h)
+
+    body = bytes(idx) + bytes(alpha)
 
     with open(spr_path, 'wb') as f:
         f.write(header)
+        f.write(numcolors_pack)
+        f.write(bytes(pal))
+        f.write(frametype_pack)
         f.write(frame)
         f.write(body)
 
-    print(f'{tga_path} -> {spr_path}  ({w}x{h}, {len(header)+len(frame)+len(body)} bytes)')
+    print(f'{tga_path} -> {spr_path}  ({w}x{h}, {len(header)+2+numcolors*3+4+16+len(body)} bytes)')
 
 if __name__ == '__main__':
     tga_to_spr(sys.argv[1], sys.argv[2])
