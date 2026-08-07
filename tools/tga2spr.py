@@ -1,23 +1,29 @@
 #!/usr/bin/env python3
-"""Converte TGA (RGBA 32bpp) em .spr do GoldSrc (Half-Life sprite, version 2).
+"""Converte TGA (RGBA 32bpp) em .spr do GoldSrc — versao 32 (TRUE COLOR RGBA).
 
-Formato .spr HL:
-  dsprite_hl_t (40 bytes):
-    ident  int32 'IDSP' (little-endian)
-    version int32 2
-    type   uint32 0 (SPR_FWD_PARALLEL_UPRIGHT)
-    texFormat uint32 2 (SPR_INDEXALPHA) -> usa paleta+alpha indexado
-    boundingradius int32
-    bounds[2] int32 (mins/maxs em 16.16)
+Por que versao 32 em vez de versao 2 (Half-Life)?
+  - .spr v2 com texFormat=SPR_INDEXALPHA usa a paleta '#gradient.pal' do engine:
+    cor = pal[765..767] (UMA cor so) e alpha = INDICE do pixel. Ou seja, o
+    sprite fica MONOCROMATICO (perde as cores do TGA).
+  - .spr v32 (truecolor): pixels RGBA direto. O Mod_SpriteLoadFrame passa
+    w*h*4 bytes p/ GL_LoadTexture e o Image_LoadSPR detecta filesize == w*h*4
+    -> truecolor -> PF_RGBA_32. Cores originais preservadas + alpha real.
+
+Estrutura .spr v32:
+  dsprite_q1_t (36 bytes):
+    ident  int32 'IDSP'
+    version int32 32
+    type   int32 0 (SPR_FWD_PARALLEL_UPRIGHT)
+    boundingradius float
+    bounds[2] int32 (mins/maxs 16.16)
     numframes int32 1
-    facetype uint32 0
+    beamlength float 0
     synctype uint32 0
-  dspriteframe_t (16 bytes):
-    origin[2] int32 (0,0)
-    width int32
-    height int32
-  pixels: width*height bytes (paleta indexada) + width*height bytes (alpha)
-  paleta: 256*3 bytes RGB
+  dspriteframe_t (16 bytes): origin[2] (0,0) + width + height
+  pixels: w*h*4 bytes RGBA
+
+O engine forca texFormat=SPR_ADDITIVE p/ v32 (cl_sprite.c: psprite->texFormat
+e Image_LoadSPR). Desenhar com SPR_DrawAdditive no HUD.
 """
 import struct
 import sys
@@ -28,58 +34,36 @@ def tga_to_spr(tga_path, spr_path):
     w, h = im.size
     pixels = list(im.getdata())
 
-    # quantiza RGB para 256 cores (sem dithering p/ nao sujar o alpha)
-    rgb = Image.new('RGB', (w, h))
-    rgb.putdata([(r, g, b) for r, g, b, a in pixels])
-    q = rgb.quantize(colors=256, method=Image.MEDIANCUT, dither=Image.Dither.NONE)
-    pal = q.getpalette()  # 768 bytes
-    idx = list(q.getdata())  # indices
-
-    alpha = [a for r, g, b, a in pixels]
-
     # boundingradius ~ metade da diagonal
     boundingradius = int(((w*w + h*h) ** 0.5) / 2)
-    # bounds[2] = mins, maxs (2 ints em 16.16)
     mins_b = int(-(w/2) * 65536)
     maxs_b = int((w/2) * 65536)
 
     header = struct.pack(
-        '<iiIIiiiiII',
+        '<iiifiiifi',
         0x50534449,  # 'IDSP' little-endian
-        2,           # version HL
+        32,          # version = SPRITE_VERSION_32 (truecolor)
         0,           # type: SPR_FWD_PARALLEL_UPRIGHT
-        2,           # texFormat: SPR_INDEXALPHA
-        boundingradius,
+        float(boundingradius),
         mins_b, maxs_b,  # bounds[2]
         1,           # numframes
-        0,           # facetype
+        0.0,         # beamlength
         0,           # synctype
     )
-
-    # ORDEM CORRETA do .spr HL (engine Mod_SpriteLoadTextures):
-    # 1) header dsprite_hl_t (40 bytes)
-    # 2) short numcolors (<=256)
-    # 3) paleta (numcolors * 3 bytes)
-    # 4) dframetype_t (4 bytes: type=0 FRAME_SINGLE)
-    # 5) dspriteframe_t (16 bytes: origin[2], width, height)
-    # 6) pixels indexados (w*h)
-    # 7) alpha (w*h)
-    numcolors = 256
-    numcolors_pack = struct.pack('<H', numcolors)
-    frametype_pack = struct.pack('<I', 0)  # FRAME_SINGLE
     frame = struct.pack('<iiii', 0, 0, w, h)
 
-    body = bytes(idx) + bytes(alpha)
+    # pixels RGBA direto
+    body = b''
+    for r, g, b, a in pixels:
+        body += struct.pack('<BBBB', r, g, b, a)
 
     with open(spr_path, 'wb') as f:
         f.write(header)
-        f.write(numcolors_pack)
-        f.write(bytes(pal))
-        f.write(frametype_pack)
         f.write(frame)
         f.write(body)
 
-    print(f'{tga_path} -> {spr_path}  ({w}x{h}, {len(header)+2+numcolors*3+4+16+len(body)} bytes)')
+    total = len(header) + len(frame) + len(body)
+    print(f'{tga_path} -> {spr_path}  ({w}x{h} truecolor RGBA, {total} bytes)')
 
 if __name__ == '__main__':
     tga_to_spr(sys.argv[1], sys.argv[2])

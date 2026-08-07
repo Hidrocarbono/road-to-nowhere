@@ -34,7 +34,10 @@ int CStimulantWeaponContext::GetItemInfo(ItemInfo *p) const
 	p->iPosition = 5;  // pos 6 quebrava o ciclo do scroll (padrao HL: 1-5)
 	p->iFlags = ITEM_FLAG_SELECTONEMPTY | ITEM_FLAG_NOAUTORELOAD;
 	p->iId = WEAPON_STIMULANT;
-	p->iWeight = 5;
+	// RTN F10 fix: peso ALTO (60) p/ o FShouldSwitchWeapon equipar o estimulante
+	// ao ADQUIRIR (sobrepoe a arma atual, como o user pediu). Antes era 5 e
+	// o item ia pro estoque sem equipar.
+	p->iWeight = 60;
 	return 1;
 }
 

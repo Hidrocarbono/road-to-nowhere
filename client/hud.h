@@ -95,6 +95,7 @@ struct HUDLIST
 #include <string.h>
 #include <stdio.h>
 #include "hud_rtn_items.h"
+#include "hud_bloody.h"
 #include "cl_entity.h"
 
 //
@@ -581,6 +582,7 @@ public:
 	CHudTextMessage	m_TextMessage;
 	CHudStatusIcons	m_StatusIcons;
 	CHudRTNItems	m_RTNItems;  // RTN F9: contadores laterais (estimulante/painkiller)
+	CHudBloody	m_Bloody;    // RTN F10: HUD de sangue em tela cheia (estilo COD)
 	CHudMOTD		m_MOTD;
 
 	ViewSmoothingData_t	m_ViewSmoothingData;

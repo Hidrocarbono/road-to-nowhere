@@ -503,12 +503,18 @@ void ClientCommand( edict_t *pEntity )
 		}
 		else if( pStim && pStim == pPlayer->m_pActiveItem )
 		{
+			// RTN F10 fix: dispara DIRETO aqui (nao depende do WeaponIdle, que
+			// so roda quando m_flNextAttack <= 0 - causava atraso/perda do uso
+			// se o jogador tivesse atirado ou acabado de equipar).
 			CBasePlayerWeapon *pWeap = dynamic_cast<CBasePlayerWeapon *>( pStim );
 			if( pWeap && pWeap->m_pWeaponContext )
 			{
 				CStimulantWeaponContext *pCtx = dynamic_cast<CStimulantWeaponContext *>( pWeap->m_pWeaponContext.get() );
 				if( pCtx )
+				{
 					pCtx->m_bPendingUse = true;
+					pCtx->PrimaryAttack();  // anim + som + timer de efeitos
+				}
 			}
 		}
 	}

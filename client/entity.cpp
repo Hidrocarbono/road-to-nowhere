@@ -336,8 +336,12 @@ void HUD_MuzzleFlash( const cl_entity_t *e, const Vector &pos, const Vector &fwd
 	//   do R_StudioAttachmentPosDir (attachment[0] do viewmodel).
 	if( e == gEngfuncs.GetViewModel( ))
 	{
-		// dir do attachment aponta para fora do cano (frente da arma)
-		VectorAngles( fwd, flash_angles );
+		// RTN F10 fix v5: VectorAngles(-fwd) = classico do HL. O m_flash1.mdl
+		// foi desenhado p/ ser visto de frente (eixo apontando p/ camera) -
+		// com +fwd o clarao aparecia "de perfil/virado pro rosto". Como o fwd
+		// agora e o forward da CAMERA (horizontal, do case 5001), o -fwd deixa
+		// o flash deitado e cheio na ponta do cano.
+		VectorAngles( -fwd, flash_angles );
 		flash_angles.z = 0;  // remove roll residual
 	}
 	else
@@ -388,7 +392,7 @@ void DLLEXPORT HUD_StudioEvent( const struct mstudioevent_s *event, const struct
 		R_StudioAttachmentPosDir( entity, 0, &pos, &dir );
 		// RTN F10 fix: no viewmodel, o dir do attachment do modelo novo aponta
 		// PRA CIMA (flash vertical). Usa o forward da CAMERA (onde o jogador
-		// mira - sempre horizontal) p/ orientar, e avanca a posicao ~18u p/
+		// mira - sempre horizontal) p/ orientar, e avanca a posicao ~32u p/
 		// o flash/fumaca sairem na PONTA do cano (attachment fica no meio).
 		// entity e const -> nao escreve no attachment; usa variavel local.
 		{
@@ -398,7 +402,7 @@ void DLLEXPORT HUD_StudioEvent( const struct mstudioevent_s *event, const struct
 				Vector fwdCam;
 				gEngfuncs.pfnAngleVectors( entity->angles, fwdCam, NULL, NULL );
 				dir = fwdCam;
-				VectorMA( muzzlePos, 18.0f, fwdCam, muzzlePos );
+				VectorMA( muzzlePos, 32.0f, fwdCam, muzzlePos );
 			}
 			HUD_MuzzleFlash( entity, muzzlePos, dir, atoi( event->options), mul );
 			DlightFlash((float *)&muzzlePos, entity->index );

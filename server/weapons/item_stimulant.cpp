@@ -32,10 +32,11 @@ void CItemStimulant::Precache()
 
 int CItemStimulant::AddToPlayer(CBasePlayer *pPlayer)
 {
-	// first time: add normally (starts with 1 dose)
+	// RTN F10 fix: 3 doses por aquisicao (o user testou com 1 dose e achou
+	// que "nao reusa" - com 3 doses o reuso fica visivel no HUD).
 	if( CBasePlayerWeapon::AddToPlayer(pPlayer) )
 	{
-		m_pWeaponContext->m_iClip = 1;
+		m_pWeaponContext->m_iClip = 3;
 		SendRTNItemsHUD( pPlayer );  // RTN F9: atualiza contador lateral
 		return TRUE;
 	}
