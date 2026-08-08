@@ -195,6 +195,8 @@ void CHud :: VidInit( void )
 	m_StatusIcons.VidInit();
 	m_RTNItems.VidInit();  // RTN F9
 	m_Bloody.VidInit();    // RTN F10
+	m_Status.VidInit();    // RTN F10 fix: SEM isso os sprites (silhueta/barras)
+	m_WeaponBox.VidInit(); // ficam 0 -> HUD de status nunca desenhava (Erro 1+2)
 }
 
 void CHud::AddHudElem( CHudBase *phudelem )

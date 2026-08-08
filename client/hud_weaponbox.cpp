@@ -9,6 +9,31 @@
 // RTN F10: HUD de armas (canto inferior direito) estilo Paranoia 2.
 // Silhueta branca da arma + nome + municao "clip / reserva" em Roboto Bold.
 // Sprite da arma: data-driven por convencao de nome (ver hud_weaponbox.h).
+//
+// NOMES DE EXIBICAO: mapa classname -> nome mostrado no HUD (o classname do
+// jogo pode nao bater com o nome real da arma, ex: weapon_mp5 exibe "FN FAL").
+// Para adicionar, basta inserir uma linha na tabela (sem recompilar nada alem).
+static const struct
+{
+	const char *szClass;
+	const char *szDisplay;
+} s_RTNWeaponDisplayNames[] =
+{
+	{ "weapon_mp5", "FN FAL" },   // a "mp5" do RTN e na verdade uma FN FAL
+	// futuras: { "weapon_shotgun", "SPAS-12" },
+	//          { "weapon_python",  "M1911"   },
+};
+
+// devolve o nome de exibicao da arma (ou NULL se nao ha mapeamento)
+static const char *RTN_GetDisplayName( const char *szClassname )
+{
+	for( int i = 0; i < (int)ARRAYSIZE( s_RTNWeaponDisplayNames ); i++ )
+	{
+		if( !Q_strcmp( szClassname, s_RTNWeaponDisplayNames[i].szClass ) )
+			return s_RTNWeaponDisplayNames[i].szDisplay;
+	}
+	return NULL;
+}
 
 int CHudWeaponBox::Init( void )
 {
@@ -58,15 +83,24 @@ int CHudWeaponBox::Draw( float flTime )
 		Q_snprintf( szSpr, sizeof( szSpr ), "sprites/rtn_hud_ammo_%s.spr", pw->szName );
 		m_hWeaponSpr = LoadSprite( szSpr );
 
-		// nome limpo: "weapon_mp5" -> "MP5"
-		const char *pName = pw->szName;
-		const char *pUnd = Q_strstr( pName, "_" );
-		if( pUnd && pUnd[ 1 ] )
-			pName = pUnd + 1;
-		Q_strncpy( m_szName, pName, sizeof( m_szName ) - 1 );
+		// nome: mapa de exibicao (weapon_mp5 -> "FN FAL") ou fallback
+		// classname limpo ("weapon_shotgun" -> "SHOTGUN")
+		const char *pDisplay = RTN_GetDisplayName( pw->szName );
+		if( pDisplay )
+		{
+			Q_strncpy( m_szName, pDisplay, sizeof( m_szName ) - 1 );
+		}
+		else
+		{
+			const char *pName = pw->szName;
+			const char *pUnd = Q_strstr( pName, "_" );
+			if( pUnd && pUnd[ 1 ] )
+				pName = pUnd + 1;
+			Q_strncpy( m_szName, pName, sizeof( m_szName ) - 1 );
+			for( char *c = m_szName; *c; c++ )
+				*c = toupper( (unsigned char)*c );
+		}
 		m_szName[ sizeof( m_szName ) - 1 ] = '\0';
-		for( char *c = m_szName; *c; c++ )
-			*c = toupper( (unsigned char)*c );
 	}
 
 	m_iClip = pw->iClip;

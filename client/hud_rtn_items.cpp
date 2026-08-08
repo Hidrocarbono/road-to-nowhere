@@ -96,6 +96,21 @@ int CHudRTNItems::Draw( float flTime )
 	if( gHUD.m_iHideHUDDisplay & HIDEHUD_ALL )
 		return 1;
 
+	// RTN F10 fix (Erro 3): RefreshAllUI no primeiro frame - pede o estado
+	// do inventario ao server (so quando o jogador ja existe no jogo). O
+	// give inicial pode ter perdido a mensagem; o query forca o reenvio de
+	// estimulante E painkiller (estado real do inventario no server).
+	if( !m_bSentInitialQuery )
+	{
+		cl_entity_t *pLocal = gEngfuncs.GetLocalPlayer();
+		if( pLocal && pLocal->curstate.health > 0 )
+		{
+			m_bSentInitialQuery = true;
+			gEngfuncs.pfnClientCmd( "rtn_query_items" );
+		}
+		// jogador ainda nao spawnou: tenta de novo no proximo frame
+	}
+
 	// --- Estimulante (verde) ---
 	if( m_iStimDoses > 0 )
 	{

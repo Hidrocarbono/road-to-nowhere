@@ -501,6 +501,14 @@ void ClientCommand( edict_t *pEntity )
 			}
 		}
 	}
+	else if ( FStrEq(pcmd, "rtn_query_items" ) )
+	{
+		// RTN F10 fix (Erro 3): o client pede o estado do inventario no
+		// primeiro frame (RefreshAllUI) - garante que os icones de
+		// estimulante/painkiller aparecam mesmo se a mensagem inicial foi
+		// perdida (ex: give antes do HUD do client estar pronto).
+		SendRTNItemsHUD( GetClassPtr((CBasePlayer *)pev) );
+	}
 	else if ( FStrEq(pcmd, "painkiller_use" ) )
 	{
 		// RTN F9: painkiller (tecla H) - estilo Paranoia 2: cura 25 sem mexer stamina

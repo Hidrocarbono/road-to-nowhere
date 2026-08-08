@@ -16,4 +16,9 @@ public:
 
 	int m_iStimDoses = 0;
 	int m_iPainDoses = 0;
+
+	// RTN F10 fix (Erro 3): RefreshAllUI - pede o estado do inventario ao
+	// server no primeiro frame (o give inicial pode perder a mensagem se o
+	// HUD do client ainda nao estava pronto; o query forca o reenvio).
+	bool m_bSentInitialQuery = false;
 };
