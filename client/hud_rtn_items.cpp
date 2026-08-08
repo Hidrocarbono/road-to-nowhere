@@ -31,8 +31,11 @@ static void RTN_DrawItemSlot( int y, int r, int g, int b, SpriteHandle hSpr, int
 	if( hSpr )
 	{
 		// SPR_Draw (normal) p/ icone SOLIDO; SPR_DrawAdditive deixava
-		// translucido (blend GL_ONE). Cor 255,255,255 = original do TGA.
-		SPR_Set( hSpr, 255, 255, 255 );
+		// translucido (blend GL_ONE). O sprite e BRANCO (tools/tga2spr.py
+		// --white) e o SPR_Set tinge na cor do HUD (gHUD.m_color = hud_color
+		// cvar, default laranja 255,160,0) - mesma cor dos outros elementos.
+		int ir = gHUD.m_color.r, ig = gHUD.m_color.g, ib = gHUD.m_color.b;
+		SPR_Set( hSpr, ir, ig, ib );
 		SPR_Draw( 0, RTN_ITEMS_X, y, NULL );
 	}
 	else
@@ -42,14 +45,14 @@ static void RTN_DrawItemSlot( int y, int r, int g, int b, SpriteHandle hSpr, int
 	}
 
 	// quantidade em fonte ROBOTO (DrawHudString usa pfnDrawCharacter ->
-	// cls.creditsFont = creditsfont_cp125X.fnt = Roboto). Alinhado a direita.
+	// cls.creditsFont = creditsfont_cp125X.fnt = Roboto). Mesma cor do HUD.
 	char szDoses[8];
 	Q_snprintf( szDoses, sizeof( szDoses ), "%d", iDoses );
 	int tx = RTN_TEXT_X;
 	int ty = y + RTN_ICON_SIZE / 2 - 4;  // centraliza verticalmente aprox.
 	// pinta com um leve contorno escuro p/ legibilidade sobre o cenario
 	gHUD.DrawHudString( tx + 1, ty + 1, tx + 40, szDoses, 0, 0, 0 );
-	gHUD.DrawHudString( tx, ty, tx + 40, szDoses, r, g, b );
+	gHUD.DrawHudString( tx, ty, tx + 40, szDoses, gHUD.m_color.r, gHUD.m_color.g, gHUD.m_color.b );
 }
 
 int CHudRTNItems::Init( void )

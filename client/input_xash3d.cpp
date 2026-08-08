@@ -214,10 +214,21 @@ void FWGSInput::IN_Move( float frametime, usercmd_t *cmd )
 			cmd->forwardmove = ac_forwardmove * cl_forwardspeed->value / ac_movecount;
 		if( ac_sidemove )
 			cmd->sidemove  = ac_sidemove * cl_sidespeed->value / ac_movecount;
-		if( ( in_speed.state & 1 ) && ( ac_sidemove || ac_forwardmove ) )
+		// RTN F10 fix CORRIDA: o cl_movespeedkey (0.3) do GoldSrc classico e o
+		// WALK (shift = andar devagar) - era aplicado AQUI por cima do nosso
+		// multiplicador do input.cpp (que o IN_Move sobrescreve) e deixava o
+		// jogador a 120 u/s com shift. Aqui e o ponto onde o forwardmove FINAL
+		// e montado: shift = RUN (mantem 400 do cl_forwardspeed), sem shift =
+		// andar normal (0.8x = 320). O IN_RUN ja vai no cmd->buttons.
+		if( in_speed.state & 1 )
 		{
-			cmd->forwardmove *= cl_movespeedkey->value;
-			cmd->sidemove *= cl_movespeedkey->value;
+			cmd->forwardmove *= 1.0f;  // run: 400
+			cmd->sidemove *= 1.0f;
+		}
+		else
+		{
+			cmd->forwardmove *= 0.8f;  // walk: 320
+			cmd->sidemove *= 0.8f;
 		}
 	}
 

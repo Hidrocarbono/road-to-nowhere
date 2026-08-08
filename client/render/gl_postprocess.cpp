@@ -691,6 +691,32 @@ void RenderPostprocessing()
 		post.fxParameters = CPostFxParameters::Defaults();
 	}
 
+	// RTN F10: DESSATURACAO NA MORTE - quando o jogador local morre, a tela
+	// fade para escala de cinza (saturacao 0) em ~2s. Usa um timer estatico:
+	// no frame em que o health cruza para <= 0, zera o timer; a saturação
+	// decai linearmente 1 -> 0 ao longo de RTN_DEATH_DESAT_TIME.
+	{
+		static float s_flDeathTime = -1.0f;
+		cl_entity_t *pLocal = gEngfuncs.GetLocalPlayer();
+		if( pLocal )
+		{
+			float fHealth = pLocal->curstate.health;
+			if( fHealth <= 0.0f )
+			{
+				if( s_flDeathTime < 0.0f )
+					s_flDeathTime = gEngfuncs.GetClientTime();
+				float fElapsed = gEngfuncs.GetClientTime() - s_flDeathTime;
+				const float RTN_DEATH_DESAT_TIME = 2.0f;
+				float fSatMul = 1.0f - Q_min( 1.0f, fElapsed / RTN_DEATH_DESAT_TIME );
+				post.fxParameters.SetSaturation( post.fxParameters.GetSaturation() * fSatMul );
+			}
+			else
+			{
+				s_flDeathTime = -1.0f;  // vivo de novo (respawn)
+			}
+		}
+	}
+
 	GL_Setup2D();
 	post.RequestScreenColor();
 	V_RenderPostEffect( post.postprocessingShader );

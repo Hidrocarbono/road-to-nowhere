@@ -29,7 +29,7 @@ import struct
 import sys
 from PIL import Image
 
-def tga_to_spr(tga_path, spr_path):
+def tga_to_spr(tga_path, spr_path, white=False):
     im = Image.open(tga_path).convert('RGBA')
     w, h = im.size
     pixels = list(im.getdata())
@@ -57,9 +57,12 @@ def tga_to_spr(tga_path, spr_path):
     frametype = struct.pack('<i', 0)
     frame = struct.pack('<iiii', 0, 0, w, h)
 
-    # pixels RGBA direto
+    # pixels RGBA direto. white=True: forca RGB branco (mantem alpha) p/ o
+    # SPR_Set(r,g,b) do client tingir na cor do HUD (gHUD.m_color).
     body = b''
     for r, g, b, a in pixels:
+        if white:
+            r = g = b = 255
         body += struct.pack('<BBBB', r, g, b, a)
 
     with open(spr_path, 'wb') as f:
@@ -72,4 +75,6 @@ def tga_to_spr(tga_path, spr_path):
     print(f'{tga_path} -> {spr_path}  ({w}x{h} truecolor RGBA, {total} bytes)')
 
 if __name__ == '__main__':
-    tga_to_spr(sys.argv[1], sys.argv[2])
+    white = '--white' in sys.argv
+    args = [a for a in sys.argv[1:] if a != '--white']
+    tga_to_spr(args[0], args[1], white)
