@@ -29,15 +29,17 @@ int CStimulantWeaponContext::GetItemInfo(ItemInfo *p) const
 	p->iMaxAmmo1 = -1;
 	p->pszAmmo2 = NULL;
 	p->iMaxAmmo2 = -1;
-	p->iMaxClip = 1;
+	// RTN F10 fix: iMaxClip = 99 (doses maximas) - era 1 e o HUD da arma
+	// mostrava clip errado. O m_iClip e usado como DOSES do estimulante.
+	p->iMaxClip = 99;
 	p->iSlot = 1;
 	p->iPosition = 5;  // pos 6 quebrava o ciclo do scroll (padrao HL: 1-5)
 	p->iFlags = ITEM_FLAG_SELECTONEMPTY | ITEM_FLAG_NOAUTORELOAD;
 	p->iId = WEAPON_STIMULANT;
-	// RTN F10 fix: peso ALTO (60) p/ o FShouldSwitchWeapon equipar o estimulante
-	// ao ADQUIRIR (sobrepoe a arma atual, como o user pediu). Antes era 5 e
-	// o item ia pro estoque sem equipar.
-	p->iWeight = 60;
+	// RTN F10 fix: peso BAIXO (5) p/ o FShouldSwitchWeapon NAO equipar o
+	// estimulante ao adquirir (o jogador escolhe equipar via slot 1, como
+	// qualquer arma). Antes era 60 e o item trocava a arma automaticamente.
+	p->iWeight = 5;
 	return 1;
 }
 
@@ -56,9 +58,6 @@ void CStimulantWeaponContext::PrimaryAttack()
 {
 	if( m_bUseInProgress )
 		return;  // already animating
-
-	m_bPendingUse = false;  // consumida
-	m_bUsedThisFire = true;
 
 	// play the use animation (hitme_1 = anim 1)
 	SendWeaponAnim( 1 );
@@ -83,16 +82,9 @@ void CStimulantWeaponContext::WeaponIdle()
 {
 	ResetEmptySound();
 
-	// RTN F9: uso via tecla V - o ClientCommand setou m_bPendingUse -> dispara o uso
-	// (o deploy ja completou, pois WeaponIdle roda apos o DefaultDeploy)
-	if( m_bPendingUse && !m_bUseInProgress )
-	{
-#ifndef CLIENT_DLL
-		g_engfuncs.pfnServerPrint( "[RTN] stim WeaponIdle: PENDING -> PrimaryAttack\n" );
-#endif
-		PrimaryAttack();
-		return;
-	}
+	// RTN F10 fix: REMOVIDO o bloco do m_bPendingUse (o estimulante agora e
+	// uma ARMA no slot 1: o ItemPostFrame chama PrimaryAttack() direto pelo
+	// botao de tiro, sem atalho V / sem pending).
 
 	// RTN F6 fix: ShouldWeaponIdle()=true -> o ItemPostFrame base chama WeaponIdle()
 	// TODO frame (inclusive com o botao de ataque pressionado - catch-all no final).
@@ -117,17 +109,15 @@ void CStimulantWeaponContext::WeaponIdle()
 				// secondary warm pulse (drug "wave") - fades out over 0.6s
 				UTIL_ScreenFade( player, Vector(255, 180, 60), 0.3f, 0.6f, 60, 0 );
 
-				// RTN cumulative: consume 1 dose; only remove when out of doses
+				// RTN F10 fix: consume 1 dose; so volta pra arma anterior quando
+				// as doses ACABAM. Com doses restantes o jogador FICA com o
+				// estimulante equipado (pode atirar de novo - cooldown 1.1s).
 				m_iClip--;
 				if( m_iClip <= 0 )
 				{
 					player->RemovePlayerItem( m_pLayer->GetWeaponEntity() );
 					UTIL_Remove( (CBaseEntity *)m_pLayer->GetWeaponEntity() );
-					player->SelectLastItem();  // RTN F9: volta pra arma anterior
-				}
-				else
-				{
-					player->SelectLastItem();  // RTN F9: ainda tem dose, mas volta pra arma
+					player->SelectLastItem();  // volta pra arma anterior
 				}
 				SendRTNItemsHUD( player );  // RTN F9: atualiza contador lateral
 			}

@@ -14,7 +14,7 @@ public:
 
 	int iItemSlot() override { return 1; }
 	int iItemPosition() override { return 5; }
-	int iMaxClip() override { return 1; }          // 1 use per item
+	int iMaxClip() override { return 99; }         // doses maximas (m_iClip = doses)
 	int iMaxAmmo1() override { return -1; }
 	const char *pszAmmo1() override { return NULL; }
 	int iFlags() override { return ITEM_FLAG_SELECTONEMPTY | ITEM_FLAG_NOAUTORELOAD; }
@@ -23,8 +23,6 @@ public:
 	bool UsePredicting() override { return false; }
 	bool ShouldWeaponIdle() override { return true; }  // run WeaponIdle every frame (use timer)
 	bool m_bUseInProgress = false;
-	bool m_bPendingUse = false;       // RTN F9: tecla V pediu uso -> WeaponIdle dispara PrimaryAttack
-	bool m_bUsedThisFire = false;     // RTN F9: evita reuso no mesmo frame
 	float m_flUseFinishTime = 0.0f;
 	int GetItemInfo(ItemInfo *p) const override;
 	bool Deploy() override;

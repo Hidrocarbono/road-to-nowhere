@@ -469,55 +469,6 @@ void ClientCommand( edict_t *pEntity )
 		// (NAO chega aos pfnAddServerCommand - esse registro so pega console do host)
 		CNVGController::GetInstance().Toggle( GetClassPtr((CBasePlayer *)pev) );
 	}
-	else if ( FStrEq(pcmd, "stimulant_use" ) )
-	{
-		// RTN F9: estimulante (tecla V) - estilo Paranoia 2: equipa temporariamente
-		// (viewmodel v_antidote + anim fire), aplica efeitos e volta pra arma anterior.
-		CBasePlayer *pPlayer = GetClassPtr((CBasePlayer *)pev);
-		CBasePlayerItem *pStim = pPlayer->HasNamedPlayerItem( "item_stimulant" ) ? FindPlayerItemByName( pPlayer, "item_stimulant" ) : NULL;
-		// RTN DEBUG estimulante (remover depois): mostra o que o handler ve
-		{
-			CBasePlayerWeapon *pDbgWeap = dynamic_cast<CBasePlayerWeapon *>( pStim );
-			CStimulantWeaponContext *pDbgCtx = NULL;
-			if( pDbgWeap && pDbgWeap->m_pWeaponContext )
-				pDbgCtx = dynamic_cast<CStimulantWeaponContext *>( pDbgWeap->m_pWeaponContext.get() );
-			g_engfuncs.pfnServerPrint( va( "[RTN] stimulant_use: pStim=%s active=%s clip=%d ctx=%s\n",
-				pStim ? STRING( pStim->pev->classname ) : "NULL",
-				pPlayer->m_pActiveItem ? STRING( pPlayer->m_pActiveItem->pev->classname ) : "NULL",
-				pDbgWeap && pDbgWeap->m_pWeaponContext ? pDbgWeap->m_pWeaponContext->m_iClip : -1,
-				pDbgCtx ? "CStimulantWeaponContext" : "CAST-FALHOU" ) );
-		}
-		if( pStim && pStim != pPlayer->m_pActiveItem )
-		{
-			pPlayer->SelectItem( "item_stimulant" );   // equipa (deploy + viewmodel)
-			// sinaliza uso automatico: o WeaponIdle do estimulante dispara o PrimaryAttack
-			CBasePlayerWeapon *pWeap = dynamic_cast<CBasePlayerWeapon *>( pStim );
-			if( pWeap && pWeap->m_pWeaponContext )
-			{
-				// m_bPendingUse vive no CStimulantWeaponContext (subclasse)
-				// m_pWeaponContext e unique_ptr: usar .get() antes do dynamic_cast
-				CStimulantWeaponContext *pCtx = dynamic_cast<CStimulantWeaponContext *>( pWeap->m_pWeaponContext.get() );
-				if( pCtx )
-					pCtx->m_bPendingUse = true;
-			}
-		}
-		else if( pStim && pStim == pPlayer->m_pActiveItem )
-		{
-			// RTN F10 fix: dispara DIRETO aqui (nao depende do WeaponIdle, que
-			// so roda quando m_flNextAttack <= 0 - causava atraso/perda do uso
-			// se o jogador tivesse atirado ou acabado de equipar).
-			CBasePlayerWeapon *pWeap = dynamic_cast<CBasePlayerWeapon *>( pStim );
-			if( pWeap && pWeap->m_pWeaponContext )
-			{
-				CStimulantWeaponContext *pCtx = dynamic_cast<CStimulantWeaponContext *>( pWeap->m_pWeaponContext.get() );
-				if( pCtx )
-				{
-					pCtx->m_bPendingUse = true;
-					pCtx->PrimaryAttack();  // anim + som + timer de efeitos
-				}
-			}
-		}
-	}
 	else if ( FStrEq(pcmd, "painkiller_use" ) )
 	{
 		// RTN F9: painkiller (tecla H) - estilo Paranoia 2: cura 25 sem mexer stamina

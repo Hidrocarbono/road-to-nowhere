@@ -18,7 +18,7 @@
 #define RTN_STIM_Y		300	// estimulante (verde)
 #define RTN_PAIN_Y		340	// painkiller (branco/azul)
 #define RTN_ICON_SIZE	24
-#define RTN_TEXT_X		(RTN_ITEMS_X + RTN_ICON_SIZE + 6)  // texto ao lado direito
+#define RTN_TEXT_X		(RTN_ITEMS_X + RTN_ICON_SIZE + 14)  // texto +14px do icone
 
 DECLARE_MESSAGE( m_RTNItems, RTNItems );  // gera __MsgFunc_RTNItems -> gHUD.m_RTNItems.MsgFunc_RTNItems
 
@@ -30,12 +30,10 @@ static void RTN_DrawItemSlot( int y, int r, int g, int b, SpriteHandle hSpr, int
 {
 	if( hSpr )
 	{
-		// SPR_Draw (normal) p/ icone SOLIDO; SPR_DrawAdditive deixava
-		// translucido (blend GL_ONE). O sprite e BRANCO (tools/tga2spr.py
-		// --white) e o SPR_Set tinge na cor do HUD (gHUD.m_color = hud_color
-		// cvar, default laranja 255,160,0) - mesma cor dos outros elementos.
-		int ir = gHUD.m_color.r, ig = gHUD.m_color.g, ib = gHUD.m_color.b;
-		SPR_Set( hSpr, ir, ig, ib );
+		// SPR_Draw (normal) p/ icone SOLIDO. Cor 255,255,255 = mostra a
+		// COR ORIGINAL do sprite (verde da seringa, cruz vermelha/branca
+		// do medkit), que veio do TGA (tools/tga2spr.py --white removido).
+		SPR_Set( hSpr, 255, 255, 255 );
 		SPR_Draw( 0, RTN_ITEMS_X, y, NULL );
 	}
 	else
@@ -45,14 +43,16 @@ static void RTN_DrawItemSlot( int y, int r, int g, int b, SpriteHandle hSpr, int
 	}
 
 	// quantidade em fonte ROBOTO (DrawHudString usa pfnDrawCharacter ->
-	// cls.creditsFont = creditsfont_cp125X.fnt = Roboto). Mesma cor do HUD.
+	// cls.creditsFont = Roboto). Cor #cc812b (204,129,43) fixa, separada
+	// da cor do icone. O fundo do contorno e preto (0,0,0).
 	char szDoses[8];
 	Q_snprintf( szDoses, sizeof( szDoses ), "%d", iDoses );
-	int tx = RTN_TEXT_X;
+	int tx = RTN_TEXT_X;  // +14px do icone (nao colado)
 	int ty = y + RTN_ICON_SIZE / 2 - 4;  // centraliza verticalmente aprox.
-	// pinta com um leve contorno escuro p/ legibilidade sobre o cenario
-	gHUD.DrawHudString( tx + 1, ty + 1, tx + 40, szDoses, 0, 0, 0 );
-	gHUD.DrawHudString( tx, ty, tx + 40, szDoses, gHUD.m_color.r, gHUD.m_color.g, gHUD.m_color.b );
+	// contorno escuro p/ legibilidade sobre o cenario
+	gHUD.DrawHudString( tx + 1, ty + 1, tx + 60, szDoses, 0, 0, 0 );
+	// numero em #cc812b, area de 60px p/ caber 2 digitos sem cortar
+	gHUD.DrawHudString( tx, ty, tx + 60, szDoses, 204, 129, 43 );
 }
 
 int CHudRTNItems::Init( void )
