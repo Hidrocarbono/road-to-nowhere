@@ -588,18 +588,32 @@ void CL_CreateMove( float frametime, usercmd_t *cmd, int active )
 			cmd->forwardmove -= cl_backspeed->value * CL_KeyState( &in_back );
 		}	
 
-		// RTN: Shift = run (speed UP 1.25x: 320 -> 400). O server sobe o
-		// maxspeed p/ 400 quando recebe IN_RUN (PreThink). O clip abaixo usa
-		// o GetClientMaxspeed() que ja reflete o 400 no frame seguinte.
+		// RTN: Shift = run. Com shift, mantem a velocidade do comando (400).
+		// SEM shift, reduz p/ 0.8x (400 -> 320 = andar normal). O server
+		// agora tem sv_maxspeed 400 (teto do PM) e o pev->maxspeed 320/400
+		// controla o clip do client. O PM do server e o limite final.
 		if( in_speed.state & BUTTON_DOWN )
 		{
-			cmd->forwardmove *= 1.25f;
-			cmd->sidemove *= 1.25f;
-			cmd->upmove *= 1.25f;
+			cmd->forwardmove *= 1.0f;
+			cmd->sidemove *= 1.0f;
+			cmd->upmove *= 1.0f;
+		}
+		else
+		{
+			cmd->forwardmove *= 0.8f;  // 320/400
+			cmd->sidemove *= 0.8f;
+			cmd->upmove *= 0.8f;
 		}
 
 		// clip to maxspeed
-		spd = gEngfuncs.GetClientMaxspeed();
+		// RTN F10 fix: com shift (run), clipa a 400 (o maxspeed que o server
+		// usa com IN_RUN). SEM shift, clipa ao maxspeed normal (320). O
+		// GetClientMaxspeed() reflete o valor do frame ANTERIOR (o PreThink
+		// do server processa o IN_RUN depois do UpdateClientData) - clipar a
+		// 320 com shift matava o run (o 400 virava 320). O PM do server e o
+		// limite real final.
+		float spdRun = 400.0f;
+		spd = ( in_speed.state & BUTTON_DOWN ) ? spdRun : gEngfuncs.GetClientMaxspeed();
 		if( spd != 0.0f )
 		{
 			// scale the 3 speeds so that the total velocity is not > cl.maxspeed

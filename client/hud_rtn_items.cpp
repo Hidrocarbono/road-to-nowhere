@@ -5,53 +5,51 @@
 #include "triangleapi.h"
 #include "enginecallback.h"
 
-// RTN F9: contadores laterais de estimulante (V) e painkiller (H).
-// Desenho estilo Paranoia 2: caixinha com ICONE (sprite .spr) + numero de doses,
-// na lateral ESQUERDA da tela (x=10), acima da vida (que fica embaixo).
-// Fallback: se o sprite nao carregar, desenha a letra inicial (E/P).
+// RTN F9/F10: contadores laterais de estimulante (V) e painkiller (H).
+// v4 (build #99 fix): SEM quadrado de fundo (o user pediu p/ eliminar os
+// quadrados verde/azul). So o ICONE .spr (sólido, SPR_Draw) + quantidade
+// em fonte ROBOTO (DrawHudString -> pfnDrawCharacter -> cls.creditsFont,
+// que e a creditsfont_cp125X.fnt = Roboto) ao lado DIREITO do icone.
 //
-// v3 (build #94): usa .spr nativo do engine (SPR_Load + SPR_Set + SPR_DrawAdditive)
-// em vez de TGA + pTriAPI. O pTriAPI->Color4f nao aplica cor/textura no HUD 2D
-// deste engine (o quad desenhava mas ficava invisivel). O .spr e o caminho nativo
-// que o health.cpp usa e FUNCIONA. Conversor: tools/tga2spr.py.
+// v3 (build #94): usava .spr nativo + SPR_DrawAdditive (ficava translucido).
+// v4: SPR_Draw (normal, nao additive) p/ o icone ficar solido.
 
 #define RTN_ITEMS_X		10
 #define RTN_STIM_Y		300	// estimulante (verde)
 #define RTN_PAIN_Y		340	// painkiller (branco/azul)
 #define RTN_ICON_SIZE	24
+#define RTN_TEXT_X		(RTN_ITEMS_X + RTN_ICON_SIZE + 6)  // texto ao lado direito
 
 DECLARE_MESSAGE( m_RTNItems, RTNItems );  // gera __MsgFunc_RTNItems -> gHUD.m_RTNItems.MsgFunc_RTNItems
 
 static SpriteHandle g_hStimIcon = 0;
 static SpriteHandle g_hPainIcon = 0;
 
-// desenha a caixinha (fundo + borda) e o conteudo (icone OU letra de fallback)
-static void RTN_DrawItemSlot( int y, int r, int g, int b, SpriteHandle hSpr, const char *pszLetter, int iDoses )
+// desenha o icone (solido) + quantidade em Roboto ao lado direito
+static void RTN_DrawItemSlot( int y, int r, int g, int b, SpriteHandle hSpr, int iDoses )
 {
-	FillRGBA( RTN_ITEMS_X, y, RTN_ICON_SIZE, RTN_ICON_SIZE, r, g, b, 200 );
-	// borda
-	FillRGBA( RTN_ITEMS_X, y, RTN_ICON_SIZE, 2, 255, 255, 255, 120 );
-	FillRGBA( RTN_ITEMS_X, y + RTN_ICON_SIZE - 2, RTN_ICON_SIZE, 2, 255, 255, 255, 120 );
-	FillRGBA( RTN_ITEMS_X, y, 2, RTN_ICON_SIZE, 255, 255, 255, 120 );
-	FillRGBA( RTN_ITEMS_X + RTN_ICON_SIZE - 2, y, 2, RTN_ICON_SIZE, 255, 255, 255, 120 );
-
 	if( hSpr )
 	{
-		// icone .spr nativo do engine - funciona no HUD 2D (como o health.cpp)
+		// SPR_Draw (normal) p/ icone SOLIDO; SPR_DrawAdditive deixava
+		// translucido (blend GL_ONE). Cor 255,255,255 = original do TGA.
 		SPR_Set( hSpr, 255, 255, 255 );
-		SPR_DrawAdditive( 0, RTN_ITEMS_X + 1, y + 1, NULL );
+		SPR_Draw( 0, RTN_ITEMS_X, y, NULL );
 	}
 	else
 	{
-		// fallback: letra inicial centralizada
-		int tx = RTN_ITEMS_X + RTN_ICON_SIZE / 2 - 4;
-		int ty = y + RTN_ICON_SIZE / 2 - 6;
-		char szLetter[2] = { pszLetter[0], '\0' };
-		gHUD.DrawHudString( tx, ty, tx + 20, szLetter, 255, 255, 255 );
+		// fallback: se o sprite nao carregou, nada (sem quadrado)
+		return;
 	}
 
-	// contador de doses ao lado
-	gHUD.DrawHudNumber( RTN_ITEMS_X + RTN_ICON_SIZE + 8, y + 4, DHN_3DIGITS, iDoses, r, g, b );
+	// quantidade em fonte ROBOTO (DrawHudString usa pfnDrawCharacter ->
+	// cls.creditsFont = creditsfont_cp125X.fnt = Roboto). Alinhado a direita.
+	char szDoses[8];
+	Q_snprintf( szDoses, sizeof( szDoses ), "%d", iDoses );
+	int tx = RTN_TEXT_X;
+	int ty = y + RTN_ICON_SIZE / 2 - 4;  // centraliza verticalmente aprox.
+	// pinta com um leve contorno escuro p/ legibilidade sobre o cenario
+	gHUD.DrawHudString( tx + 1, ty + 1, tx + 40, szDoses, 0, 0, 0 );
+	gHUD.DrawHudString( tx, ty, tx + 40, szDoses, r, g, b );
 }
 
 int CHudRTNItems::Init( void )
@@ -68,7 +66,7 @@ int CHudRTNItems::VidInit( void )
 	m_iPainDoses = 0;
 
 	// icones .spr nativos (gerados dos TGA via tools/tga2spr.py).
-	// Se o arquivo nao existir, hSpr fica 0 -> fallback letra.
+	// Se o arquivo nao existir, hSpr fica 0 -> nao desenha nada.
 	g_hStimIcon = LoadSprite( "sprites/rtn_stim.spr" );
 	g_hPainIcon = LoadSprite( "sprites/rtn_pain.spr" );
 
@@ -98,13 +96,13 @@ int CHudRTNItems::Draw( float flTime )
 	// --- Estimulante (verde) ---
 	if( m_iStimDoses > 0 )
 	{
-		RTN_DrawItemSlot( RTN_STIM_Y, 30, 160, 60, g_hStimIcon, "E", m_iStimDoses );
+		RTN_DrawItemSlot( RTN_STIM_Y, 30, 160, 60, g_hStimIcon, m_iStimDoses );
 	}
 
 	// --- Painkiller (azul) ---
 	if( m_iPainDoses > 0 )
 	{
-		RTN_DrawItemSlot( RTN_PAIN_Y, 60, 120, 200, g_hPainIcon, "P", m_iPainDoses );
+		RTN_DrawItemSlot( RTN_PAIN_Y, 60, 120, 200, g_hPainIcon, m_iPainDoses );
 	}
 
 	return 1;

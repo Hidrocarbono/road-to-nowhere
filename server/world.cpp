@@ -838,6 +838,13 @@ void CWorld :: Precache( void )
 
 	// g-cont. moved here so cheats will working on restore level
 	g_flWeaponCheat = CVAR_GET_FLOAT( "sv_cheats" );  // Is the impulse 101 command allowed?
+
+	// RTN F10 fix CORRIDA: o PM do engine limita o movimento por
+	// svgame.movevars.maxspeed (= cvar sv_maxspeed), NAO pelo pev->maxspeed.
+	// Com sv_maxspeed 320 o run (que pede 400 via IN_RUN) era cortado p/ 320
+	// -> 'corrida nao funciona'. Eleva o teto p/ 400; o andar normal (320)
+	// continua controlado pelo pev->maxspeed (o client clipa por ele).
+	CVAR_SET_FLOAT( "sv_maxspeed", 400 );
 	UPDATE_PACKED_FOG( pev->impulse );
 }
 

@@ -77,12 +77,17 @@ int CHudBloody::Draw( float flTime )
 	if( a > 255 ) a = 255;
 
 	// sprite esticado em TELA CHEIA (pfnSPR_DrawGeneric com width/height).
-	// Additive: "transparencia" = brilho da cor (preto = invisivel). O
-	// ScaleColors(r,g,b,a) escurece a cor conforme o alpha -> fade real.
+	// kRenderTransAlpha (como o SPR_Draw do health.cpp) = blend alpha REAL
+	// (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA): o sangue fica semi-transparente
+	// e a cena aparece por tras. O ScaleColors controla a intensidade.
+	// (kRenderTransAdd/GL_ONE deixava opaco/brilhante - preto do sprite
+	// invisivel mas o sangue cobria a tela sem transparencia real.)
 	int r = 255, g = 255, b = 255;
 	ScaleColors( r, g, b, a );
 	SPR_Set( m_iBloody, r, g, b );
+	gEngfuncs.pTriAPI->RenderMode( kRenderTransAlpha );
 	gEngfuncs.pfnSPR_DrawGeneric( 0, 0, 0, NULL, 0, 0, ScreenWidth, ScreenHeight );
+	gEngfuncs.pTriAPI->RenderMode( kRenderNormal );
 
 	// bordas vermelhas escuras quando a vida esta muito baixa (imersao)
 	if( iHealth <= 20 )
