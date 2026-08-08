@@ -2,6 +2,7 @@
 #include "hud_bloody.h"
 #include "utils.h"
 #include "enginecallback.h"
+#include "triangleapi.h"  // pTriAPI->RenderMode (kRenderTransAlpha p/ o blend)
 
 // RTN F10: HUD de sangue em tela cheia (estilo COD).
 // O bloodyhud.spr cobre a tela TODA (esticado via pfnSPR_DrawGeneric).
