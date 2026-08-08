@@ -96,6 +96,8 @@ struct HUDLIST
 #include <stdio.h>
 #include "hud_rtn_items.h"
 #include "hud_bloody.h"
+#include "hud_status.h"
+#include "hud_weaponbox.h"
 #include "cl_entity.h"
 
 //
@@ -125,6 +127,7 @@ public:
 	void _cdecl UserCmd_Slot3( void );
 	void _cdecl UserCmd_Slot4( void );
 	void _cdecl UserCmd_Slot5( void );
+	WEAPON *GetWeapon( void ) { return m_pWeapon; }  // RTN F10: CHudWeaponBox le a arma ativa
 	void _cdecl UserCmd_Slot6( void );
 	void _cdecl UserCmd_Slot7( void );
 	void _cdecl UserCmd_Slot8( void );
@@ -367,6 +370,7 @@ public:
 	int VidInit( void );
 	int Draw(float flTime);
 	int MsgFunc_Battery(const char *pszName,  int iSize, void *pbuf );
+	int GetBat( void ) { return m_iBat; }  // RTN F10: CHudStatus le o armor
 
 private:
 	SpriteHandle m_hSprite1;
@@ -584,6 +588,8 @@ public:
 	CHudStatusIcons	m_StatusIcons;
 	CHudRTNItems	m_RTNItems;  // RTN F9: contadores laterais (estimulante/painkiller)
 	CHudBloody	m_Bloody;    // RTN F10: HUD de sangue em tela cheia (estilo COD)
+	CHudStatus	m_Status;    // RTN F10: silhueta de vida + barras armor/stamina (P2)
+	CHudWeaponBox	m_WeaponBox; // RTN F10: silhueta da arma + municao (P2)
 	CHudMOTD		m_MOTD;
 
 	ViewSmoothingData_t	m_ViewSmoothingData;

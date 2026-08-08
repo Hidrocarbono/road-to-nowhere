@@ -811,6 +811,12 @@ void CHudAmmo::UserCmd_PrevWeapon( void )
 //-------------------------------------------------------------------------
 int CHudAmmo::Draw( float flTime )
 {
+	// RTN F10: com o HUD novo (rtn_hud_style 1), a municao classica some -
+	// o CHudWeaponBox mostra no canto inferior direito (estilo Paranoia 2).
+	extern cvar_t *rtn_hud_style;
+	if( rtn_hud_style && rtn_hud_style->value >= 1.0f )
+		return 1;
+
 	int a, x, y, r, g, b;
 	int AmmoWidth;
 

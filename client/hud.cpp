@@ -27,6 +27,8 @@ void CHud :: Init( void )
 	m_StatusIcons.Init();
 	m_RTNItems.Init();  // RTN F9
 	m_Bloody.Init();    // RTN F10
+	m_Status.Init();    // RTN F10: HUD status estilo Paranoia 2
+	m_WeaponBox.Init(); // RTN F10: HUD de armas estilo Paranoia 2
  	m_SayText.Init();
 	m_Menu.Init();
 	m_MOTD.Init();

@@ -989,6 +989,21 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 		
 	pparams->viewangles += pparams->punchangle;
 
+	// RTN F10: micro-shake EXTREMAMENTE LEVE no dano (disparado pelo CHudStatus
+	// via g_flRTNShakeTime). Tremor de alta frequencia, amplitude <= 0.35 graus,
+	// decai em 0.15s - estilo Tarkov (sutil, nao atrapalha a mira).
+	extern float g_flRTNShakeTime;
+	{
+		float fShakeElapsed = pparams->time - g_flRTNShakeTime;
+		if( fShakeElapsed >= 0.0f && fShakeElapsed < 0.15f )
+		{
+			float fAmp = ( 1.0f - fShakeElapsed / 0.15f ) * 0.35f;
+			float fPhase = pparams->time * 45.0f;
+			pparams->viewangles[0] += sin( fPhase ) * fAmp;
+			pparams->viewangles[1] += cos( fPhase * 0.6f ) * fAmp;
+		}
+	}
+
 	static float lasttime, oldz = 0;
 
 	if( !pparams->smoothing && pparams->onground && pparams->simorg[2] - oldz > 0.0f )
