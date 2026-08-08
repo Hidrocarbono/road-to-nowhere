@@ -10,6 +10,8 @@ void CHud :: Init( void )
 {
 	InitHUDMessages();
 
+	m_flDeadTime = 0;  // RTN F10: dessaturacao na morte
+
 	m_Ammo.Init();
 	m_Health.Init();
 	m_Geiger.Init();

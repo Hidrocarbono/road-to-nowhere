@@ -13,6 +13,7 @@
 "CTRL"			"+duck"
 "TAB"			"+showscores"
 "e"				"+leanright"
+"v"				"stimulant_use"
 "'"				"+moveup"
 "c"				"+movedown"
 "/"				"+movedown"

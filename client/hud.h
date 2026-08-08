@@ -529,6 +529,7 @@ public:
 	float m_flTime;	 // the current client time
 	float m_fOldTime;	 // the time at which the HUD was last redrawn
 	double m_flTimeDelta;// the difference between flTime and fOldTime
+	float m_flDeadTime;  // RTN F10: momento da morte (p/ dessaturacao, estilo Paranoia 2)
 	Vector m_vecOrigin;
 	Vector m_vecAngles;
 	int m_iKeyBits;

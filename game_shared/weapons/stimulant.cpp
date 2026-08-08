@@ -59,6 +59,8 @@ void CStimulantWeaponContext::PrimaryAttack()
 	if( m_bUseInProgress )
 		return;  // already animating
 
+	m_bPendingUse = false;  // consumida
+
 	// play the use animation (hitme_1 = anim 1)
 	SendWeaponAnim( 1 );
 
@@ -82,9 +84,14 @@ void CStimulantWeaponContext::WeaponIdle()
 {
 	ResetEmptySound();
 
-	// RTN F10 fix: REMOVIDO o bloco do m_bPendingUse (o estimulante agora e
-	// uma ARMA no slot 1: o ItemPostFrame chama PrimaryAttack() direto pelo
-	// botao de tiro, sem atalho V / sem pending).
+	// RTN F10: uso via tecla V - o handler equipou (SelectItem) e marcou o
+	// pending; o WeaponIdle (apos o deploy completar) dispara o PrimaryAttack
+	// AUTOMATICAMENTE -> 1 clique no V = seringa na mao + anim + efeitos.
+	if( m_bPendingUse && !m_bUseInProgress )
+	{
+		PrimaryAttack();
+		return;
+	}
 
 	// RTN F6 fix: ShouldWeaponIdle()=true -> o ItemPostFrame base chama WeaponIdle()
 	// TODO frame (inclusive com o botao de ataque pressionado - catch-all no final).

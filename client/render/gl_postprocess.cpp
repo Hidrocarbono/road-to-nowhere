@@ -691,33 +691,21 @@ void RenderPostprocessing()
 		post.fxParameters = CPostFxParameters::Defaults();
 	}
 
-	// RTN F10: DESSATURACAO NA MORTE - quando o jogador local MORRE (transicao
-	// vida>0 -> vida<=0), a tela fade para escala de cinza (saturacao 0) em
-	// ~2s. Usa s_flPrevHealth p/ detectar a transicao (evita ativar no spawn
-	// onde curstate.health=0 antes do server enviar o valor real).
+	// RTN F10: DESSATURACAO NA MORTE (estilo Paranoia 2, importado do
+	// gl_postprocess.cpp deles). O CHud::Think marca o gHUD.m_flDeadTime
+	// quando o jogador morre (m_iHealth <= 0, valor real via MsgFunc_Health).
+	// Aqui: fator = (tempo desde a morte) / 5s, cresce 0->1; saturação =
+	// 1 - fator (fade suave p/ escala de cinza em 5s, como o DEAD_GRAYSCALE_TIME
+	// do P2). Reseta automaticamente quando o m_flDeadTime zera (respawn).
 	{
-		static float s_flDeathTime = -1.0f;
-		static float s_flPrevHealth = 100.0f;
-		cl_entity_t *pLocal = gEngfuncs.GetLocalPlayer();
-		if( pLocal )
+		if( gHUD.m_flDeadTime )
 		{
-			float fHealth = pLocal->curstate.health;
-			// inicia o timer APENAS na transicao vida>0 -> morte
-			if( fHealth <= 0.0f && s_flPrevHealth > 0.0f )
-				s_flDeathTime = gEngfuncs.GetClientTime();
-			if( fHealth <= 0.0f && s_flDeathTime >= 0.0f )
-			{
-				float fElapsed = gEngfuncs.GetClientTime() - s_flDeathTime;
-				const float RTN_DEATH_DESAT_TIME = 2.0f;
-				float fSatMul = 1.0f - Q_min( 1.0f, fElapsed / RTN_DEATH_DESAT_TIME );
-				if( fSatMul < 0.0f ) fSatMul = 0.0f;
-				post.fxParameters.SetSaturation( post.fxParameters.GetSaturation() * fSatMul );
-			}
-			else
-			{
-				s_flDeathTime = -1.0f;  // vivo ou nunca morto: reseta
-			}
-			s_flPrevHealth = fHealth;
+			const float RTN_DEAD_GRAYSCALE_TIME = 5.0f;  // mesmo do P2
+			float fElapsed = gEngfuncs.GetClientTime() - gHUD.m_flDeadTime;
+			float fGray = Q_min( 1.0f, fElapsed / RTN_DEAD_GRAYSCALE_TIME );
+			if( fGray < 0.0f ) fGray = 0.0f;
+			// saturação = 1 - grayscale (0 = cinza total)
+			post.fxParameters.SetSaturation( post.fxParameters.GetSaturation() * ( 1.0f - fGray ));
 		}
 	}
 

@@ -27,6 +27,14 @@ int grgLogoFrame[MAX_LOGO_FRAMES] =
 
 void CHud::Think( void )
 {
+	// RTN F10: marca o momento da morte (estilo Paranoia 2) p/ a dessaturacao.
+	// So seta na transicao vida>0 -> 0 (m_iHealth vem do MsgFunc_Health, valor
+	// real - nunca 0 no spawn). Reseta quando o jogador volta a ter vida.
+	if( gHUD.m_Health.m_iHealth <= 0 && !gHUD.m_flDeadTime )
+		gHUD.m_flDeadTime = gEngfuncs.GetClientTime();
+	if( gHUD.m_Health.m_iHealth > 0 )
+		gHUD.m_flDeadTime = 0;
+
 	HUDLIST *pList = m_pHudList;
 
 	while( pList )

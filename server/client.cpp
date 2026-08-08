@@ -469,6 +469,38 @@ void ClientCommand( edict_t *pEntity )
 		// (NAO chega aos pfnAddServerCommand - esse registro so pega console do host)
 		CNVGController::GetInstance().Toggle( GetClassPtr((CBasePlayer *)pev) );
 	}
+	else if ( FStrEq(pcmd, "stimulant_use" ) )
+	{
+		// RTN F10: estimulante (tecla V) - agora e ARMA no slot 1. O V:
+		//   - se NAO esta equipado: equipa (SelectItem) + marca pending p/ o
+		//     WeaponIdle disparar o PrimaryAttack AUTOMATICAMENTE apos o deploy
+		//     (1 clique no V = seringa na mao + anim + efeitos)
+		//   - se JA esta equipado: PrimaryAttack direto (usa 1 dose)
+		// Sem SelectLastItem apos o uso (fica equipado) -> sem duplo clique.
+		CBasePlayer *pPlayer = GetClassPtr((CBasePlayer *)pev);
+		CBasePlayerItem *pStim = FindPlayerItemByName( pPlayer, "item_stimulant" );
+		if( pStim )
+		{
+			CBasePlayerWeapon *pWeap = dynamic_cast<CBasePlayerWeapon *>( pStim );
+			int iDoses = ( pWeap && pWeap->m_pWeaponContext ) ? pWeap->m_pWeaponContext->m_iClip : 0;
+			if( iDoses > 0 )
+			{
+				if( pStim != pPlayer->m_pActiveItem )
+				{
+					pPlayer->SelectItem( "item_stimulant" );
+					CStimulantWeaponContext *pCtx = dynamic_cast<CStimulantWeaponContext *>( pWeap->m_pWeaponContext.get() );
+					if( pCtx )
+						pCtx->m_bPendingUse = true;
+				}
+				else
+				{
+					CStimulantWeaponContext *pCtx = dynamic_cast<CStimulantWeaponContext *>( pWeap->m_pWeaponContext.get() );
+					if( pCtx )
+						pCtx->PrimaryAttack();  // ja equipado: usa direto
+				}
+			}
+		}
+	}
 	else if ( FStrEq(pcmd, "painkiller_use" ) )
 	{
 		// RTN F9: painkiller (tecla H) - estilo Paranoia 2: cura 25 sem mexer stamina
