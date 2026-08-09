@@ -1803,6 +1803,31 @@ void CBasePlayer::PreThink(void)
 		pev->view_ofs.y = leanNewY;
 	}
 
+	// ===== RTN F10: MAOZINHA DE INTERACAO (estilo Paranoia 2 - dlls/player.cpp:4875) =====
+	// Trace a frente (64u); se achou entidade usavel (FCAP_*_USE, sem FCAP_HIDE_USE),
+	// envia gmsgCanUse=1 ao client (dirty-check p/ nao spammar). O client desenha
+	// o icone de uso (640_usage.tga) no centro da tela.
+	{
+		bool bCanUse = false;
+		TraceResult tr;
+		UTIL_MakeVectors( pev->v_angle );
+		UTIL_TraceLine( pev->origin + pev->view_ofs, pev->origin + pev->view_ofs + ( gpGlobals->v_forward * 64.0f ), dont_ignore_monsters, ENT( pev ), &tr );
+		if( tr.pHit )
+		{
+			CBaseEntity *pObject = CBaseEntity::Instance( tr.pHit );
+			if( pObject && ( pObject->ObjectCaps() & ( FCAP_IMPULSE_USE | FCAP_CONTINUOUS_USE | FCAP_ONOFF_USE | FCAP_DISTANCE_USE )) && !( pObject->ObjectCaps() & FCAP_HIDE_USE ))
+				bCanUse = true;
+		}
+
+		if( bCanUse != m_bCanUseStatus )
+		{
+			m_bCanUseStatus = bCanUse;
+			MESSAGE_BEGIN( MSG_ONE, gmsgCanUse, NULL, pev );
+				WRITE_BYTE( bCanUse ? 1 : 0 );
+			MESSAGE_END();
+		}
+	}
+
 	g_pGameRules->PlayerThink( this );
 
 	if ( g_fGameOver )

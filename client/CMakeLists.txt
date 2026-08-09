@@ -22,6 +22,7 @@ list(APPEND CLDLL_SOURCES
 	"hud_bloody.cpp"
 	"hud_status.cpp"
 	"hud_weaponbox.cpp"
+	"hud_interact.cpp"
 	"hud_redraw.cpp"
 	"hud_update.cpp"
 	"hud_flashlight.cpp"

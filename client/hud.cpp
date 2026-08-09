@@ -29,6 +29,7 @@ void CHud :: Init( void )
 	m_Bloody.Init();    // RTN F10
 	m_Status.Init();    // RTN F10: HUD status estilo Paranoia 2
 	m_WeaponBox.Init(); // RTN F10: HUD de armas estilo Paranoia 2
+	m_Interact.Init();  // RTN F10: maozinha de interacao
  	m_SayText.Init();
 	m_Menu.Init();
 	m_MOTD.Init();
@@ -197,6 +198,7 @@ void CHud :: VidInit( void )
 	m_Bloody.VidInit();    // RTN F10
 	m_Status.VidInit();    // RTN F10 fix: SEM isso os sprites (silhueta/barras)
 	m_WeaponBox.VidInit(); // ficam 0 -> HUD de status nunca desenhava (Erro 1+2)
+	m_Interact.VidInit();  // RTN F10: maozinha
 }
 
 void CHud::AddHudElem( CHudBase *phudelem )

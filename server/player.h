@@ -224,6 +224,9 @@ public:
 	int		m_nCustomSprayFrames;// Custom clan logo frames for this player
 	float		m_flNextDecalTime;// next time this player can spray a decal
 
+	// RTN F10: maozinha de interacao (dirty-check p/ nao spammar o gmsgCanUse)
+	bool		m_bCanUseStatus = false;
+
 	char		m_szTeamName[TEAM_NAME_LENGTH];
 
 	virtual void Spawn( void );

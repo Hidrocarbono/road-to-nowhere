@@ -98,6 +98,7 @@ struct HUDLIST
 #include "hud_bloody.h"
 #include "hud_status.h"
 #include "hud_weaponbox.h"
+#include "hud_interact.h"
 #include "cl_entity.h"
 
 //
@@ -590,6 +591,7 @@ public:
 	CHudBloody	m_Bloody;    // RTN F10: HUD de sangue em tela cheia (estilo COD)
 	CHudStatus	m_Status;    // RTN F10: silhueta de vida + barras armor/stamina (P2)
 	CHudWeaponBox	m_WeaponBox; // RTN F10: silhueta da arma + municao (P2)
+	CHudInteract	m_Interact;  // RTN F10: maozinha de interacao (P2)
 	CHudMOTD		m_MOTD;
 
 	ViewSmoothingData_t	m_ViewSmoothingData;

@@ -873,6 +873,7 @@ void ClientPrecache( void )
 	PRECACHE_SOUND("player/pl_pain7.wav");
 
 	PRECACHE_MODEL("models/player.mdl");
+	PRECACHE_MODEL("models/player_legs.mdl");  // RTN F10: pernas (olhar p/ baixo)
 
 	// hud sounds
 
@@ -1772,7 +1773,8 @@ void UpdateClientData ( const struct edict_s *ent, int sendweapons, struct clien
 
 	cd->flags			= pev->flags;
 	cd->health			= pev->health;
-	cd->viewmodel		= MODEL_INDEX(STRING(pev->viewmodel));
+	cd->fuser2			= pev->fuser2;  // RTN F10 fix: STAMINA ao client (era 0 -> barra zerada)
+	cd->viewmodel			= MODEL_INDEX(STRING(pev->viewmodel));
 	cd->waterlevel		= pev->waterlevel;
 	cd->watertype		= pev->watertype;
 	cd->weapons			= 0; // not used

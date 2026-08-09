@@ -254,6 +254,28 @@ void V_CalcGunAngle( struct ref_params_s *pparams )
 	viewent = GET_VIEWMODEL();
 	if( !viewent ) return;
 
+	// RTN F10: PERNAS - olhando para BAIXO (pitch < -45°), troca o viewmodel
+	// pelo player_legs.mdl (independente da arma equipada - so geometrico).
+	// O engine re-monta o viewent a cada frame (cl_view.c:103), entao quando
+	// o jogador olha para cima/frente o viewmodel da arma volta sozinho.
+	if( pparams->viewangles[PITCH] < -45.0f )
+	{
+		int iLegs = gEngfuncs.pEventAPI->EV_FindModelIndex( "models/player_legs.mdl" );
+		if( iLegs > 0 )
+		{
+			viewent->model = IEngineStudio.GetModelByIndex( iLegs );
+			viewent->curstate.modelindex = iLegs;
+			// animacao: usa a gaitsequence do jogador (caminhada/parado)
+			cl_entity_t *pLocal = gEngfuncs.GetLocalPlayer();
+			if( pLocal )
+			{
+				viewent->curstate.sequence = pLocal->curstate.gaitsequence;
+				viewent->curstate.animtime = pparams->time;
+			}
+		}
+		return;  // pernas nao recebem o bob/roll da arma
+	}
+
 	viewent->angles[YAW] = pparams->viewangles[YAW] + pparams->crosshairangle[YAW];
 	viewent->angles[PITCH] = pparams->viewangles[PITCH] + pparams->crosshairangle[PITCH] * 0.25f;
 	viewent->angles[ROLL] -= v_idlescale * sin( pparams->time * v_iroll_cycle.value ) * v_iroll_level.value;

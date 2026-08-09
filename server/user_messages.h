@@ -14,6 +14,7 @@ extern int gmsgWeapons;
 extern int gmsgHealth;
 extern int gmsgDamage;
 extern int gmsgBattery;
+extern int gmsgCanUse;  // RTN F10: maozinha de interacao
 extern int gmsgTrain;
 extern int gmsgLogo;
 extern int gmsgWeaponList;
