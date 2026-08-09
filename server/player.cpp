@@ -1753,8 +1753,30 @@ void CBasePlayer::PreThink(void)
 	// ===== RTN Fase 5: Run (Shift) + Lean (Q/E) =====
 	if ( IsAlive() )
 	{
-		// RUN: Shift -> IN_RUN -> faster maxspeed (25% more than 320)
-		if ( pev->button & IN_RUN )
+		// ===== RTN F10: STAMINA (estilo Paranoia 2 - dlls/player.cpp:2139-2158) =====
+		// O pev->fuser2 = stamina (0-100). Correr (IN_RUN + andando rapido)
+		// gasta 0.25/frame; parado regenera +0.25/frame, andando +0.1/frame.
+		// Com stamina < 1 nao corre (maxspeed fica 320 = andar).
+		float flStamina = pev->fuser2;
+
+		if( ( pev->button & IN_RUN ) && flStamina > 0 && pev->velocity.Length2D() > 100 )
+		{
+			flStamina -= 0.25f;   // gastando ao correr
+		}
+		else if( flStamina < 100 )
+		{
+			if( pev->velocity.Length2D() < 100 )
+				flStamina += 0.25f;   // parado: regenera rapido
+			else if( pev->velocity.Length2D() < 290 )
+				flStamina += 0.1f;    // andando: regenera lento
+		}
+		if( flStamina < 0 ) flStamina = 0;
+		if( flStamina > 100 ) flStamina = 100;
+		pev->fuser2 = flStamina;
+
+		// RUN: Shift -> IN_RUN -> faster maxspeed (25% more than 320).
+		// So corre com stamina >= 1 (senao fica no maxspeed de andar).
+		if ( ( pev->button & IN_RUN ) && flStamina >= 1 )
 			pev->maxspeed = 400;
 		else if ( pev->maxspeed == 400 )
 			pev->maxspeed = 320;
@@ -2921,6 +2943,8 @@ void CBasePlayer::Spawn( void )
 	pev->classname		= MAKE_STRING("player");
 	pev->health		= 100;
 	pev->armorvalue		= 0;
+	pev->fuser2		= 100;  // RTN F10 fix: STAMINA inicia CHEIA (o fuser2 era 0
+					// no spawn -> barra de stamina do HUD P2 nascia vazia)
 	pev->takedamage		= DAMAGE_AIM;
 	pev->solid		= SOLID_SLIDEBOX;
 	pev->movetype		= MOVETYPE_WALK;

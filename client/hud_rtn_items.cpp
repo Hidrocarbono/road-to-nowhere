@@ -16,7 +16,8 @@
 
 #define RTN_ITEMS_X		10
 #define RTN_STIM_Y		300	// estimulante (verde)
-#define RTN_PAIN_Y		340	// painkiller (branco/azul)
+#define RTN_PAIN_Y		364	// painkiller (branco/azul) - +64px p/ nao sobrepor
+					// (sprites sao 32x32; 40px de gap ficava colado)
 #define RTN_ICON_SIZE	24
 #define RTN_TEXT_X		(RTN_ITEMS_X + RTN_ICON_SIZE + 14)  // texto +14px do icone
 
