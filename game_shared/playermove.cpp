@@ -2212,6 +2212,16 @@ void PM_Jump (void)
 
 	qboolean cansuperjump = false;
 
+	// RTN F10: stamina 0 -> nao pula (a corrida gasta o fuser2; com <1 a
+	// stamina acabou). O pmove->fuser2 e o pev->fuser2 no server e o
+	// cd->fuser2 na predicao do client (UpdateClientData envia) - CONSISTENTE,
+	// sem dessync de predicao. Bloqueio duplo (input.cpp client-side tambem).
+	if (pmove->fuser2 < 1.0f)
+	{
+		pmove->oldbuttons |= IN_JUMP;  // nao pula ate soltar o botao
+		return;
+	}
+
 	if (pmove->dead)
 	{
 		pmove->oldbuttons |= IN_JUMP ;	// don't jump again until released

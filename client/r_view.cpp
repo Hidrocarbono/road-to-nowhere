@@ -254,15 +254,18 @@ void V_CalcGunAngle( struct ref_params_s *pparams )
 	viewent = GET_VIEWMODEL();
 	if( !viewent ) return;
 
-	// RTN F10: PERNAS - olhando para BAIXO (pitch > +45°), troca o viewmodel
-	// pelo player_legs.mdl (independente da arma equipada - so geometrico).
-	// O engine re-monta o viewent a cada frame (cl_view.c:103), entao quando
-	// o jogador olha para cima/frente o viewmodel da arma volta sozinho.
-	// NOTA: no GoldSrc/Quake o pitch POSITIVO = olhando para BAIXO
-	// (AngleVectors: forward[2] = -sin(pitch)); negativo = olhando para CIMA.
-	if( pparams->viewangles[PITCH] > 45.0f )
+	// RTN F10: PERNAS - olhando para BAIXO, troca o viewmodel pelo modelo do
+	// jogador (player.mdl - as pernas, mecanismo classico do HL), independente
+	// da arma equipada (so geometrico). O engine re-monta o viewent a cada
+	// frame (cl_view.c:103), entao ao olhar para cima/frente a arma volta.
+	// NOTA: usa o VETOR forward (pparams->forward[2] < -0.7 = ~45° p/ baixo)
+	// em vez do pitch - imune a convencao de sinal (GoldSrc: pitch positivo =
+	// baixo; mas o forward.z negativo e SEMPRE "olhando para o chao").
+	// Usa models/player.mdl (tem a gaitsequence - o player_legs.mdl do user
+	// ainda nao tem as sequencias de caminhada, o que travava o desenho).
+	if( pparams->forward[2] < -0.7f )
 	{
-		int iLegs = gEngfuncs.pEventAPI->EV_FindModelIndex( "models/player_legs.mdl" );
+		int iLegs = gEngfuncs.pEventAPI->EV_FindModelIndex( "models/player.mdl" );
 		if( iLegs > 0 )
 		{
 			viewent->model = IEngineStudio.GetModelByIndex( iLegs );

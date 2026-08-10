@@ -1003,12 +1003,18 @@ void R_UpdateFogParameters()
 	{
 		// enable global exponential color fog
 		// apply gamma-correction because user sets color in sRGB space
-		tr.fogColor[0] = pow((tr.movevars->fog_settings & 0xFF000000 >> 24) / 255.0f, 1.f / 2.2f);
-		tr.fogColor[1] = pow((tr.movevars->fog_settings & 0xFF0000 >> 16) / 255.0f, 1.f / 2.2f);
-		tr.fogColor[2] = pow((tr.movevars->fog_settings & 0xFF00 >> 8) / 255.0f, 1.f / 2.2f);
+		// RTN F10 fix: PARENTESES + cast unsigned! O original fazia
+		// 'fog_settings & 0xFF000000 >> 24' = '& (0xFF000000>>24)' = '& 0xFF'
+		// (precedencia: >> antes de &) -> as 3 cores liam o byte da DENSITY
+		// -> com density alta o fog ficava CINZA/BRANCO. E o fog_settings e
+		// int signed: sem cast, o bit alto (R>127) vira negativo no shift.
+		const unsigned int fogSettings = (unsigned int)tr.movevars->fog_settings;
+		tr.fogColor[0] = pow(((fogSettings & 0xFF000000u) >> 24) / 255.0f, 1.f / 2.2f);
+		tr.fogColor[1] = pow(((fogSettings & 0xFF0000u) >> 16) / 255.0f, 1.f / 2.2f);
+		tr.fogColor[2] = pow(((fogSettings & 0xFF00u) >> 8) / 255.0f, 1.f / 2.2f);
 
 		const float skyScaleMultiplier = FBitSet(RI->params, RP_SKYPORTALVIEW) ? tr.sky_camera->curstate.scale : 1.0f;
-		tr.fogDensity = (tr.movevars->fog_settings & 0xFF) * SKY_FOG_DENSITY_FACTOR * skyScaleMultiplier;
+		tr.fogDensity = (fogSettings & 0xFF) * SKY_FOG_DENSITY_FACTOR * skyScaleMultiplier;
 		tr.fogEnabled = true;
 	}
 	else

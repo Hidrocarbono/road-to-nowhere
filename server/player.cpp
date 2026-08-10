@@ -1775,11 +1775,15 @@ void CBasePlayer::PreThink(void)
 		pev->fuser2 = flStamina;
 
 		// RUN: Shift -> IN_RUN -> faster maxspeed (25% more than 320).
-		// So corre com stamina >= 1 (senao fica no maxspeed de andar).
+		// Com stamina >= 1 corre a 400; com stamina 0 e o shift segurado,
+		// MANQUEJA a 200 (visivelmente mais lento que o andar 320 - estilo
+		// Tarkov; antes caia p/ 320, quase imperceptivel).
 		if ( ( pev->button & IN_RUN ) && flStamina >= 1 )
-			pev->maxspeed = 400;
-		else if ( pev->maxspeed == 400 )
-			pev->maxspeed = 320;
+			pev->maxspeed = 400;   // correndo
+		else if ( ( pev->button & IN_RUN ) && flStamina < 1 )
+			pev->maxspeed = 200;   // exausto: manquejando (shift segurado)
+		else
+			pev->maxspeed = 320;   // andar normal
 
 		// LEAN: IN_ALT1 (Q) left, IN_CANCEL (E) right -> offset eye laterally
 		// view_ofs is in WORLD space, so rotate the offset by the player's yaw.
