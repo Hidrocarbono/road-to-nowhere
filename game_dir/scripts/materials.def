@@ -71,3 +71,36 @@
 	"impact_sound"	"debris/metal3.wav" "debris/metal4.wav" "debris/metal5.wav" "debris/metal6.wav"
 	"step_sound"	"player/pl_metal1.wav" "player/pl_metal2.wav" "player/pl_metal3.wav" "player/pl_metal4.wav"
 }
+
+// RTN: materiais do mapa EPN (usados no EPN.mat - o user ajusta depois)
+"lama"
+{
+	"impact_decal"	"shot"
+	"impact_parts"	"dirt_gibs" "test_impact" "test_smoke"
+	"impact_sound"	"debris/flesh1.wav" "debris/flesh2.wav" "debris/flesh3.wav"
+	"step_sound"	"player/pl_dirt1.wav" "player/pl_dirt2.wav" "player/pl_dirt3.wav" "player/pl_dirt4.wav"
+}
+
+"britas"
+{
+	"impact_decal"	"shot"
+	"impact_parts"	"test_impact" "test_smoke"
+	"impact_sound"	"debris/concrete1.wav" "debris/concrete2.wav" "debris/concrete3.wav" "debris/concrete4.wav"
+	"step_sound"	"player/pl_dirt1.wav" "player/pl_dirt2.wav" "player/pl_dirt3.wav" "player/pl_dirt4.wav"
+}
+
+"estrada"
+{
+	"impact_decal"	"shot"
+	"impact_parts"	"test_impact" "test_smoke"
+	"impact_sound"	"debris/concrete1.wav" "debris/concrete2.wav" "debris/concrete3.wav"
+	"step_sound"	"player/pl_dirt1.wav" "player/pl_dirt2.wav" "player/pl_dirt3.wav" "player/pl_dirt4.wav"
+}
+
+"radiacao"
+{
+	"impact_decal"	"shot_metal"
+	"impact_parts"	"metal_flash" "metal_spark"
+	"impact_sound"	"debris/metal3.wav" "debris/metal4.wav" "debris/metal5.wav"
+	"step_sound"	"player/pl_metal1.wav" "player/pl_metal2.wav" "player/pl_metal3.wav" "player/pl_metal4.wav"
+}
