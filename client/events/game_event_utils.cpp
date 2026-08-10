@@ -20,6 +20,8 @@ GNU General Public License for more details.
 #include "event_api.h"
 #include "event_args.h"
 #include "pm_defs.h"
+#include "material.h"   // RTN F10: matdef_t + COM_MatDefFromSurface (gibs)
+#include "gl_rpart.h"   // RTN F10: g_pParticles (CQuakePartSystem)
 
 void GameEventUtils::EjectBrass(const Vector &origin, const Vector &angles, const Vector &velocity, int modelIndex, int soundType)
 {
@@ -44,6 +46,40 @@ void GameEventUtils::FireBullet(int entIndex, const matrix3x3 &camera, const Vec
 	// viewmodel ser desenhado -> attachment[0] ainda zerado -> nascia do olho
 	// (fallback fixo) e nao acompanhava o cano. Fumaca/flash continuam na origem
 	// (rodam durante o desenho). O dano (hitscan) e inalterado - trace do olho.
+
+	// RTN F10: GIBS/MATERIAIS (porta do Paranoia 2 - ev_hldm.cpp:55-90).
+	// O material da superficie atingida (materials.def + *.mat) define as
+	// PARTICULAS do impacto (impact_parts -> effects.txt -> CreateEffect) e
+	// o SOM (impact_sounds). Antes o impacto nao spawnava nada no client.
+	if( tr.fraction < 1.0f )
+	{
+		physent_t *pe = gEngfuncs.pEventAPI->EV_GetPhysent( tr.ent );
+		matdef_t *pMat = NULL;
+
+		if( pe && ( pe->solid == SOLID_BSP || pe->movetype == MOVETYPE_PUSHSTEP ))
+		{
+			pMat = COM_MatDefFromSurface( gEngfuncs.pEventAPI->EV_TraceSurface( tr.ent, const_cast<float*>(&origin.x), endPos ), tr.endpos );
+		}
+
+		if( pMat )
+		{
+			// particulas do material (gibs!) - nomes do effects.txt
+			for( int cnt = 0; pMat->impact_parts[cnt] != NULL; cnt++ )
+				g_pParticles.CreateEffect( pMat->impact_parts[cnt], tr.endpos, tr.plane.normal );
+
+			// som do impacto (aleatorio da lista do material)
+			int numSounds = 0;
+			for( int cnt = 0; pMat->impact_sounds[cnt] != NULL; cnt++ )
+				numSounds++;
+
+			if( numSounds > 0 )
+			{
+				const char *pSound = pMat->impact_sounds[gEngfuncs.pfnRandomLong( 0, numSounds - 1 )];
+				gEngfuncs.pEventAPI->EV_PlaySound( 0, tr.endpos, CHAN_STATIC, pSound, 0.9f, ATTN_NORM, 0, 96 + gEngfuncs.pfnRandomLong( 0, 0xf ));
+			}
+		}
+	}
+
 	gEngfuncs.pEventAPI->EV_PopPMStates();
 }
 
