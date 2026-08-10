@@ -616,6 +616,11 @@ void R_RenderQuadPrimitive( CSolidEntry *entry )
 		pglAlphaFunc( GL_GREATER, 0.0f );
 	case kRenderTransColor:
 	case kRenderTransTexture:
+		// RTN F10 fix: desliga o ALPHA TEST vazado de outros draws (o
+		// RenderTransMesh seta GL_GEQUAL 0.5). Com o alpha test ligado, o
+		// fundo das particulas (alpha < 0.5) era DESCARTADO -> buraco escuro
+		// onde deveria ser transparente. O blend alpha cuida da transparencia.
+		GL_AlphaTest( GL_FALSE );
 		GL_Blend( GL_TRUE );
 		pglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 		GL_DepthMask( GL_FALSE );
@@ -623,6 +628,7 @@ void R_RenderQuadPrimitive( CSolidEntry *entry )
 	case kRenderGlow:
 		pglDisable( GL_DEPTH_TEST );
 	case kRenderTransAdd:
+		GL_AlphaTest( GL_FALSE );
 		GL_Blend( GL_TRUE );
 		pglBlendFunc( GL_SRC_ALPHA, GL_ONE );
 		GL_DepthMask( GL_FALSE );

@@ -3719,12 +3719,19 @@ void CStudioModelRenderer :: RenderTransMesh( CTransEntry *entry )
 
 	if( entry->m_pParentEntity->curstate.rendermode == kRenderGlow )
 	{
+		// RTN F10 fix: GL_Blend(GL_TRUE) - o R_RenderTransList desliga o blend
+		// (gl_rmain.cpp:893) e este caminho setava o BlendFunc mas NUNCA ligava
+		// o blend -> o muzzle (kRenderGlow) era desenhado OPACO -> o fundo preto
+		// da textura do flash aparecia. Com o blend aditivo (GL_ONE, GL_ONE) o
+		// preto soma 0 -> invisivel.
+		GL_Blend( GL_TRUE );
 		pglBlendFunc( GL_ONE, GL_ONE );
 		if( FBitSet( entry->m_pParentEntity->curstate.effects, EF_NODEPTHTEST ))
 			pglDisable( GL_DEPTH_TEST );
 	}
 	else
 	{
+		GL_Blend( GL_TRUE );
 		pglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 		pglEnable( GL_DEPTH_TEST );
 	}

@@ -49,7 +49,12 @@ void main()
 
 	if( bool( u_FogParams.w != 0.0 ))
 	{
-		float fogFactor = saturate( exp2(( -u_FogParams.w * 0.5 ) * ( gl_FragCoord.z / gl_FragCoord.w )));
+		// RTN F10 fix: distancia LINEAR (1.0/gl_FragCoord.w = view-space Z).
+		// Antes usava gl_FragCoord.z/w (profundidade non-linear 0-1) -> o fog
+		// do ceu nunca saturava -> o horizonte (skybox) ficava sem fog (claro).
+		// Com a distancia real (o sky esta em farclip/2), o exp2 satura e o
+		// ceu fica da cor do fog - horizonte UNIFORME.
+		float fogFactor = saturate( exp2(( -u_FogParams.w * 0.5 ) * ( 1.0 / gl_FragCoord.w )));
 		diffuse.rgb = mix( u_FogParams.xyz, diffuse.rgb, fogFactor );
 	}
 
