@@ -1801,11 +1801,11 @@ void UpdateClientData ( const struct edict_s *ent, int sendweapons, struct clien
 	// RTN F10: STAMINA via mensagem (estilo Paranoia 2 - player.cpp:1082-1084).
 	// O curstate.fuser2 nao chega ao jogador local (clientdata -> pmove apenas,
 	// nao -> curstate), entao enviamos uma mensagem propria com dirty-check.
-	if( player && gmsgStamina && m_iClientStamina != (int)pev->fuser2 )
+	if( player && gmsgStamina && player->m_iClientStamina != (int)pev->fuser2 )
 	{
-		m_iClientStamina = (int)pev->fuser2;
+		player->m_iClientStamina = (int)pev->fuser2;
 		MESSAGE_BEGIN( MSG_ONE, gmsgStamina, NULL, pev );
-			WRITE_SHORT( m_iClientStamina );
+			WRITE_SHORT( player->m_iClientStamina );
 		MESSAGE_END();
 	}
 
