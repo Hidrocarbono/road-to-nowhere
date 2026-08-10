@@ -292,12 +292,17 @@ Do muzzleflash
 */
 void HUD_MuzzleFlash( const cl_entity_t *e, const Vector &pos, const Vector &fwd, int type, float mul )
 {
-	TEMPENTITY	*pTemp;
-	int		body, modelIndex, frameCount;
-	Vector		flash_angles;
-	int		flags = 0;
-	float		scale;
+	// RTN F10: MUZZLE FLASH POR SPRITE (substitui o modelo 3D m_flash1.mdl
+	// que tinha o fundo preto no renderer). 4 sprites (muzzleflash1-4.spr,
+	// 4 frames de animacao cada) escolhidos AO ACASO a cada tiro (evita
+	// repeticao). Aditivo (sem fundo preto), renderamt maximo, vida curta
+	// 0.1s (o R_TempSprite se autodestrui no die - sem zumbis). O 'pos' ja
+	// vem do evento 5001 = attachment[0] do viewmodel avancado 32u = a
+	// PONTA do cano (posicao EXATA da origem do tiro).
+	(void)type;
+	(void)mul;
 
+	int flags = 0;
 	if( RP_NORMALPASS( ))
 	{
 		if( e == gEngfuncs.GetViewModel( ))
@@ -311,59 +316,27 @@ void HUD_MuzzleFlash( const cl_entity_t *e, const Vector &pos, const Vector &fwd
 			flags |= EF_REFLECTONLY;
 	}
 
-	body = bound( 0, type % 5, 4 );
-	scale = (type / 5) * 0.2f;
-	if( scale == 0.0f ) scale = 0.5f;
-
-	modelIndex = gEngfuncs.pEventAPI->EV_FindModelIndex ("models/m_flash1.mdl");
+	// variacao: 1 dos 4 sprites a cada tiro
+	int iSprite = 1 + gEngfuncs.pfnRandomLong( 0, 3 );
+	char szName[48];
+	Q_snprintf( szName, sizeof( szName ), "sprites/muzzleflash%d.spr", iSprite );
+	int modelIndex = gEngfuncs.pEventAPI->EV_FindModelIndex( szName );
 	if( !modelIndex ) return;
 
-	Mod_GetFrames( modelIndex, frameCount );
+	// sprite aditivo na ponta do cano
+	vec3_t vecNull( 0, 0, 0 );
+	TEMPENTITY *pTemp = gEngfuncs.pEfxAPI->R_TempSprite(
+		(float *)&pos, vecNull,
+		gEngfuncs.pfnRandomFloat( 0.8f, 1.5f ),  // scale (ajustavel aqui)
+		modelIndex,
+		kRenderTransAdd,      // aditivo: o preto da textura soma 0 -> invisivel
+		kRenderFxNone,
+		255,                  // renderamt (alpha) maximo
+		0.1f,                 // vida 0.08-0.12s (autodestruicao automatica)
+		FTENT_SPRANIMATE );   // anima os 4 frames do sprite
+	if( !pTemp ) return;
 
-	if( body > ( frameCount - 1 ))
-		body = frameCount - 1;
-
-	// must set position for right culling on render
-	if( !( pTemp = gEngfuncs.pEfxAPI->CL_TempEntAllocHigh((float *)&pos, MODEL_HANDLE(modelIndex))))
-		return;
-
-	// RTN F10 fix: muzzle flash - orientacao e posicao.
-	// v1 (original): VectorAngles(-fwd) -> flash apontava pra tras (invertido).
-	// v2 (build #91): e->angles -> horizontal mas "orientado para o jogador" e
-	//   o attachment do modelo novo fica no meio da arma.
-	// v3: usa o DIR do attachment (ponta do cano, para FRENTE) com +fwd (nao -fwd)
-	//   para o m_flash1.mdl apontar para onde a arma mira. A posicao "pos" ja vem
-	//   do R_StudioAttachmentPosDir (attachment[0] do viewmodel).
-	if( e == gEngfuncs.GetViewModel( ))
-	{
-		// RTN F10 fix v5: VectorAngles(-fwd) = classico do HL. O m_flash1.mdl
-		// foi desenhado p/ ser visto de frente (eixo apontando p/ camera) -
-		// com +fwd o clarao aparecia "de perfil/virado pro rosto". Como o fwd
-		// agora e o forward da CAMERA (horizontal, do case 5001), o -fwd deixa
-		// o flash deitado e cheio na ponta do cano.
-		VectorAngles( -fwd, flash_angles );
-		flash_angles.z = 0;  // remove roll residual
-	}
-	else
-	{
-		VectorAngles( -fwd, flash_angles );
-	}
-	scale *= mul;
-
-	pTemp->entity.curstate.rendermode = kRenderGlow;
-	pTemp->entity.curstate.renderamt = 255;
-	pTemp->entity.curstate.framerate = 10;
-	pTemp->entity.curstate.renderfx = 0;
-	pTemp->entity.angles = flash_angles;
-	pTemp->die = tr.time + 0.015f; // die at next frame
-	pTemp->entity.curstate.body = body;
-//	pTemp->flags |= FTENT_MDLANIMATE|FTENT_MDLANIMATELOOP;
-	pTemp->entity.angles[2] = RANDOM_LONG( 0, 359 );
-	pTemp->entity.curstate.scale = scale;
-	pTemp->frameMax = frameCount - 1;
-
-	gEngfuncs.CL_CreateVisibleEntity( ET_TEMPENTITY, &pTemp->entity );
-	pTemp->entity.curstate.effects |= EF_FULLBRIGHT|flags; // CL_CreateVisibleEntity clears 'effect' field, so we need add it here
+	pTemp->entity.curstate.effects |= flags;  // EF_NODEPTHTEST p/ atravessar objetos
 }
 
 /*
