@@ -226,6 +226,7 @@ public:
 
 	// RTN F10: maozinha de interacao (dirty-check p/ nao spammar o gmsgCanUse)
 	bool		m_bCanUseStatus = false;
+	int		m_iClientStamina = -1;  // RTN F10: dirty-check do gmsgStamina (P2)
 
 	char		m_szTeamName[TEAM_NAME_LENGTH];
 

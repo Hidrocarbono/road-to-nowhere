@@ -1794,9 +1794,20 @@ void UpdateClientData ( const struct edict_s *ent, int sendweapons, struct clien
 	strncpy(cd->physinfo, ENGINE_GETPHYSINFO(ent), sizeof(cd->physinfo));
 
 	cd->maxspeed		= pev->maxspeed;
-	cd->fov				= pev->fov;
+	cd->fov			= pev->fov;
 	cd->weaponanim		= pev->weaponanim;
 	cd->pushmsec		= pev->pushmsec;
+
+	// RTN F10: STAMINA via mensagem (estilo Paranoia 2 - player.cpp:1082-1084).
+	// O curstate.fuser2 nao chega ao jogador local (clientdata -> pmove apenas,
+	// nao -> curstate), entao enviamos uma mensagem propria com dirty-check.
+	if( player && gmsgStamina && m_iClientStamina != (int)pev->fuser2 )
+	{
+		m_iClientStamina = (int)pev->fuser2;
+		MESSAGE_BEGIN( MSG_ONE, gmsgStamina, NULL, pev );
+			WRITE_SHORT( m_iClientStamina );
+		MESSAGE_END();
+	}
 
 	if (sendweapons && player)
 	{

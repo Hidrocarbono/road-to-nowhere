@@ -23,12 +23,15 @@ public:
 	int VidInit( void );
 	int Draw( float flTime );
 	void Reset( void );
+	int MsgFunc_Stamina( const char *pszName, int iSize, void *pbuf );  // RTN F10 fix
 
 	// momento do ultimo dano recebido (flash + shake) - exposto p/ debug
 	float m_flDamageTime = -100.0f;
 
 private:
 	int m_iPrevHealth = 100;    // dirty-check: detecta o dano (queda de vida)
+	float m_flStamina = 100.0f; // RTN F10 fix: via mensagem "Stamina" (o
+				    // curstate.fuser2 nao chega ao jogador local)
 
 	// sprites .spr convertidos dos TGA (tools/convert_vgui.py)
 	SpriteHandle m_hHealthEmpty = 0;

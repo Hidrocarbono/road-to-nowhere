@@ -642,13 +642,12 @@ void CL_CreateMove( float frametime, usercmd_t *cmd, int active )
 	cmd->buttons = CL_ButtonBits( 1 );
 
 	// RTN F10: stamina 0 -> nao pode PULAR (o IN_JUMP nao e enviado ao server).
-	// O curstate.fuser2 e a stamina (sincronizada). Client-side p/ nao haver
+	// A stamina vem da global g_flRTNStamina (mensagem "Stamina" do server -
+	// o curstate.fuser2 nao chega ao jogador local). Client-side p/ nao haver
 	// dessync de predicao (client e server concordam: sem botao, sem pulo).
-	{
-		cl_entity_t *pLocal = gEngfuncs.GetLocalPlayer();
-		if( pLocal && pLocal->curstate.fuser2 < 1.0f && ( cmd->buttons & IN_JUMP ))
-			cmd->buttons &= ~IN_JUMP;
-	}
+	extern float g_flRTNStamina;
+	if( g_flRTNStamina < 1.0f && ( cmd->buttons & IN_JUMP ))
+		cmd->buttons &= ~IN_JUMP;
 
 	gEngfuncs.GetViewAngles( viewangles );
 

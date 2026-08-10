@@ -1,6 +1,7 @@
 #include "hud.h"          // primeiro: define CHudBase e inclui hud_status.h (pos CHudBase)
 #include "hud_status.h"
 #include "utils.h"
+#include "parsemsg.h"     // DECLARE_MESSAGE/HOOK_MESSAGE/BEGIN_READ/READ_SHORT
 #include "triangleapi.h"
 #include "enginecallback.h"
 
@@ -24,6 +25,11 @@ cvar_t *rtn_hud_style = NULL;  // global: health.cpp/battery.cpp/ammo.cpp leem
 
 // momento do ultimo dano - lido pelo V_CalcView (r_view.cpp) p/ o micro-shake
 float g_flRTNShakeTime = -999.0f;
+
+// RTN F10 fix: STAMINA compartilhada (0-100). Setada pelo MsgFunc_Stamina
+// (mensagem do server - o curstate.fuser2 nao chega ao jogador local).
+// Lida pelo CHudStatus (barra) e pelo input.cpp (bloqueio do pulo).
+float g_flRTNStamina = 100.0f;
 
 // tempo do flash de dano (s) e do micro-shake (s)
 #define RTN_DAMAGE_FLASH_TIME	0.3f
@@ -70,6 +76,9 @@ static void RTN_DrawFill( int x, int y, int w, int h, SpriteHandle hEmpty, Sprit
 	}
 }
 
+// RTN F10 fix: STAMINA via mensagem (estilo P2 - o server envia com dirty-check)
+DECLARE_MESSAGE( m_Status, Stamina );
+
 // ============================================================
 // CHudStatus
 // ============================================================
@@ -77,10 +86,22 @@ int CHudStatus::Init( void )
 {
 	gHUD.AddHudElem( this );
 	m_iFlags |= HUD_ACTIVE;
+	HOOK_MESSAGE( Stamina );  // RTN F10 fix
 
 	if( !rtn_hud_style )
 		rtn_hud_style = gEngfuncs.pfnRegisterVariable( "rtn_hud_style", "1", FCVAR_ARCHIVE );
 
+	return 1;
+}
+
+// RTN F10 fix: recebe a stamina do server (READ_SHORT) - o curstate.fuser2
+// nao chega ao jogador local (clientdata -> pmove apenas, nao -> curstate).
+int CHudStatus::MsgFunc_Stamina( const char *pszName, int iSize, void *pbuf )
+{
+	BEGIN_READ( pszName, pbuf, iSize );
+	m_flStamina = (float)READ_SHORT();
+	g_flRTNStamina = m_flStamina;  // compartilhada com o input.cpp (pulo)
+	END_READ();
 	return 1;
 }
 
@@ -107,6 +128,8 @@ void CHudStatus::Reset( void )
 {
 	m_iPrevHealth = 100;
 	m_flDamageTime = -100.0f;
+	m_flStamina = 100.0f;
+	g_flRTNStamina = 100.0f;
 }
 
 int CHudStatus::Draw( float flTime )
@@ -121,7 +144,9 @@ int CHudStatus::Draw( float flTime )
 	// ---- dados (dirty-check + deteccao de dano) ----
 	int iHealth = gHUD.m_Health.m_iHealth;
 	int iBat = gHUD.m_Battery.GetBat();
-	float flStamina = pLocal->curstate.fuser2;
+	// RTN F10 fix: stamina vem da MENSAGEM "Stamina" (o curstate.fuser2 nao
+	// chega ao jogador local) - m_flStamina e atualizado pelo MsgFunc_Stamina
+	float flStamina = m_flStamina;
 
 	if( iHealth < m_iPrevHealth )
 		m_flDamageTime = flTime;  // tomou dano: flash + micro-shake
