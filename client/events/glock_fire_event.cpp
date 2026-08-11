@@ -44,7 +44,16 @@ void CGlockFireEvent::Execute()
 	Vector shellOrigin = GetOrigin() + up * -12.0f + forward * 20.0f + right * 4.0f;
 
 	GameEventUtils::EjectBrass(shellOrigin, GetAngles(), shellVelocity, brassModelIndex, TE_BOUNCE_SHELL);
-	GameEventUtils::FireBullet(m_arguments->entindex, cameraMatrix, GetOrigin(), GetShootDirection(cameraMatrix), 1);
+	// RTN F10 fix: origem do TRACANTE = ponta do cano (attachment[0] do viewmodel).
+	// Antes nascia no olho (centro da tela) - agora no mesmo ponto da fumaca/flash.
+	Vector muzzleOrigin = GetOrigin();
+	cl_entity_t *viewModel = gEngfuncs.GetViewModel();
+	if (viewModel && viewModel->model && viewModel->attachment[0].Length() > 0.01f)
+		muzzleOrigin = Vector(viewModel->attachment[0]);
+	if (muzzleOrigin == GetOrigin())
+		muzzleOrigin = GetOrigin() + cameraMatrix.GetForward() * 8.0f + cameraMatrix.GetRight() * 8.0f + cameraMatrix.GetUp() * -4.0f;
+
+	GameEventUtils::FireBullet(m_arguments->entindex, cameraMatrix, GetOrigin(), muzzleOrigin, GetShootDirection(cameraMatrix), 1);
 	gEngfuncs.pEventAPI->EV_PlaySound( GetEntityIndex(), GetOrigin(), CHAN_WEAPON, "weapons/pl_gun3.wav", gEngfuncs.pfnRandomFloat(0.92, 1.0), ATTN_NORM, 0, 98 + gEngfuncs.pfnRandomLong(0, 3));
 }
 

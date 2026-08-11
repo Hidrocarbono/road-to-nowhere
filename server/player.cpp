@@ -28,6 +28,7 @@
 #include "trains.h"
 #include "nodes.h"
 #include "weapons.h"
+#include "client.h"
 #include "soundent.h"
 #include "monsters.h"
 #include "shake.h"
@@ -1749,6 +1750,88 @@ void CBasePlayer::PreThink(void)
 	m_afButtonPressed =  buttonsChanged & pev->button;		// The changed ones still down are "pressed"
 	m_afButtonReleased = buttonsChanged & (~pev->button);	// The ones not down are "released"
 
+	// ===== RTN Fase 5: Run (Shift) + Lean (Q/E) =====
+	if ( IsAlive() )
+	{
+		// ===== RTN F10: STAMINA (estilo Paranoia 2 - dlls/player.cpp:2139-2158) =====
+		// O pev->fuser2 = stamina (0-100). Correr (IN_RUN + andando rapido)
+		// gasta 0.25/frame; parado regenera +0.25/frame, andando +0.1/frame.
+		// Com stamina < 1 nao corre (maxspeed fica 320 = andar).
+		float flStamina = pev->fuser2;
+
+		if( ( pev->button & IN_RUN ) && flStamina > 0 && pev->velocity.Length2D() > 100 )
+		{
+			flStamina -= 0.25f;   // gastando ao correr
+		}
+		else if( flStamina < 100 )
+		{
+			if( pev->velocity.Length2D() < 100 )
+				flStamina += 0.25f;   // parado: regenera rapido
+			else if( pev->velocity.Length2D() < 290 )
+				flStamina += 0.1f;    // andando: regenera lento
+		}
+		if( flStamina < 0 ) flStamina = 0;
+		if( flStamina > 100 ) flStamina = 100;
+		pev->fuser2 = flStamina;
+
+		// RUN: Shift -> IN_RUN -> faster maxspeed (25% more than 320).
+		// Com stamina >= 1 corre a 400; com stamina 0 e o shift segurado,
+		// MANQUEJA a 200 (visivelmente mais lento que o andar 320 - estilo
+		// Tarkov; antes caia p/ 320, quase imperceptivel).
+		if ( ( pev->button & IN_RUN ) && flStamina >= 1 )
+			pev->maxspeed = 400;   // correndo
+		else if ( ( pev->button & IN_RUN ) && flStamina < 1 )
+			pev->maxspeed = 200;   // exausto: manquejando (shift segurado)
+		else
+			pev->maxspeed = 320;   // andar normal
+
+		// LEAN: IN_ALT1 (Q) left, IN_CANCEL (E) right -> offset eye laterally
+		// view_ofs is in WORLD space, so rotate the offset by the player's yaw.
+		// GOLD_SRC right vector = (sin(yaw), -cos(yaw)). O client (r_view.cpp)
+		// usa +right; aqui usamos a MESMA convencao para o tiro acompanhar a mira.
+		// (Antes era (-sin, +cos) = -right -> tiro saia invertido no lean!)
+		float leanTarget = 0.0f;
+		if ( pev->button & IN_ALT1 )
+			leanTarget = -12.0f;
+		else if ( pev->button & IN_CANCEL )
+			leanTarget = 12.0f;
+
+		float leanYaw = pev->v_angle.y * ( M_PI / 180.0f );
+		float leanOfsX =  sin( leanYaw ) * leanTarget;
+		float leanOfsY = -cos( leanYaw ) * leanTarget;
+
+		// smooth approach (~0.12s) on both axes
+		float leanNewX = pev->view_ofs.x + (leanOfsX - pev->view_ofs.x) * Q_min( 1.0f, gpGlobals->frametime * 12.0f );
+		float leanNewY = pev->view_ofs.y + (leanOfsY - pev->view_ofs.y) * Q_min( 1.0f, gpGlobals->frametime * 12.0f );
+		pev->view_ofs.x = leanNewX;
+		pev->view_ofs.y = leanNewY;
+	}
+
+	// ===== RTN F10: MAOZINHA DE INTERACAO (estilo Paranoia 2 - dlls/player.cpp:4875) =====
+	// Trace a frente (64u); se achou entidade usavel (FCAP_*_USE, sem FCAP_HIDE_USE),
+	// envia gmsgCanUse=1 ao client (dirty-check p/ nao spammar). O client desenha
+	// o icone de uso (640_usage.tga) no centro da tela.
+	{
+		bool bCanUse = false;
+		TraceResult tr;
+		UTIL_MakeVectors( pev->v_angle );
+		UTIL_TraceLine( pev->origin + pev->view_ofs, pev->origin + pev->view_ofs + ( gpGlobals->v_forward * 64.0f ), dont_ignore_monsters, ENT( pev ), &tr );
+		if( tr.pHit )
+		{
+			CBaseEntity *pObject = CBaseEntity::Instance( tr.pHit );
+			if( pObject && ( pObject->ObjectCaps() & ( FCAP_IMPULSE_USE | FCAP_CONTINUOUS_USE | FCAP_ONOFF_USE | FCAP_DISTANCE_USE )) && !( pObject->ObjectCaps() & FCAP_HIDE_USE ))
+				bCanUse = true;
+		}
+
+		if( bCanUse != m_bCanUseStatus )
+		{
+			m_bCanUseStatus = bCanUse;
+			MESSAGE_BEGIN( MSG_ONE, gmsgCanUse, NULL, pev );
+				WRITE_BYTE( bCanUse ? 1 : 0 );
+			MESSAGE_END();
+		}
+	}
+
 	g_pGameRules->PlayerThink( this );
 
 	if ( g_fGameOver )
@@ -2889,6 +2972,8 @@ void CBasePlayer::Spawn( void )
 	pev->classname		= MAKE_STRING("player");
 	pev->health		= 100;
 	pev->armorvalue		= 0;
+	pev->fuser2		= 100;  // RTN F10 fix: STAMINA inicia CHEIA (o fuser2 era 0
+					// no spawn -> barra de stamina do HUD P2 nascia vazia)
 	pev->takedamage		= DAMAGE_AIM;
 	pev->solid		= SOLID_SLIDEBOX;
 	pev->movetype		= MOVETYPE_WALK;
@@ -2966,6 +3051,9 @@ void CBasePlayer::Spawn( void )
 		UTIL_SetSize(pev, VEC_HULL_MIN, VEC_HULL_MAX);
 
 	pev->view_ofs = VEC_VIEW;
+	// RTN F10 fix: inicializa maxspeed no spawn (antes ficava 0 -> PM limitava
+	// o movimento -> 'andar lento'). O bloco do run (PreThink) alterna 320/400.
+	pev->maxspeed = 320;
 	Precache();
 	m_HackedGunPos		= Vector( 0, 32, 0 );
 
@@ -4247,6 +4335,8 @@ void CBasePlayer :: UpdateClientData( void )
 		MESSAGE_BEGIN( MSG_ONE, gmsgResetHUD, NULL, pev );
 			WRITE_BYTE( 0 );
 		MESSAGE_END();
+
+		SendRTNItemsHUD( this );  // RTN F9: inicializa contadores laterais
 
 		if ( !m_fGameHUDInitialized )
 		{

@@ -18,7 +18,15 @@ GNU General Public License for more details.
 
 vec3 CalculateFog(vec3 inputColor, vec4 fogParams, float dist)
 {
-	float fogFactor = saturate(exp2(-fogParams.w * dist));
+	// RTN F10 fix: usa a DISTANCIA LINEAR (view-space Z reconstruida do
+	// gl_FragCoord.w = 1/-z_view) em vez do parametro 'dist' (que era
+	// gl_FragCoord.z/w = profundidade NON-LINEAR 0-1). Com o dist non-linear
+	// e a density do mapa (0.005-0.012), o exp2 quase nunca saturava ->
+	// o fogColor nunca dominava -> ao longe a cor virava a da cena (clara,
+	// "branco"). Com a distancia real (centenas de unidades), o exp2 satura
+	// e a cor do fog permanece solida ate o horizonte.
+	float fogDist = 1.0 / gl_FragCoord.w;
+	float fogFactor = saturate(exp2(-fogParams.w * fogDist));
 	return mix(fogParams.rgb, inputColor, fogFactor);
 }
 

@@ -49,8 +49,12 @@ void main()
 
 	if( bool( u_FogParams.w != 0.0 ))
 	{
-		float fogFactor = saturate( exp2(( -u_FogParams.w * 0.5 ) * ( gl_FragCoord.z / gl_FragCoord.w )));
-		diffuse.rgb = mix( u_FogParams.xyz, diffuse.rgb, fogFactor );
+		// RTN F10 fix FINAL: o horizonte/ceu SATURA SEMPRE com a cor do fog.
+		// A versao anterior usava exp2(density * dist) - com a density baixa
+		// do mapa o fator nao saturava e o horizonte ficava claro (branco).
+		// O fog existe p/ esconder as limitacoes da engine -> o ceu DEVE ser
+		// exatamente a cor do fog do mapa. (dist infinita = fogFactor 0)
+		diffuse.rgb = u_FogParams.xyz;
 	}
 
 	gl_FragColor = vec4(diffuse, 1.0);

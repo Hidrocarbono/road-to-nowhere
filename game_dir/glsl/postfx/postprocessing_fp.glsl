@@ -81,10 +81,18 @@ vec3 ApplyColorAccent(vec3 color)
 void main()
 {
 	vec3 color = texture(u_ScreenMap, var_TexCoord).rgb;
+	// RTN F10 fix NVG v2: ordem ideal p/ fósforo verde (ganho de luz no escuro):
+	// 1. SATURACAO 0 primeiro -> vira cinza (monocromatico)
+	// 2. BRIGHTNESS depois -> ilumina os escuros AINDA EM CINZA (sem reintroduzir R/B)
+	// 3. COLORLEVELS por ultimo -> tinge de VERDE PURO (R/B zerados no tint)
+	// 4. CONTRAST comprime claros (evita estouro com o ganho alto)
+	// Ordem antiga (levels->brightness) somava luz nos 3 canais DEPOIS do tint,
+	// reintroduzindo vermelho/azul (NVG esbranquicado) e sem amplificar o escuro.
+	// Com defaults (sat=1, brightness=0, levels=1,1,1, contrast=1) = identidade - seguro.
+	color = AdjustSaturation(color);
+	color = AdjustBrightness(color);
 	color = AdjustColorLevels(color);
 	color = ApplyColorAccent(color);
-	color = AdjustBrightness(color);
-	color = AdjustSaturation(color);
 	color = AdjustContrast(color);
 	color = ApplyFilmGrain(color);
 	color = ApplyVignette(color);

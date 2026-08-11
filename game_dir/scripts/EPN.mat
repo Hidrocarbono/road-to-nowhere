@@ -1,0 +1,3025 @@
+//Paranoia 2. Powered by Xash3D Engine. 
+//Materials 
+///
+///O keyvalue principal
+///
+///"material" "nome"**
+///Exemplo: "material" "lama"
+///O que faz: O mais importante — liga a textura ao MATERIAL FÍSICO definido no materials.def (os gibs, o som de impacto, o decal, o som de passo). Se o nome não existir no materials.def → usa o material "default"
+///
+///Texturas (mapas do material)
+///
+///"detailmap" "caminho"**
+///Exemplo: "detailmap" "gfx/detail/grass_terrain01"
+///O que faz: A textura de detalhe — um tile de alta frequência que aparece de perto (dá "textura" à superfície). Caminho SEM extensão
+///
+///"detailScale" "X Y"**
+///Exemplo: "detailScale" "10 10"
+///O que faz: A escala/tiling da textura de detalhe (10 10 = repetida 10×). Clamp 0.01–100. Default: 10 10
+///
+///"diffuseMap" "caminho"**
+///Exemplo: "diffuseMap" "gfx/lama"
+///O que faz: Uma textura difusa custom que SUBSTITUI a textura original do BSP nessa superfície
+///
+///"normalMap" "caminho"**
+///Exemplo: "normalMap" "gfx/lama_n"
+///O que faz: O mapa de normais — relevo fino por pixel (bump mapping) — a superfície parece ondulada
+///
+///"glossMap" "caminho"**
+///Exemplo: "glossMap" "gfx/lama_g"
+///O que faz: O mapa de brilho — define ONDE a superfície brilha mais/menos (branco = brilha, preto = fosco)
+///
+///PBR (o brilho moderno do renderer)
+///
+///"smoothness" "0..1"**
+///Exemplo: "smoothness" "0.3"
+///O que faz: O brilho (0 = totalmente fosco, 1 = polido/espelhado). Default: o DEFAULT_SMOOTHNESS do jogo
+///
+///"glossExp" "0..256"**
+///Exemplo: "glossExp" "64"
+///O que faz: Forma antiga (compatibilidade) do brilho — converte para smoothness: sqrt(valor/256)
+///
+///"ReflectScale" "0..1"**
+///Exemplo: "ReflectScale" "0.5"
+///O que faz: A reflexão do ambiente (espelhos/água) — quanto a superfície reflete a cena
+///
+///"RefractScale" "0..1"**
+///Exemplo: "RefractScale" "0.6"
+///O que faz: A refração (vidros/água) — quanto a superfície distorce o que está atrás
+///
+///Efeitos visuais
+///
+///AberrationScale" "0..10"
+/// Exemplo: "AberrationScale" "2"
+/// O que faz: Aberração cromática — as bordas coloridas (RGB separados). O valor é × 0.1 internamente (clamp 0–0.1)
+///"ReliefScale" "0..1"
+///Exemplo: "ReliefScale" "0.5"
+///O que faz: Relief mapping — o deslocamento de profundidade (a superfície "sobressai" de verdade)
+///
+/// SwayHeight" "int"
+/// Exemplo: "SwayHeight" "12"
+/// O que faz: O balanço (sway) — a altura a partir da qual a superfície balança (vegetação/plantas com vento). 0 = desabilitado
+///
+///
+///
+/// Resumo prático
+///
+/// Só o que você precisa para o sistema de materiais/gibs: "material" (obrigatório se quiser os efeitos) + opcionalmente "detailmap"/"detailScale" (como no seu exemplo do P2)
+/// Os demais (normalMap, glossMap, smoothness, reflexão, aberração...) são do renderer moderno (PBR do fork) — para superfícies especiais (água, vidro, vegetação)
+/// Se você não puser NADA além do bloco: o parser aplica os defaults (detailScale 10 10, smoothness padrão) e o material "default"
+/// Keyvalue desconhecido → aviso no console (não quebra)
+"lama_barranco"
+{
+	"material"	"lama"
+	"detailmap"	"gfx/detail/grass_terrain01"
+	"detailScale"	"10 10"
+}
+
+"ZONE_PANTANO"
+{
+	"material"	"lama"
+	"detailmap"	"gfx/detail/grass_terrain01"
+	"detailScale"	"10 10"
+}
+
+"ZONE_CEMITERIO2"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_det"
+	"detailScale"	"10 10"
+}
+
+"ZONE_CEMITERIO3"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_det"
+	"detailScale"	"10 10"
+}
+
+"zone_telhado"
+{
+	"material"	"metal"
+	"detailmap"	"gfx/detail/beton_large"
+	"detailScale"	"1 1"
+}
+
+"zone_barranco"
+{
+	"detailmap"	"gfx/detail/grass_terrain01"
+}
+
+"zone_vitro1"
+{
+	"material"	"glass"
+}
+
+"zone_vitro2"
+{
+	"material"	"glass"
+}
+
+"zone_parede12"
+{
+	"material"	"wood"
+}
+
+"zone_parede11"
+{
+	"material"	"wood"
+}
+
+"zone_parede16"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_det"
+	"detailScale"	"1 1"
+}
+
+"zone_padrao1"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_det"
+	"detailScale"	"1 1"
+}
+
+"zone_padrao"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_det"
+	"detailScale"	"1 1"
+}
+
+"zone_parede15"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_det"
+	"detailScale"	"1 1"
+}
+
+"zone_parede14"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_det"
+	"detailScale"	"1 1"
+}
+
+"zone_parede13"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_det"
+	"detailScale"	"1 1"
+}
+
+"zone_parede10"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_det"
+	"detailScale"	"1 1"
+}
+
+"zone_viga"
+{
+	"material"	"metal"
+	"detailScale"	"2 4"
+	"detailmap"	"gfx/detail/metal_rust_kraska"
+}
+
+"teste_vidro"
+{
+	"material"	"glass"
+	"reflectScale"	"0.1"
+}
+
+"MATO_ESCURO"
+{
+	"material"	"grass"
+	"detailmap"	"gfx/detail/grass_terrain01"
+}
+
+"MURO_BLOCO"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_large"
+	"detailScale"	"1 1"
+}
+
+"ZONE_PAREDE"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_large"
+	"detailScale"	"1 1"
+}
+
+"TELHADO_TELHAS"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_large"
+	"detailScale"	"1 1"
+}
+
+"TELHADO_TELHAS1"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_large"
+	"detailScale"	"1 1"
+}
+
+"PAREDE9"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_det"
+	"detailScale"	"2 2"
+}
+
+"CHAO_DESTROCOS"
+{
+	"detailmap"	"gfx/detail/beton_large"
+	"detailScale"	"1 1"
+}
+
+"PISO6"
+{
+	"detailmap"	"gfx/detail/beton_large"
+	"detailScale"	"1 1"
+}
+
+"STENA16"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_large"
+	"detailScale"	"1 1"
+}
+
+"ASFALTO_DAN02"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_large"
+	"detailScale"	"1 1"
+}
+
+"zone_estrada3"
+{
+	"material"	"estrada"
+	"detailmap"	"gfx/detail/beton_large"
+	"detailScale"	"1 1"
+}
+
+"zone_estrada2"
+{
+	"material"	"estrada"
+	"detailmap"	"gfx/detail/beton_large"
+	"detailScale"	"1 1"
+}
+
+"ASFALTO_DAN02_1"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_large"
+	"detailScale"	"1 1"
+}
+
+"ASFALTO_DAN02_2"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_large"
+	"detailScale"	"1 1"
+}
+
+"ASFALTO_DAN01"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_large"
+	"detailScale"	"10 10"
+}
+
+"KIRPICH_2"
+{
+	"material"	"britas"
+	"detailmap"	"gfx/detail/beton_large"
+	"detailScale"	"10 10"
+}
+
+"ASFALTO_DAN3"
+{
+	"material"	"shlak"
+}
+
+"mato_brita"
+{
+	"material"	"britas"
+}
+
+"gravel_06"
+{
+	"material"	"britas"
+}
+
+"BRITAS"
+{
+	"material"	"britas"
+}
+
+"terra_batida"
+{
+	"material"	"radiacao"
+}
+
+"mato_estrada"
+{
+	"material"	"grass"
+}
+
+"mato_final"
+{
+	"material"	"grass"
+}
+
+"mato_final_sem"
+{
+	"material"	"grass"
+}
+
+"mato_alto"
+{
+	"material"	"grass"
+}
+
+"chao_externo"
+{
+	"material"	"grass"
+}
+
+"dute6"
+{
+	"material"	"metal"
+	"detailmap"	"gfx/detail/det_metal"
+	"detailScale"	"10 10"
+}
+
+"fechamento_meta"
+{
+	"material"	"metal"
+}
+
+"PRXLABWALL3C"
+{
+	"material"	"metal"
+}
+
+"AGUA"
+{
+	"material"	"lama"
+}
+
+"SIGN1"
+{
+	"material"	"radiacao"
+}
+
+"{PASSARELA"
+{
+	"material"	"metal"
+}
+
+"{CERCA5"
+{
+	"material"	"metal"
+}
+
+"P_BOX2"
+{
+	"material"	"wood"
+}
+
+"PORTA17"
+{
+	"material"	"metal"
+	"detailmap"	"gfx/detail/det_metal"
+}
+
+"PORTA_HANGAR"
+{
+	"material"	"metal"
+	"detailmap"	"gfx/detail/det_metal"
+}
+
+"PLACA_BASE1"
+{
+	"material"	"metal"
+}
+
+"-0SILO2_WALL"
+{
+	"material"	"metal"
+	"detailmap"	"gfx/detail/det_metal"
+}
+
+"-0SILO2_WALL2"
+{
+	"material"	"metal"
+	"detailmap"	"gfx/detail/det_metal"
+}
+
+"-0SILO2_WALL3"
+{
+	"material"	"metal"
+	"detailmap"	"gfx/detail/det_metal"
+}
+
+"-0SILO2_WALL4"
+{
+	"material"	"metal"
+	"detailmap"	"gfx/detail/det_metal"
+}
+
+"LAB1_FLOOR4"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"parede_lab_alum"
+{
+	"material"	"metal"
+	"detailmap"	"gfx/detail/det_metal"
+	"detailScale"	"80 80"
+}
+
+"parede12"
+{
+	"material"	"metal"
+	"detailmap"	"gfx/detail/det_metal"
+	"detailScale"	"80 80"
+}
+
+"concreto2"
+{
+	"detailmap"	"gfx/detail/beton_large"
+	"detailScale"	"10 10"
+}
+
+"asfalto"
+{
+	"detailmap"	"gfx/detail/beton_det"
+	"detailScale"	"5 5"
+}
+
+"asfalto1"
+{
+	"detailmap"	"gfx/detail/beton_det"
+	"detailScale"	"5 5"
+}
+
+"calcada"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"sp_banca1b"
+{
+	"material"	"metal"
+	"detailmap"	"gfx/detail/det_metal"
+	"detailScale"	"30 30"
+}
+
+"sp_banca1"
+{
+	"material"	"metal"
+	"detailmap"	"gfx/detail/det_metal"
+	"detailScale"	"30 30"
+}
+
+////////////////////////metal surfaces//////////
+"ps_asfalt01"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_asfalt02"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_asfalt03"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton00"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton01"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton02"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton03"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton04"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton05"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton06"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton07"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton07b"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton09_poto"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton10"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton11"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton12"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton13"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton14"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton15"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton16"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton17"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton18"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton19"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton20"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton21"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton22"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton23"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton24"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton25"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton25b"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton26"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton27_pol"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton28_stup"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton29_stup"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton30"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton31"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton31s"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton32"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton33"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton34"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton35"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton36"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton37"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton38"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton39a"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton39b"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"ps_beton39c"
+{
+	"detailmap"	"gfx/detail/det_beton"
+	"detailScale"	"10 10"
+}
+
+"sphere/sign"
+{
+}
+
+"ps_hosp_stena2"
+{
+	"smoothness"	"0.25"
+}
+
+"ps_metal00"
+{
+	"material"	"metal"
+}
+
+"ps_metal01"
+{
+	"material"	"metal"
+}
+
+"ps_metal02"
+{
+	"material"	"metal"
+}
+
+"ps_metal03"
+{
+	"material"	"metal"
+}
+
+"ps_metal04"
+{
+	"material"	"metal"
+}
+
+"ps_metal05"
+{
+	"material"	"metal"
+}
+
+"ps_metal06"
+{
+	"material"	"metal"
+}
+
+"ps_metal07"
+{
+	"material"	"metal"
+}
+
+"ps_metal08"
+{
+	"material"	"metal"
+}
+
+"ps_metal09"
+{
+	"material"	"metal"
+}
+
+"ps_metal10"
+{
+	"material"	"metal"
+}
+
+"ps_metal11"
+{
+	"material"	"metal"
+}
+
+"ps_metal12"
+{
+	"material"	"metal"
+}
+
+"ps_metal13"
+{
+	"material"	"metal"
+}
+
+"ps_metal14"
+{
+	"material"	"metal"
+}
+
+"ps_metal15"
+{
+	"material"	"metal"
+}
+
+"ps_metal16_poto"
+{
+	"material"	"metal"
+}
+
+"ps_metal17"
+{
+	"material"	"metal"
+}
+
+"ps_metal18"
+{
+	"material"	"metal"
+}
+
+"ps_metal19"
+{
+	"material"	"metal"
+}
+
+"ps_metal19b"
+{
+	"material"	"metal"
+}
+
+"ps_metal20_konb"
+{
+	"material"	"metal"
+}
+
+"ps_metal20_kont"
+{
+	"material"	"metal"
+}
+
+"ps_metal21_boch"
+{
+	"material"	"metal"
+}
+
+"ps_metal22_boch"
+{
+	"material"	"metal"
+}
+
+"ps_metal23_arma"
+{
+	"material"	"metal"
+}
+
+"ps_metal24"
+{
+	"material"	"metal"
+}
+
+"ps_metal25"
+{
+	"material"	"metal"
+}
+
+"ps_metal26"
+{
+	"material"	"metal"
+}
+
+"ps_metal27_trub"
+{
+	"material"	"metal"
+}
+
+"{ps_metal28"
+{
+	"material"	"metal"
+}
+
+"ps_metal29"
+{
+	"material"	"metal"
+}
+
+"{ps_metal31"
+{
+	"material"	"metal"
+}
+
+"ps_metal32"
+{
+	"material"	"metal"
+}
+
+"ps_metal33"
+{
+	"material"	"metal"
+}
+
+"ps_metal34"
+{
+	"material"	"metal"
+}
+
+"ps_metal35_elkt"
+{
+	"material"	"metal"
+}
+
+"ps_metal36_elkt"
+{
+	"material"	"metal"
+}
+
+"ps_metal37_elkt"
+{
+	"material"	"metal"
+}
+
+"ps_metal38_elkt"
+{
+	"material"	"metal"
+}
+
+"ps_metal39_elkt"
+{
+	"material"	"metal"
+}
+
+"ps_metal40_elkt"
+{
+	"material"	"metal"
+}
+
+"ps_metal41_voro"
+{
+	"material"	"metal"
+}
+
+"ps_metal42_elkt"
+{
+	"material"	"metal"
+}
+
+"ps_metal43_elkt"
+{
+	"material"	"metal"
+}
+
+"ps_metal44_elkt"
+{
+	"material"	"metal"
+}
+
+"ps_metal45_elkt"
+{
+	"material"	"metal"
+}
+
+"ps_metal46_elkt"
+{
+	"material"	"metal"
+}
+
+"ps_metal47"
+{
+	"material"	"metal"
+}
+
+"ps_metal48"
+{
+	"material"	"metal"
+}
+
+"ps_metal49"
+{
+	"material"	"metal"
+}
+
+"ps_metal50"
+{
+	"material"	"metal"
+}
+
+"ps_metal51"
+{
+	"material"	"metal"
+}
+
+"ps_metal52"
+{
+	"material"	"metal"
+}
+
+"ps_metal53"
+{
+	"material"	"metal"
+}
+
+"ps_metal54"
+{
+	"material"	"metal"
+}
+
+"ps_metal55_shka"
+{
+	"material"	"metal"
+}
+
+"ps_metal56_shka"
+{
+	"material"	"metal"
+}
+
+"ps_metal57_shka"
+{
+	"material"	"metal"
+}
+
+"ps_metal58_auto"
+{
+	"material"	"metal"
+}
+
+"ps_metal59_auto"
+{
+	"material"	"metal"
+}
+
+"ps_metal60_auto"
+{
+	"material"	"metal"
+}
+
+"ps_metal61_eom"
+{
+	"material"	"metal"
+}
+
+"ps_metal62_eom"
+{
+	"material"	"metal"
+}
+
+"ps_metal63_eom"
+{
+	"material"	"metal"
+}
+
+"ps_metal64_eom"
+{
+	"material"	"metal"
+}
+
+"ps_metal65_eom"
+{
+	"material"	"metal"
+}
+
+"ps_metal66_eom"
+{
+	"material"	"metal"
+}
+
+"ps_metal67_eom"
+{
+	"material"	"metal"
+}
+
+"ps_metal68_rels"
+{
+	"material"	"metal"
+}
+
+"ps_metal69_rels"
+{
+	"material"	"metal"
+}
+
+"ps_metal70"
+{
+	"material"	"metal"
+}
+
+"ps_metal72"
+{
+	"material"	"metal"
+}
+
+"ps_metal73"
+{
+	"material"	"metal"
+}
+
+"ps_metal74"
+{
+	"material"	"metal"
+}
+
+"ps_metal_bort"
+{
+	"detailmap"	"gfx/detail/det_metal"
+	"material"	"metal"
+}
+
+"ps_metal_clear"
+{
+	"detailmap"	"gfx/detail/det_metal"
+	"material"	"metal"
+}
+
+"ps_metal_door"
+{
+	"detailmap"	"gfx/detail/det_metal"
+	"material"	"metal"
+}
+
+"ps_metal_gates"
+{
+	"detailmap"	"gfx/detail/det_metal"
+	"material"	"metal"
+}
+
+"ps_metal_grate"
+{
+	"material"	"metal"
+}
+
+"ps_metal_00"
+{
+	"material"	"metal"
+}
+
+"ps_metal_shkaf"
+{
+	"material"	"metal"
+}
+
+"ps_pult_metal"
+{
+	"material"	"metal"
+}
+
+"ps_vent_metal"
+{
+	"material"	"metal"
+}
+
+"{ps_metalfloor"
+{
+	"material"	"metal"
+}
+
+"{ps_metal_setka"
+{
+	"material"	"metal"
+}
+
+"ps_dveri01"
+{
+	"material"	"metal"
+}
+
+"ps_dveri02"
+{
+	"material"	"metal"
+}
+
+"ps_dveri02b"
+{
+	"material"	"metal"
+}
+
+"ps_dveri03"
+{
+	"material"	"metal"
+}
+
+"ps_dveri04"
+{
+	"material"	"metal"
+}
+
+"ps_dveri06"
+{
+	"material"	"metal"
+}
+
+"{ps_dveri07"
+{
+	"material"	"metal"
+}
+
+"ps_dveri08_voro"
+{
+	"material"	"metal"
+}
+
+"ps_dveri09_vor"
+{
+	"material"	"metal"
+}
+
+"ps_dveri09_vor1"
+{
+	"material"	"metal"
+}
+
+"ps_dveri09_voro"
+{
+	"material"	"metal"
+}
+
+"ps_dveri10_voro"
+{
+	"material"	"metal"
+}
+
+"ps_dveri11"
+{
+	"material"	"metal"
+}
+
+"ps_dveri12_voro"
+{
+	"material"	"metal"
+}
+
+"ps_dveri13_vor"
+{
+	"material"	"metal"
+}
+
+"ps_dveri14"
+{
+	"material"	"metal"
+}
+
+"ps_dveri15"
+{
+	"material"	"metal"
+}
+
+"ps_dveri16"
+{
+	"material"	"metal"
+}
+
+"ps_dveri16rust"
+{
+	"material"	"metal"
+}
+
+"ps_dveri18bunk"
+{
+	"material"	"metal"
+}
+
+"ps_dveri20"
+{
+	"material"	"metal"
+}
+
+"ps_dveri_electr"
+{
+	"material"	"metal"
+}
+
+"ps_dveri_vor20"
+{
+	"material"	"metal"
+}
+
+"ps_door01"
+{
+	"material"	"metal"
+}
+
+"ps_door02"
+{
+	"material"	"metal"
+}
+
+"ps_doorslide"
+{
+	"material"	"metal"
+}
+
+"ps_door_old"
+{
+	"material"	"metal"
+}
+
+"ps_door_rama01"
+{
+	"material"	"metal"
+}
+
+"ps_hosp_lift"
+{
+	"material"	"metal"
+}
+
+"ps_lift_hospit"
+{
+	"material"	"metal"
+}
+
+"ps_lift_knopos"
+{
+	"material"	"metal"
+}
+
+"ps_lift_plate"
+{
+	"material"	"metal"
+}
+
+"ps_lift_porog"
+{
+	"material"	"metal"
+}
+
+"ps_lift_porog2"
+{
+	"material"	"metal"
+}
+
+"ps_lift_tablo"
+{
+	"material"	"metal"
+}
+
+"ps_locker_old"
+{
+	"material"	"metal"
+}
+
+"ps_met_plates"
+{
+	"detailmap"	"gfx/detail/det_metal"
+	"material"	"metal"
+}
+
+"ps_prop_safety1"
+{
+	"material"	"metal"
+}
+
+"ps_pociag01"
+{
+	"material"	"metal"
+}
+
+"ps_pociag02"
+{
+	"material"	"metal"
+}
+
+"ps_pociag03"
+{
+	"material"	"metal"
+}
+
+"ps_pociag04"
+{
+	"material"	"metal"
+}
+
+"ps_pociag05"
+{
+	"material"	"metal"
+}
+
+"ps_pociag06"
+{
+	"material"	"metal"
+}
+
+"ps_pociag07"
+{
+	"material"	"metal"
+}
+
+"ps_pociag08"
+{
+	"material"	"metal"
+}
+
+"ps_locker_fr"
+{
+	"material"	"metal"
+}
+
+"ps_locker_sd"
+{
+	"material"	"metal"
+}
+
+//////////////////////////////////////////////////STUDIO-MODELS///////////////////////////////////////////////
+"fsceint_polina/char_polina_head"
+{
+	"material"	"metal"
+}
+
+"geo_boiler1/boiler"
+{
+	"material"	"metal"
+}
+
+"elb_btr80/brt8chas"
+{
+	"material"	"metal"
+}
+
+"elb_device/main_body"
+{
+	"material"	"metal"
+}
+
+"elb_barrel/prop_barrel_benzin"
+{
+	"material"	"metal"
+	"reflectScale"	"0.8"
+}
+
+"elb_barrel/prop_barrel_old"
+{
+	"material"	"metal"
+	"reflectScale"	"0.8"
+}
+
+"elb_btr80/btr8chas"
+{
+	"material"	"metal"
+	"reflectScale"	"0.8"
+}
+
+"elb_firebucket/prop_firebucket"
+{
+	"material"	"metal"
+}
+
+"elb_geo_chairs/stoika"
+{
+	"material"	"metal"
+}
+
+"elb_invalidka/wheelchairdirty"
+{
+	"material"	"metal"
+}
+
+"elb_lift_cabel/lift_cabel"
+{
+	"material"	"metal"
+}
+
+"elb_mladder/ladderrung"
+{
+	"material"	"metal"
+}
+
+"elb_oldlamp/oldlamp_metal"
+{
+	"material"	"metal"
+}
+
+"elb_radiator/radiator01a"
+{
+	"material"	"metal"
+}
+
+"elb_stul_old/elb_chair_metal"
+{
+	"material"	"metal"
+}
+
+"elb_truba/mtl_truba_pod_01"
+{
+	"material"	"metal"
+}
+
+"geo_ammocrate/geo_prop_woodcrate"
+{
+	"material"	"wood"
+}
+
+"geo_barokamera/geo_barokam"
+{
+	"material"	"metal"
+	"reflectScale"	"0.1"
+}
+
+"geo_barokamera/geo_barokam_base"
+{
+	"material"	"metal"
+	"reflectScale"	"0.1"
+}
+
+"geo_barocamera2/baro2"
+{
+	"material"	"metal"
+	"reflectScale"	"1"
+}
+
+"geo_bodybag1/geo_bodybags"
+{
+	"reflectScale"	"1"
+	"refractScale"	"1"
+}
+
+"geo_bodybag2/geo_bodybags2"
+{
+	"reflectScale"	"1"
+	"refractScale"	"1"
+}
+
+"geo_brain/geo_kolba"
+{
+	"material"	"metal"
+}
+
+"geo_centrifuga/geo_cenrifugediff"
+{
+	"material"	"metal"
+}
+
+"geo_centrifuga/geo_wood_2"
+{
+	"material"	"wood"
+}
+
+"geo_cisterna/geo_cisterna"
+{
+	"material"	"metal"
+}
+
+"geo_dogheadapp/geo_doghead"
+{
+	"material"	"metal"
+}
+
+"geo_dogheadapp/app_glass"
+{
+	"material"	"glass"
+	"reflectScale"	"1"
+}
+
+"geo_extinguisher/geo_extinguisher"
+{
+	"material"	"metal"
+}
+
+"geo_kran/geo_pk"
+{
+	"material"	"wood"
+}
+
+"geo_kran/glass_pk"
+{
+	"material"	"glass"
+	"reflectScale"	"0.1"
+}
+
+"prop_chemistry/glasscleanfill01"
+{
+	"material"	"glass"
+	"reflectScale"	"1.0"
+}
+
+"geo_kulman/geo_kulman"
+{
+	"material"	"metal"
+}
+
+"geo_kulman/geo_fanera"
+{
+	"material"	"wood"
+}
+
+"geo_lamp_exit/geo_lamp_plafon"
+{
+	"material"	"metal"
+}
+
+"geo_lamp_karantine/geo_lamp_plafon"
+{
+	"material"	"metal"
+}
+
+"geo_lamp_off/geo_lamp_plafon"
+{
+	"material"	"metal"
+}
+
+"geo_lamp_on/geo_lamp_plafon"
+{
+	"material"	"metal"
+}
+
+"geo_lamp_red/geo_lamp_plafon"
+{
+	"material"	"metal"
+}
+
+"geo_luk/geo_luk"
+{
+	"material"	"metal"
+}
+
+"geo_labtables/geo_labtbl"
+{
+	"material"	"wood"
+}
+
+"geo_nasos/geo_nasos"
+{
+	"material"	"metal"
+}
+
+"geo_nasos_broken/geo_nasos"
+{
+	"material"	"metal"
+}
+
+"geo_oxigen2/oxigen"
+{
+	"material"	"metal"
+}
+
+"geo_proektor_filmcasette/film_diff"
+{
+	"material"	"metal"
+}
+
+"geo_projector/geo_projdiff"
+{
+	"material"	"metal"
+}
+
+"geo_projector/glass_bulb"
+{
+	"material"	"glass"
+}
+
+"geo_projector/glass"
+{
+	"material"	"glass"
+}
+
+"geo_shkaf/geo_rustmetal"
+{
+	"material"	"metal"
+}
+
+"geo_souvenir/environment"
+{
+	"material"	"metal"
+}
+
+"geo_switcher_off/rubilnik_1"
+{
+	"material"	"metal"
+}
+
+"geo_switcher_on/rubilnik_1"
+{
+	"material"	"metal"
+}
+
+"geo_tubeset/geo_metalrusted1"
+{
+	"material"	"metal"
+}
+
+"geo_ventel/metal_vent_rust"
+{
+	"material"	"metal"
+}
+
+"geo_wirehole/wireholes_diff"
+{
+	"material"	"metal"
+}
+
+"prop_bak/prop_bak"
+{
+	"material"	"metal"
+}
+
+"prop_bak/prop_zinc"
+{
+	"material"	"metal"
+}
+
+"prop_boiler/prop_boiler-room01"
+{
+	"material"	"metal"
+}
+
+"prop_boiler/prop_boiler-room01_2"
+{
+	"material"	"metal"
+}
+
+"prop_boiler/metal_5"
+{
+	"material"	"metal"
+}
+
+"prop_boiler/metal_truba8"
+{
+	"material"	"metal"
+}
+
+"prop_cabelnik/metal_corr_dsc"
+{
+	"material"	"metal"
+}
+
+"prop_cabelnik_ugol/prop_beton_raillight_base"
+{
+	"material"	"metal"
+}
+
+"prop_camera/camera"
+{
+	"material"	"metal"
+}
+
+"prop_desklamp/prop_desklamp"
+{
+	"material"	"metal"
+	"RefractScale"	"0.9"
+	"reflectScale"	"0.2"
+}
+
+"prop_diesel/veh_diesel_generator"
+{
+	"material"	"metal"
+}
+
+"prop_diesel/metal_3"
+{
+	"material"	"metal"
+}
+
+"prop_diesel/wood_pol"
+{
+	"material"	"wood"
+}
+
+"prop_diesel/props_box_2"
+{
+	"material"	"metal"
+}
+
+"prop_dusch/showers"
+{
+	"material"	"metal"
+}
+
+"prop_industlamp/prop_lighting"
+{
+	"material"	"metal"
+}
+
+"prop_k3lamp/prop_plafon"
+{
+	"material"	"metal"
+}
+
+"prop_ladder/prop_ladder"
+{
+	"material"	"metal"
+}
+
+"prop_light_bulb/props_lamp_2"
+{
+	"material"	"metal"
+}
+
+"prop_light_hang/lamp"
+{
+	"material"	"metal"
+}
+
+"prop_light_neon_on/prop_neon"
+{
+	"material"	"metal"
+}
+
+"prop_light_neon_off/prop_neon"
+{
+	"material"	"metal"
+}
+
+"prop_medtools/medtool"
+{
+	"material"	"metal"
+}
+
+"prop_oldshelf/prop_shelf"
+{
+	"material"	"metal"
+}
+
+"prop_pipe_corner/geo_pipes2"
+{
+	"material"	"metal"
+}
+
+"prop_pipe_medium/geo_pipes2"
+{
+	"material"	"metal"
+}
+
+"prop_pipe_large/geo_pipes2"
+{
+	"material"	"metal"
+}
+
+"prop_pipe_valve/geo_pipes2"
+{
+	"material"	"metal"
+}
+
+"prop_rail_projector/prop_raillight"
+{
+	"material"	"metal"
+}
+
+"prop_statue/prop_statue"
+{
+	"material"	"metal"
+}
+
+"prop_stuhl_bardak/wood_chipboard"
+{
+	"material"	"wood"
+}
+
+"prop_stuhl_bardak/wood_palka"
+{
+	"material"	"wood"
+}
+
+"prop_surg_lamp/lamp"
+{
+	"material"	"metal"
+}
+
+"prop_train_platform/train"
+{
+	"material"	"metal"
+}
+
+"prop_tree/tree_bark"
+{
+	"material"	"wood"
+}
+
+"prop_tree_verba/dere"
+{
+	"material"	"wood"
+}
+
+"prop_truba/metal_truba8"
+{
+	"material"	"metal"
+}
+
+"prop_truba/metal_truba3"
+{
+	"material"	"metal"
+}
+
+"prop_truba/metal_flanec_01"
+{
+	"material"	"metal"
+}
+
+"prop_truba/prop_device_3_01"
+{
+	"material"	"metal"
+}
+
+"prop_truba/metal_stena_m_01"
+{
+	"material"	"metal"
+}
+
+"prop_wc/p2_rusty_met"
+{
+	"material"	"metal"
+}
+
+"prop_wc/p2_wc"
+{
+	"material"	"kafel"
+}
+
+"geo_wc/geo_wc"
+{
+	"material"	"kafel"
+	"reflectScale"	"0.5"
+}
+
+"geo_rakovina/geo_kran"
+{
+	"material"	"metal"
+	"reflectScale"	"1"
+}
+
+"geo_rakovina/geo_rakovina"
+{
+	"material"	"kafel"
+	"reflectScale"	"0.2"
+}
+
+"geo_rakovina/geo_kran_dirt"
+{
+	"material"	"metal"
+	"reflectScale"	"1"
+}
+
+"geo_rakovina/geo_rakovina_dirt"
+{
+	"material"	"kafel"
+	"reflectScale"	"0.02"
+}
+
+"prop_valve/valve"
+{
+	"material"	"metal"
+}
+
+"prop_sink/prop_oldsink"
+{
+	"material"	"kafel"
+	"reflectScale"	"0.5"
+}
+
+"tree_jolka/trunk_02"
+{
+	"material"	"wood"
+}
+
+"olaf_book/lense1"
+{
+	"material"	"glass"
+	"RefractScale"	"0.01"
+}
+
+"olaf_book/lense2"
+{
+	"material"	"glass"
+	"RefractScale"	"0.01"
+}
+
+"prop_labtubes/glass"
+{
+	"material"	"glass"
+	"reflectScale"	"1"
+}
+
+"vts_tvretro/tv"
+{
+	"material"	"glass"
+	"reflectScale"	"0.1"
+}
+
+"buzz_fonar/fonar"
+{
+	"material"	"metal"
+}
+
+"buzz_lopata/lopata"
+{
+	"material"	"metal"
+}
+
+"buzzer_fan/main"
+{
+	"material"	"metal"
+}
+
+"buzzer_kust/jshrub"
+{
+	"material"	"grass"
+}
+
+"buzzer_podstavka0/skin1"
+{
+	"material"	"wood"
+}
+
+"buzzer_podstavka2/skin1"
+{
+	"material"	"wood"
+}
+
+"e4g1e_kup_can/kup_02_mdl"
+{
+	"material"	"metal"
+}
+
+"e4g1e_kup_can/kup_04_mdl"
+{
+	"material"	"metal"
+}
+
+"e4g1e_kup_can/kup_05_mdl"
+{
+}
+
+"geo_autoclave/zamki"
+{
+	"material"	"metal"
+}
+
+"geo_autoclave/autoclave"
+{
+	"material"	"metal"
+}
+
+"elb_probir/glas_dirt"
+{
+	"material"	"glass"
+	"reflectScale"	"1.0"
+	"detailScale"	"10 10"
+	"detailmap"	"gfx/detail/grnd_rostok_grass2"
+}
+
+"geo_bak/bakup_geo1"
+{
+	"material"	"metal"
+	"reflectScale"	"1"
+}
+
+"geo_banka/banka"
+{
+	"material"	"metal"
+	"reflectScale"	"1"
+}
+
+"geo_banka/banka1"
+{
+	"material"	"metal"
+	"reflectScale"	"1"
+}
+
+"geo_banka/banka2"
+{
+	"material"	"metal"
+	"reflectScale"	"1"
+}
+
+"geo_barocamera/barocamera1"
+{
+	"material"	"metal"
+}
+
+"geo_barocamera/pribor"
+{
+	"material"	"metal"
+}
+
+"geo_bidon/bidon"
+{
+	"material"	"metal"
+}
+
+"geo_bidon/bidonup"
+{
+	"material"	"metal"
+}
+
+"geo_bidon/bidonhandle"
+{
+	"material"	"metal"
+}
+
+"geo_bidon/bidonlocker"
+{
+	"material"	"metal"
+}
+
+"geo_can/kanistra1"
+{
+	"material"	"metal"
+}
+
+"geo_chairs/stoika"
+{
+	"material"	"metal"
+}
+
+"geo_clon_kreslo2/stol"
+{
+	"material"	"metal"
+}
+
+"geo_device/device"
+{
+	"material"	"metal"
+}
+
+"geo_device/device1"
+{
+	"material"	"metal"
+}
+
+"geo_divan/kreslo1"
+{
+	"material"	"wood"
+}
+
+"geo_divan/kreslo2"
+{
+	"material"	"wood"
+}
+
+"geo_divan/kreslo3"
+{
+	"material"	"wood"
+}
+
+"geo_forklift/forklift1"
+{
+	"material"	"metal"
+}
+
+"geo_forklift/forklift2"
+{
+	"material"	"metal"
+}
+
+"geo_forklift/forklift3"
+{
+	"material"	"metal"
+}
+
+"geo_greenbox/greenbox"
+{
+	"material"	"metal"
+}
+
+"geo_katalka/resetka"
+{
+	"material"	"metal"
+}
+
+"geo_katalka/metal"
+{
+	"material"	"metal"
+	"reflectScale"	"0.8"
+	"smoothness"	"0.6"
+}
+
+"geo_katalka/metal2"
+{
+	"material"	"metal"
+	"reflectScale"	"1"
+}
+
+"geo_katalka_broken/resetka"
+{
+	"material"	"metal"
+}
+
+"geo_katalka_deadman/resetka"
+{
+	"material"	"metal"
+}
+
+"geo_katalka_deadman/metal"
+{
+	"material"	"metal"
+	"reflectScale"	"0.8"
+}
+
+"geo_kreslo/kreslo1"
+{
+	"material"	"wood"
+}
+
+"geo_kreslo/kreslo2"
+{
+	"material"	"wood"
+}
+
+"geo_kreslo/kreslo3"
+{
+	"material"	"wood"
+}
+
+"geo_lamp_up/lamp"
+{
+	"material"	"metal"
+}
+
+"geo_microscope/geo-micro2"
+{
+	"material"	"metal"
+}
+
+"geo_microscope/geo-micro1"
+{
+	"material"	"glass"
+}
+
+"geo_motor/motor"
+{
+	"material"	"metal"
+}
+
+"geo_mufel/peckDiffuseMap"
+{
+	"material"	"metal"
+}
+
+"geo_nosilki/resetka"
+{
+	"material"	"metal"
+}
+
+"geo_nosilki/metal"
+{
+	"material"	"metal"
+}
+
+"geo_nosilki/metal2"
+{
+	"material"	"metal"
+}
+
+"geo_notebook/notebook"
+{
+	"material"	"metal"
+}
+
+"geo_notebook/notebook1"
+{
+	"material"	"metal"
+}
+
+"geo_ognetushitel1/ognedark"
+{
+	"material"	"metal"
+}
+
+"geo_ognetushitel3/ognetushitel"
+{
+	"material"	"metal"
+}
+
+"geo_oldmonitor/monik1"
+{
+	"material"	"metal"
+	"reflectScale"	"0.2"
+}
+
+"geo_oldmonitor/monik2"
+{
+	"material"	"metal"
+	"reflectScale"	"0.2"
+}
+
+"prop_office_desktop/pc_desktop"
+{
+	"material"	"metal"
+	"reflectScale"	"0.1"
+}
+
+"prop_office_klava/computer_devices"
+{
+	"material"	"metal"
+	"reflectScale"	"0.1"
+}
+
+"prop_office_monitor/computer_monitor01"
+{
+	"material"	"metal"
+	"reflectScale"	"0.1"
+}
+
+"geo_oxigen/oxigen"
+{
+	"material"	"metal"
+}
+
+"geo_propan/propan"
+{
+	"material"	"metal"
+}
+
+"geo_rakovina/rakovinaG1"
+{
+	"material"	"kafel"
+}
+
+"geo_rupor/rupor1"
+{
+	"material"	"metal"
+}
+
+"geo_rupor/rupor"
+{
+	"material"	"metal"
+}
+
+"geo_skafrust/ruspaint"
+{
+	"material"	"metal"
+}
+
+"geo_spanners/spanners"
+{
+	"material"	"metal"
+}
+
+"geo_stol_monstr/stol"
+{
+	"material"	"metal"
+}
+
+"geo_stol_surg_old/stol2"
+{
+	"material"	"metal"
+}
+
+"geo_stol_surg_old/stol1"
+{
+	"material"	"metal"
+}
+
+"geo_stol1/stol"
+{
+	"material"	"metal"
+}
+
+"geo_stolik1/stolik2DiffuseMap"
+{
+	"material"	"metal"
+	"smoothness"	"0.3"
+	"reflectScale"	"0.8"
+}
+
+"geo_strem/strem"
+{
+	"material"	"metal"
+}
+
+"geo_surglampold/old lamp"
+{
+	"material"	"metal"
+}
+
+"geo_taz/raz_geo3"
+{
+	"material"	"metal"
+}
+
+"geo_termos/termos"
+{
+	"material"	"metal"
+}
+
+"ggeo_termos_opened/termos"
+{
+	"material"	"metal"
+}
+
+"geo_vedro1/vedro1"
+{
+	"material"	"metal"
+}
+
+"geo_vedro2/vedro"
+{
+	"material"	"metal"
+}
+
+"rock_mgun/pks"
+{
+	"material"	"metal"
+}
+
+"rock_mgun/pksnb"
+{
+	"material"	"metal"
+}
+
+"rock_mgun/w_pk"
+{
+	"material"	"metal"
+}
+
+"td_btr90_v2/Btr90-2"
+{
+	"material"	"metal"
+}
+
+"td_btr90_v2/btrkol"
+{
+	"material"	"metal"
+}
+
+"td_btr90_v2/Btr90-1"
+{
+	"material"	"metal"
+}
+
+"td_btr90_v2/rf"
+{
+	"material"	"metal"
+}
+
+"td_kaska/kaska"
+{
+	"material"	"metal"
+}
+
+"vts_abakanskoe/beer"
+{
+	"material"	"glass"
+}
+
+"vts_antifire/forfire"
+{
+	"material"	"glass"
+}
+
+"vts_chair1/stul-testure"
+{
+	"material"	"wood"
+}
+
+"vts_karbit/Untitled-2 copy"
+{
+	"material"	"metal"
+}
+
+"vts_kitchen_4auHuK/4auHuK"
+{
+	"material"	"metal"
+}
+
+"vts_kitchen_kastrulya/kastrulya"
+{
+	"material"	"metal"
+}
+
+"vts_kitchen_pl_pelm/plate"
+{
+	"material"	"metal"
+}
+
+"vts_kitchen_pl_pelm/vilka-lojka"
+{
+	"material"	"metal"
+}
+
+"vts_kitchen_plates/plate"
+{
+	"material"	"kafel"
+}
+
+"vts_kitchen_tushenka/tush_exture"
+{
+	"material"	"metal"
+}
+
+"vts_kitchen_tushenka/vilka-lojka"
+{
+	"material"	"metal"
+}
+
+"vts_kitchen_vilka-lojka/vilka-lojka"
+{
+	"material"	"metal"
+}
+
+"vts_kitchen1/blade"
+{
+	"material"	"metal"
+}
+
+"vts_kitchen1/bot_blade"
+{
+	"material"	"metal"
+}
+
+"vts_kitchen1/handing"
+{
+	"material"	"wood"
+}
+
+"vts_kitchen1/cooki-textura"
+{
+	"material"	"metal"
+}
+
+"vts_knopki/Knopki"
+{
+	"material"	"metal"
+}
+
+"vts_kust/treegreemn"
+{
+	"material"	"wood"
+}
+
+"vts_medstuff/butilek"
+{
+	"material"	"glass"
+}
+
+"vts_medstuff/default"
+{
+	"material"	"default"
+}
+
+"vts_medstuff/tabletki2"
+{
+	"material"	"metal"
+}
+
+"vts_medstuff/tabletki3"
+{
+	"material"	"metal"
+}
+
+"vts_medstuff/tabletki"
+{
+	"material"	"metal"
+}
+
+"vts_medstuff/medkit"
+{
+	"material"	"glass"
+}
+
+"vts_razvodnik/razvodnik"
+{
+	"material"	"metal"
+}
+
+"vts_rubilniki/knopki"
+{
+	"material"	"metal"
+}
+
+////////////////////////added////////////////////
+"soldier_alpha/alpha_visor"
+{
+	"reflectScale"	"1"
+	"RefractScale"	"0.01"
+	"AberrationScale"	"0.02"
+}
+
+"soldier_alpha/weapon_aks"
+{
+	"reflectScale"	"0.5"
+}
+
+"soldier_alpha/weapon_vss"
+{
+	"reflectScale"	"0.5"
+}
+
+"soldier_alpha/weap_oc14"
+{
+	"reflectScale"	"0.5"
+}
+
+////////////////////////wooden surfaces//////////
+"ps_dveri17"
+{
+	"material"	"wood"
+}
+
+"ps_dveri19"
+{
+	"material"	"wood"
+}
+
+"ps_prop_wood01"
+{
+	"material"	"wood"
+}
+
+"ps_prop_safety2"
+{
+	"material"	"wood"
+}
+
+"ps_prop_wood02_"
+{
+	"material"	"wood"
+}
+
+"ps_prop_wood03"
+{
+	"material"	"wood"
+}
+
+"ps_wooden_door"
+{
+	"material"	"wood"
+}
+
+"ps_wooden_doorl"
+{
+	"material"	"wood"
+}
+
+"ps_wood_parket"
+{
+	"material"	"wood"
+}
+
+"ps_wood_parket2"
+{
+	"material"	"wood"
+}
+
+"ps_wood_parket3"
+{
+	"material"	"wood"
+}
+
+"ps_wood_stol01"
+{
+	"material"	"wood"
+}
+
+"ps_wood_stol02"
+{
+	"material"	"wood"
+}
+
+"ps_w_drewo"
+{
+	"material"	"wood"
+}
+
+"ps_hosp_door"
+{
+	"material"	"wood"
+}
+
+"ps_hosp_door03"
+{
+	"material"	"wood"
+}
+
+"ps_hosp_door04"
+{
+	"material"	"wood"
+}
+
+"ps_lift_door"
+{
+	"material"	"wood"
+	"smoothness"	"0.0"
+}
+
+"ps_lift_side"
+{
+	"material"	"wood"
+	"smoothness"	"0.1"
+}
+
+////////////////////////GLASS Surfaces//////////
+"mirror_oldglass"
+{
+	"material"	"glass"
+	"refractScale"	"0.5"
+	"detailmap"	"gfx/detail/beton_det"
+	"detailScale"	"1 1"
+}
+
+"ps_steklo01"
+{
+	"material"	"glass"
+	"reflectScale"	"0.3"
+}
+
+"ps_steklo02"
+{
+	"material"	"glass"
+	"reflectScale"	"1"
+}
+
+"ps_steklo03"
+{
+	"reflectScale"	"1.0"
+	"material"	"glass"
+	"RefractScale"	"0.1"
+	"glossExp"	"64"
+	"AberrationScale"	"0"
+}
+
+"ps_steklo06"
+{
+	"material"	"glass"
+	"reflectScale"	"0.3"
+}
+
+"ps_steklo08"
+{
+	"material"	"glass"
+	"RefractScale"	"0.01"
+	"AberrationScale"	"0.02"
+}
+
+"ps_steklo09"
+{
+	"material"	"glass"
+	"RefractScale"	"0.01"
+	"AberrationScale"	"0.03"
+}
+
+"ps_k3_lab_glass"
+{
+	"material"	"glass"
+	"RefractScale"	"0.01"
+	"AberrationScale"	"0.1"
+}
+
+////////////////////////Ceramic Surfaces//////////
+"ps_plitka19"
+{
+	"material"	"kafel"
+}
+
+"ps_plitka22B"
+{
+	"material"	"kafel"
+}
+
+"ps_plitka23"
+{
+	"material"	"kafel"
+}
+
+////////////////////////Concrete Surfaces//////////
+"ps_stena51old"
+{
+}
+
+"grnd_grass"
+{
+	"glossExp"	"4"
+	"material"	"grass"
+}
+
+"grnd_asphalt"
+{
+	"glossExp"	"2"
+	"material"	"metal"
+}
+
+"grnd_pebbles"
+{
+	"glossExp"	"1"
+	"material"	"wood"
+}
+
+"grnd_shlak_01"
+{
+	"glossExp"	"6"
+	"material"	"shlak"
+}
+
+"grnd_cracked"
+{
+	"glossExp"	"32"
+}
+
+////////////////////////WATER///////////////////////
+"water"
+{
+	"glossExp"	"64"
+	"AberrationScale"	"0.05"
+	"refractScale"	"0.05"
+	"reflectScale"	"0.3"
+}
+
+"water1"
+{
+	"smoothness"	"0.4"
+	"refractScale"	"0.1"
+	"AberrationScale"	"0.08"
+	"reflectScale"	"0.2"
+}
+
+"decals/puddle_1"
+{
+	"reflectScale"	"0.8"
+	"refractScale"	"0.5"
+	"glossExp"	"8"
+}
+
+"decals/puddle_2"
+{
+	"reflectScale"	"0.8"
+	"refractScale"	"0.5"
+	"glossExp"	"8"
+}
+
+"decals/puddle_3"
+{
+	"reflectScale"	"0.8"
+	"refractScale"	"0.5"
+	"glossExp"	"8"
+}
+
+"decals/puddle_4"
+{
+	"reflectScale"	"0.8"
+	"refractScale"	"0.5"
+	"glossExp"	"8"
+}
+
+"decals/puddle_5"
+{
+	"reflectScale"	"0.8"
+	"refractScale"	"0.5"
+	"glossExp"	"8"
+}
+
+////////////////////////WEAPONS///////////////////////
+"view_ks23/Ks23"
+{
+	"reflectScale"	"0.2"
+}
+
+"view_ks23/Ks23_shell"
+{
+	"reflectScale"	"0.2"
+}
+
+"view_grenade/weap_rgd5"
+{
+	"reflectScale"	"0.2"
+}
+
+"view_tt33/tt33_body"
+{
+	"reflectScale"	"0.2"
+}
+
+"view_tt33/tt33_mag"
+{
+	"reflectScale"	"0.2"
+}
+
+"view_aks/weapon_aks"
+{
+	"reflectScale"	"0.2"
+}
+
+"view_aks/weapon_ak_body"
+{
+	"smoothness"	"0.56"
+}
+
+"view_aks/attach_lens"
+{
+	"AberrationScale"	"0.05"
+	"refractScale"	"0.1"
+}
+
+"view_pkm/weapon_pecheneg"
+{
+	"reflectScale"	"0.2"
+}
+
+"view_svu/svu_body"
+{
+	"reflectScale"	"0.2"
+}
+
+"view_svu/svu_lens"
+{
+	"reflectScale"	"1"
+}
+
+"view_aps/weap_aps"
+{
+	"reflectScale"	"0.2"
+}
+
+"view_m4a1/m4a1_lower"
+{
+	"reflectScale"	"0.2"
+}
+
+"view_m4a1/m4a1_upper"
+{
+	"reflectScale"	"0.2"
+}
+
+"view_m4a1/m4a1_carry"
+{
+	"reflectScale"	"0.2"
+}
+
+"view_m4a1/m4a1_mag"
+{
+	"reflectScale"	"0.2"
+}
+
+"view_m4a1/m4a1_barrel"
+{
+	"reflectScale"	"0.2"
+}
+
+"view_glock/weap_glock"
+{
+	"reflectScale"	"0.2"
+}
+
+"view_oc14/weap_oc14"
+{
+	"reflectScale"	"0.2"
+}
+
+"view_knife/weap_bayonet"
+{
+	"reflectScale"	"0.2"
+}
+
+//"v_gasmask/ps_steklo01"
+//{
+//	"smoothness"	"0.1"
+//}
+"elb_medbed/p2_medkrovat"
+{
+	"detailScale"	"10 10"
+	"detailmap"	"gfx/detail/grnd_rostok_grass2"
+}
+
+"e4g1e_can2/e4g1e_can02"
+{
+	"detailScale"	"1 1"
+	"detailmap"	"gfx/detail/metal_det01"
+}
+
+"tv01/00KOV02"
+{
+	"detailScale"	"2 4"
+	"detailmap"	"gfx/detail/metal_rust_kraska"
+}
+
+"p_pol14"
+{
+	"material"	"kafel"
+	"smoothness"	"0.25"
+}
+

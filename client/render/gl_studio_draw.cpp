@@ -2388,6 +2388,18 @@ void CStudioModelRenderer :: AddStudioModelToDrawList( cl_entity_t *e, bool upda
 			cl_entity_t *ent = GET_ENTITY( RI->currententity->index );
 			memcpy( ent->attachment, RI->currententity->attachment, sizeof( Vector ) * 4 );
 		}
+		// RTN F10 IRONSIGHT FIX (aprovado): o viewmodel tem index 0 e o bloco acima
+		// nunca copia o attachment para ele. O StudioCalcAttachments ja grava em
+		// RI->currententity->attachment (compensado pelo StudioFormatAttachment com
+		// o m_flViewmodelFov do frame), mas o fire event le via GetViewModel().
+		// Expor explicitamente para o viewent garante que o tracante use o attachment
+		// compensado (ponta visual do cano) em vez do fallback fixo.
+		if( m_iDrawModelType == DRAWSTUDIO_VIEWMODEL || RI->currententity->index == 0 )
+		{
+			cl_entity_t *view = gEngfuncs.GetViewModel();
+			if( view && view != RI->currententity )
+				memcpy( view->attachment, RI->currententity->attachment, sizeof( Vector ) * 4 );
+		}
 
 		// grab the static lighting from world
 		StudioStaticLight( RI->currententity, &m_pModelInstance->light );
@@ -3707,12 +3719,19 @@ void CStudioModelRenderer :: RenderTransMesh( CTransEntry *entry )
 
 	if( entry->m_pParentEntity->curstate.rendermode == kRenderGlow )
 	{
+		// RTN F10 fix: GL_Blend(GL_TRUE) - o R_RenderTransList desliga o blend
+		// (gl_rmain.cpp:893) e este caminho setava o BlendFunc mas NUNCA ligava
+		// o blend -> o muzzle (kRenderGlow) era desenhado OPACO -> o fundo preto
+		// da textura do flash aparecia. Com o blend aditivo (GL_ONE, GL_ONE) o
+		// preto soma 0 -> invisivel.
+		GL_Blend( GL_TRUE );
 		pglBlendFunc( GL_ONE, GL_ONE );
 		if( FBitSet( entry->m_pParentEntity->curstate.effects, EF_NODEPTHTEST ))
 			pglDisable( GL_DEPTH_TEST );
 	}
 	else
 	{
+		GL_Blend( GL_TRUE );
 		pglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 		pglEnable( GL_DEPTH_TEST );
 	}

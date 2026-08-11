@@ -45,6 +45,12 @@ CBaseEntity
 #define FCAP_NOT_MASTER		0x00000800	// this entity can't be used as master directly (only through multi_watcher)
 #define FCAP_IGNORE_PARENT		0x00001000	// this entity won't to attached
 
+// RTN F10 (porta do Paranoia 2 - cbase.h:50,57): a maozinha de interacao usa
+// estes caps. Bits LIVRES no RTN (0x200/0x400 estao ocupados por
+// FCAP_HOLDABLE_ITEM/FCAP_HOLD_ANGLES - o P2 usava 0x200/0x400, mudamos).
+#define FCAP_DISTANCE_USE		0x00004000	// can be used without distance restrictions (P2)
+#define FCAP_HIDE_USE			0x00008000	// never show the use icon (P2)
+
 // UNDONE: This will ignore transition volumes (trigger_transition), but not the PVS!!!
 
 #define FCAP_DONT_SAVE		0x80000000	// Don't save this

@@ -20,7 +20,7 @@ GNU General Public License for more details.
 namespace GameEventUtils
 {
 	void EjectBrass(const Vector &origin, const Vector &angles, const Vector &velocity, int modelIndex, int soundType);
-	void FireBullet(int entIndex, const matrix3x3 &camera, const Vector &origin, const Vector &direction, int tracerFreq);
+	void FireBullet(int entIndex, const matrix3x3 &camera, const Vector &origin, const Vector &muzzleOrigin, const Vector &direction, int tracerFreq);
 	void CreateTracer(const matrix3x3 &camera, const Vector &origin, const Vector &end, int frequency);
 	void SpawnMuzzleflash();
 }

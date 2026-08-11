@@ -33,7 +33,13 @@ GNU General Public License for more details.
 
 #define DEFAULT_SMOOTHNESS			0.0f
 #define FILTER_SIZE					2
-#define SKY_FOG_DENSITY_FACTOR		0.00005f	// experimentally determined value (chislo s potolka)
+// RTN F10 fix: SKY_FOG_DENSITY_FACTOR x10 (0.00005 -> 0.0005). O fog do
+// worldspawn 'fog R G B D' usa o byte D (0-255) como density. Com 0.00005,
+// o byte 10 (mapa do user) dava density 0.0005 -> o exp2 nunca saturava ->
+// o mundo ao longe ficava claro ('fog clareando'). Com 0.0005, o byte 10
+// da density 0.005 -> satura a ~660u (exp2(-3.3)=0.1). O user ajusta o D
+// no mapa (10 = nevoa a ~660u; 30 = a ~220u; 2 = a ~3300u).
+#define SKY_FOG_DENSITY_FACTOR		0.0005f	// experimentally determined value (chislo s potolka)
 #define WATER_FOG_DENSITY_FACTOR	0.000025f
 
 // defined in cdll_int.cpp
@@ -1003,12 +1009,19 @@ void R_UpdateFogParameters()
 	{
 		// enable global exponential color fog
 		// apply gamma-correction because user sets color in sRGB space
-		tr.fogColor[0] = pow((tr.movevars->fog_settings & 0xFF000000 >> 24) / 255.0f, 1.f / 2.2f);
-		tr.fogColor[1] = pow((tr.movevars->fog_settings & 0xFF0000 >> 16) / 255.0f, 1.f / 2.2f);
-		tr.fogColor[2] = pow((tr.movevars->fog_settings & 0xFF00 >> 8) / 255.0f, 1.f / 2.2f);
+		// RTN F10 fix: PARENTESES + cast unsigned! O original fazia
+		// 'fog_settings & 0xFF000000 >> 24' = '& (0xFF000000>>24)' = '& 0xFF'
+		// (precedencia: >> antes de &) -> as 3 cores liam o byte da DENSITY
+		// RTN F10 fix CRITICO: a potencia estava INVERTIDA (1.f/2.2f) - isso
+		// CLAREIA a cor (63 -> 193!) em vez de linearizar. O 63 47 2 do mapa
+		// virava um creme/branco. Correto: sRGB->linear = pow(x, 2.2).
+		const unsigned int fogSettings = (unsigned int)tr.movevars->fog_settings;
+		tr.fogColor[0] = pow(((fogSettings & 0xFF000000u) >> 24) / 255.0f, 2.2f);
+		tr.fogColor[1] = pow(((fogSettings & 0xFF0000u) >> 16) / 255.0f, 2.2f);
+		tr.fogColor[2] = pow(((fogSettings & 0xFF00u) >> 8) / 255.0f, 2.2f);
 
 		const float skyScaleMultiplier = FBitSet(RI->params, RP_SKYPORTALVIEW) ? tr.sky_camera->curstate.scale : 1.0f;
-		tr.fogDensity = (tr.movevars->fog_settings & 0xFF) * SKY_FOG_DENSITY_FACTOR * skyScaleMultiplier;
+		tr.fogDensity = (fogSettings & 0xFF) * SKY_FOG_DENSITY_FACTOR * skyScaleMultiplier;
 		tr.fogEnabled = true;
 	}
 	else

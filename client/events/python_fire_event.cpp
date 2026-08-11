@@ -44,7 +44,16 @@ void CPythonFireEvent::Execute()
 	Vector shellOrigin = GetOrigin() + up * -12.0f + forward * 20.0f + right * 4.0f;
 
 	GameEventUtils::EjectBrass(shellOrigin, GetAngles(), shellVelocity, brassModelIndex, TE_BOUNCE_SHELL);
-	GameEventUtils::FireBullet(m_arguments->entindex, cameraMatrix, GetOrigin(), GetShootDirection(cameraMatrix), 1);
+	// RTN F10 fix: origem do TRACANTE = ponta do cano (attachment[0] do viewmodel).
+	// Antes nascia no olho (centro da tela) - agora no mesmo ponto da fumaca/flash.
+	Vector muzzleOrigin = GetOrigin();
+	cl_entity_t *viewModel = gEngfuncs.GetViewModel();
+	if (viewModel && viewModel->model && viewModel->attachment[0].Length() > 0.01f)
+		muzzleOrigin = Vector(viewModel->attachment[0]);
+	if (muzzleOrigin == GetOrigin())
+		muzzleOrigin = GetOrigin() + cameraMatrix.GetForward() * 8.0f + cameraMatrix.GetRight() * 8.0f + cameraMatrix.GetUp() * -4.0f;
+
+	GameEventUtils::FireBullet(m_arguments->entindex, cameraMatrix, GetOrigin(), muzzleOrigin, GetShootDirection(cameraMatrix), 1);
 
 	const char *soundName = gEngfuncs.pfnRandomLong(0, 1) == 0 ? "weapons/357_shot1.wav" : "weapons/357_shot2.wav";
 	gEngfuncs.pEventAPI->EV_PlaySound( GetEntityIndex(), GetOrigin(), CHAN_WEAPON, soundName, gEngfuncs.pfnRandomFloat(0.8, 0.9), ATTN_NORM, 0, PITCH_NORM);

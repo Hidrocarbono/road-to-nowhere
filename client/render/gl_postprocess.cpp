@@ -691,6 +691,24 @@ void RenderPostprocessing()
 		post.fxParameters = CPostFxParameters::Defaults();
 	}
 
+	// RTN F10: DESSATURACAO NA MORTE (estilo Paranoia 2, importado do
+	// gl_postprocess.cpp deles). O CHud::Think marca o gHUD.m_flDeadTime
+	// quando o jogador morre (m_iHealth <= 0, valor real via MsgFunc_Health).
+	// Aqui: fator = (tempo desde a morte) / 5s, cresce 0->1; saturação =
+	// 1 - fator (fade suave p/ escala de cinza em 5s, como o DEAD_GRAYSCALE_TIME
+	// do P2). Reseta automaticamente quando o m_flDeadTime zera (respawn).
+	{
+		if( gHUD.m_flDeadTime )
+		{
+			const float RTN_DEAD_GRAYSCALE_TIME = 5.0f;  // mesmo do P2
+			float fElapsed = gEngfuncs.GetClientTime() - gHUD.m_flDeadTime;
+			float fGray = Q_min( 1.0f, fElapsed / RTN_DEAD_GRAYSCALE_TIME );
+			if( fGray < 0.0f ) fGray = 0.0f;
+			// saturação = 1 - grayscale (0 = cinza total)
+			post.fxParameters.SetSaturation( post.fxParameters.GetSaturation() * ( 1.0f - fGray ));
+		}
+	}
+
 	GL_Setup2D();
 	post.RequestScreenColor();
 	V_RenderPostEffect( post.postprocessingShader );

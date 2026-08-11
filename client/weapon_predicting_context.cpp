@@ -31,6 +31,7 @@ GNU General Public License for more details.
 #include "weapons/rpg.h"
 #include "weapons/egon.h"
 #include "weapons/gauss.h"
+#include "weapons/stimulant.h"
 #include <cstring>
 
 CWeaponPredictingContext::CWeaponPredictingContext()
@@ -361,6 +362,12 @@ CBaseWeaponContext* CWeaponPredictingContext::GetWeaponContext(uint32_t weaponID
 				break;
 			case WEAPON_GAUSS:
 				m_weaponsState[weaponID] = std::make_unique<CGaussWeaponContext>(std::make_unique<CClientWeaponLayerImpl>(m_playerState));
+				break;
+			case WEAPON_STIMULANT:
+				// RTN F10 fix: sem este case o GetWeaponContext retornava nullptr quando o
+				// server ativava o estimulante (id 30) -> currWeapon NULL -> PostThink do client
+				// nao processava nada -> m_iId preso no estimulante -> armas nao ativavam/miravam.
+				m_weaponsState[weaponID] = std::make_unique<CStimulantWeaponContext>(std::make_unique<CClientWeaponLayerImpl>(m_playerState));
 				break;
 			default: 
 				return nullptr;

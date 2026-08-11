@@ -18,6 +18,8 @@ int gmsgWeapons = 0;
 int gmsgHealth = 0;
 int gmsgDamage = 0;
 int gmsgBattery = 0;
+int gmsgCanUse = 0;  // RTN F10: maozinha de interacao (estilo Paranoia 2)
+int gmsgStamina = 0; // RTN F10: stamina (estilo P2 - o curstate.fuser2 nao chega ao client)
 int gmsgTrain = 0;
 int gmsgLogo = 0;
 int gmsgWeaponList = 0;
@@ -55,6 +57,7 @@ int gmsgRainData = 0;
 int gmsgStatusIcon = 0;
 int gmsgSetupBones = 0;
 int gmsgPostFxSettings = 0;
+int gmsgRTNItems = 0;  // RTN F9: doses de estimulante e painkiller (2 shorts)
 
 void LinkUserMessages()
 {
@@ -73,6 +76,8 @@ void LinkUserMessages()
 	gmsgHealth = REG_USER_MSG("Health", 1);
 	gmsgDamage = REG_USER_MSG("Damage", 12);
 	gmsgBattery = REG_USER_MSG("Battery", 2);
+	gmsgCanUse = REG_USER_MSG("CanUse", 1);  // RTN F10: maozinha (1 byte: 0/1)
+	gmsgStamina = REG_USER_MSG("Stamina", 2); // RTN F10: stamina (short)
 	gmsgTrain = REG_USER_MSG("Train", 1);
 	gmsgHudText = REG_USER_MSG("HudText", -1);
 	gmsgSayText = REG_USER_MSG("SayText", -1);
@@ -110,5 +115,7 @@ void LinkUserMessages()
 	gmsgMusicFade = REG_USER_MSG("MusicFade", 2);
 	gmsgStatusIcon = REG_USER_MSG("StatusIcon", -1);
 	gmsgSetupBones = REG_USER_MSG("SetupBones", -1);
+	gmsgRTNItems = REG_USER_MSG("RTNItems", 4);  // RTN F9: 2 shorts (doses estimulante, doses painkiller)
 	gmsgPostFxSettings = REG_USER_MSG("PostFxSettings", -1);
+	gmsgRTNItems = REG_USER_MSG("RTNItems", 4);  // RTN F9: 2 shorts (stim, pain)
 }

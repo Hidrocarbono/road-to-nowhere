@@ -292,12 +292,17 @@ Do muzzleflash
 */
 void HUD_MuzzleFlash( const cl_entity_t *e, const Vector &pos, const Vector &fwd, int type, float mul )
 {
-	TEMPENTITY	*pTemp;
-	int		body, modelIndex, frameCount;
-	Vector		flash_angles;
-	int		flags = 0;
-	float		scale;
+	// RTN F10: MUZZLE FLASH POR SPRITE (substitui o modelo 3D m_flash1.mdl
+	// que tinha o fundo preto no renderer). 4 sprites (muzzleflash1-4.spr,
+	// 4 frames de animacao cada) escolhidos AO ACASO a cada tiro (evita
+	// repeticao). Aditivo (sem fundo preto), renderamt maximo, vida curta
+	// 0.1s (o R_TempSprite se autodestrui no die - sem zumbis). O 'pos' ja
+	// vem do evento 5001 = attachment[0] do viewmodel avancado 32u = a
+	// PONTA do cano (posicao EXATA da origem do tiro).
+	(void)type;
+	(void)mul;
 
+	int flags = 0;
 	if( RP_NORMALPASS( ))
 	{
 		if( e == gEngfuncs.GetViewModel( ))
@@ -311,39 +316,29 @@ void HUD_MuzzleFlash( const cl_entity_t *e, const Vector &pos, const Vector &fwd
 			flags |= EF_REFLECTONLY;
 	}
 
-	body = bound( 0, type % 5, 4 );
-	scale = (type / 5) * 0.2f;
-	if( scale == 0.0f ) scale = 0.5f;
-
-	modelIndex = gEngfuncs.pEventAPI->EV_FindModelIndex ("models/m_flash1.mdl");
+	// variacao: 1 dos 4 sprites a cada tiro
+	int iSprite = 1 + gEngfuncs.pfnRandomLong( 0, 3 );
+	char szName[48];
+	Q_snprintf( szName, sizeof( szName ), "sprites/muzzleflash%d.spr", iSprite );
+	int modelIndex = gEngfuncs.pEventAPI->EV_FindModelIndex( szName );
 	if( !modelIndex ) return;
 
-	Mod_GetFrames( modelIndex, frameCount );
+	// sprite aditivo na ponta do cano
+	vec3_t vecNull( 0, 0, 0 );
+	TEMPENTITY *pTemp = gEngfuncs.pEfxAPI->R_TempSprite(
+		(float *)&pos, vecNull,
+		// RTN: scale reduzido (0.2-0.375 -> 0.1-0.1875 = METADE do anterior,
+		// ajuste fino #2 do user - o flash estava exagerado)
+		gEngfuncs.pfnRandomFloat( 0.1f, 0.1875f ),  // scale (ajustavel aqui)
+		modelIndex,
+		kRenderTransAdd,      // aditivo: o preto da textura soma 0 -> invisivel
+		kRenderFxNone,
+		255,                  // renderamt (alpha) maximo
+		0.1f,                 // vida 0.08-0.12s (autodestruicao automatica)
+		FTENT_SPRANIMATE );   // anima os 4 frames do sprite
+	if( !pTemp ) return;
 
-	if( body > ( frameCount - 1 ))
-		body = frameCount - 1;
-
-	// must set position for right culling on render
-	if( !( pTemp = gEngfuncs.pEfxAPI->CL_TempEntAllocHigh((float *)&pos, MODEL_HANDLE(modelIndex))))
-		return;
-
-	VectorAngles( -fwd, flash_angles );
-	scale *= mul;
-
-	pTemp->entity.curstate.rendermode = kRenderGlow;
-	pTemp->entity.curstate.renderamt = 255;
-	pTemp->entity.curstate.framerate = 10;
-	pTemp->entity.curstate.renderfx = 0;
-	pTemp->entity.angles = flash_angles;
-	pTemp->die = tr.time + 0.015f; // die at next frame
-	pTemp->entity.curstate.body = body;
-//	pTemp->flags |= FTENT_MDLANIMATE|FTENT_MDLANIMATELOOP;
-	pTemp->entity.angles[2] = RANDOM_LONG( 0, 359 );
-	pTemp->entity.curstate.scale = scale;
-	pTemp->frameMax = frameCount - 1;
-
-	gEngfuncs.CL_CreateVisibleEntity( ET_TEMPENTITY, &pTemp->entity );
-	pTemp->entity.curstate.effects |= EF_FULLBRIGHT|flags; // CL_CreateVisibleEntity clears 'effect' field, so we need add it here
+	pTemp->entity.curstate.effects |= flags;  // EF_NODEPTHTEST p/ atravessar objetos
 }
 
 /*
@@ -370,9 +365,32 @@ void DLLEXPORT HUD_StudioEvent( const struct mstudioevent_s *event, const struct
 	{
 	case 5001:
 		R_StudioAttachmentPosDir( entity, 0, &pos, &dir );
-		HUD_MuzzleFlash( entity, pos, dir, atoi( event->options), mul );
-		DlightFlash((float *)&entity->attachment[0], entity->index ); 		
-		g_pParticles.GunSmoke(entity->attachment[0], 2);
+		// RTN F10 fix: no viewmodel, o dir do attachment do modelo novo aponta
+		// PRA CIMA (flash vertical). Usa o forward da CAMERA (onde o jogador
+		// mira - sempre horizontal) p/ orientar, e avanca a posicao ~32u p/
+		// o flash/fumaca sairem na PONTA do cano (attachment fica no meio).
+		// entity e const -> nao escreve no attachment; usa variavel local.
+		{
+			Vector muzzlePos = pos;
+			Vector upCam;
+			if( entity == GET_VIEWMODEL( ))
+			{
+				Vector fwdCam;
+				gEngfuncs.pfnAngleVectors( entity->angles, fwdCam, NULL, upCam );
+				dir = fwdCam;
+				VectorMA( muzzlePos, 32.0f, fwdCam, muzzlePos );
+			}
+			// RTN F10 fix: o FLASH nasce na MESMA origem da fumaca (o
+			// muzzlePos = attachment[0] + 32u - a ponta do cano)
+			HUD_MuzzleFlash( entity, muzzlePos, dir, atoi( event->options), mul );
+			DlightFlash((float *)&muzzlePos, entity->index );
+			// RTN F10 fix: fumaca levemente ACIMA (+4u) e mais para a PONTA
+			// (+8u) - o usuario pediu o smoke mais alto e distante no cano
+			Vector smokePos = muzzlePos;
+			VectorMA( smokePos, 4.0f, upCam, smokePos );
+			VectorMA( smokePos, 8.0f, dir, smokePos );
+			g_pParticles.GunSmoke(smokePos, 2);
+		}
 		break;
 	case 5007:		 		
 		g_pParticles.GunSmoke(entity->attachment[0], 2);
@@ -394,19 +412,32 @@ void DLLEXPORT HUD_StudioEvent( const struct mstudioevent_s *event, const struct
 		R_StudioAttachmentPosDir( entity, 1, &pos, &dir );
 		HUD_MuzzleFlash( entity, pos, dir, atoi( event->options), mul );
 		DlightFlash((float *)&entity->attachment[1], entity->index );
-		g_pParticles.GunSmoke(entity->attachment[1], 2);
+		// RTN F10 fix: fumaca levemente ACIMA (+4u) e mais para a PONTA (+8u)
+		{
+			Vector fwd, up;
+			gEngfuncs.pfnAngleVectors( entity->angles, fwd, NULL, up );
+			g_pParticles.GunSmoke( entity->attachment[1] + up * 4.0f + fwd * 8.0f, 2 );
+		}
 		break;
 	case 5021:
 		R_StudioAttachmentPosDir( entity, 2, &pos, &dir );
 		HUD_MuzzleFlash( entity, pos, dir, atoi( event->options), mul );
 		DlightFlash((float *)&entity->attachment[2], entity->index );
-		g_pParticles.GunSmoke(entity->attachment[2], 2);
+		{
+			Vector fwd, up;
+			gEngfuncs.pfnAngleVectors( entity->angles, fwd, NULL, up );
+			g_pParticles.GunSmoke( entity->attachment[2] + up * 4.0f + fwd * 8.0f, 2 );
+		}
 		break;
 	case 5031:
 		R_StudioAttachmentPosDir( entity, 3, &pos, &dir );
 		HUD_MuzzleFlash( entity, pos, dir, atoi( event->options), mul );
 		DlightFlash((float *)&entity->attachment[3], entity->index );
-		g_pParticles.GunSmoke(entity->attachment[3], 2);
+		{
+			Vector fwd, up;
+			gEngfuncs.pfnAngleVectors( entity->angles, fwd, NULL, up );
+			g_pParticles.GunSmoke( entity->attachment[3] + up * 4.0f + fwd * 8.0f, 2 );
+		}
 		break;
 	case 5002:
 		gEngfuncs.pEfxAPI->R_SparkEffect( (float *)&entity->attachment[0], atoi( event->options), -100, 100 );

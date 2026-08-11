@@ -14,6 +14,8 @@ extern int gmsgWeapons;
 extern int gmsgHealth;
 extern int gmsgDamage;
 extern int gmsgBattery;
+extern int gmsgCanUse;  // RTN F10: maozinha de interacao
+extern int gmsgStamina; // RTN F10: stamina
 extern int gmsgTrain;
 extern int gmsgLogo;
 extern int gmsgWeaponList;
@@ -50,6 +52,7 @@ extern int gmsgMusicFade;
 extern int gmsgRainData;
 extern int gmsgStatusIcon;
 extern int gmsgSetupBones;
+extern int gmsgRTNItems;  // RTN F9: doses de estimulante e painkiller (2 shorts)
 extern int gmsgPostFxSettings;
 
 void LinkUserMessages();

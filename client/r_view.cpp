@@ -26,6 +26,10 @@ cl_entity_t *v_intermission_spot;
 float v_idlescale;
 static bool is_paused = false;
 
+// RTN Fase 5: lean smoothing state (shared between camera & viewmodel)
+static float g_flLeanRoll = 0.0f;
+static float g_flLeanOffset = 0.0f;
+
 cvar_t	*cl_bobcycle;
 cvar_t	*cl_bob;
 cvar_t	*cl_bobup;
@@ -125,6 +129,10 @@ float V_CalcBob( struct ref_params_s *pparams )
 	vel = pparams->simvel;
 	bob = sqrt( vel.x * vel.x + vel.y * vel.y ) * cl_bob->value;
 	bob = bob * 0.3f + bob * 0.7f * sin( cycle );
+
+	// RTN: extra weapon sway while running (Shift)
+	if( pparams->cmd && ( pparams->cmd->buttons & IN_RUN ))
+		bob *= 1.4f;
 
 	return bound( -7, bob, 4 );
 }
@@ -246,8 +254,46 @@ void V_CalcGunAngle( struct ref_params_s *pparams )
 	viewent = GET_VIEWMODEL();
 	if( !viewent ) return;
 
+	// RTN F10: PERNAS - olhando para BAIXO, troca o viewmodel pelo modelo do
+	// jogador (player.mdl - as pernas, mecanismo classico do HL), independente
+	// da arma equipada (so geometrico). O engine re-monta o viewent a cada
+	// frame (cl_view.c:103), entao ao olhar para cima/frente a arma volta.
+	// NOTA: usa o VETOR forward (pparams->forward[2] < -0.7 = ~45° p/ baixo)
+	// em vez do pitch - imune a convencao de sinal (GoldSrc: pitch positivo =
+	// baixo; mas o forward.z negativo e SEMPRE "olhando para o chao").
+	// Usa models/player.mdl (tem a gaitsequence - o player_legs.mdl do user
+	// ainda nao tem as sequencias de caminhada, o que travava o desenho).
+	if( pparams->forward[2] < -0.7f )
+	{
+		int iLegs = gEngfuncs.pEventAPI->EV_FindModelIndex( "models/player.mdl" );
+		if( iLegs > 0 )
+		{
+			viewent->model = IEngineStudio.GetModelByIndex( iLegs );
+			viewent->curstate.modelindex = iLegs;
+			// animacao: usa a gaitsequence do jogador (caminhada/parado)
+			cl_entity_t *pLocal = gEngfuncs.GetLocalPlayer();
+			if( pLocal )
+			{
+				viewent->curstate.sequence = pLocal->curstate.gaitsequence;
+				viewent->curstate.animtime = pparams->time;
+			}
+		}
+		return;  // pernas nao recebem o bob/roll da arma
+	}
+
 	viewent->angles[YAW] = pparams->viewangles[YAW] + pparams->crosshairangle[YAW];
 	viewent->angles[PITCH] = pparams->viewangles[PITCH] + pparams->crosshairangle[PITCH] * 0.25f;
+
+	// RTN F10: CORRIDA - segurando o SHIFT (IN_RUN) a arma vai para perto do
+	// corpo: rotacao sutil no YAW (eixo Z) para a ESQUERDA (-2 a -5 graus),
+	// com LERP suave (transicao andar<->correr nao da tapa). Le o IN_RUN do
+	// gHUD.m_iKeyBits (o ref_params nao expoe o button). -3.5 = meio do range.
+	static float s_flGunYaw = 0.0f;
+	float flTargetYaw = ( gHUD.m_iKeyBits & IN_RUN ) ? -3.5f : 0.0f;
+	float flLerp = bound( 0.0f, pparams->frametime * 12.0f, 1.0f );
+	s_flGunYaw += ( flTargetYaw - s_flGunYaw ) * flLerp;
+	viewent->angles[YAW] += s_flGunYaw;
+
 	viewent->angles[ROLL] -= v_idlescale * sin( pparams->time * v_iroll_cycle.value ) * v_iroll_level.value;
 	
 	// don't apply all of the v_ipitch to prevent normally unseen parts of viewmodel from coming into view.
@@ -913,6 +959,25 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 	// offsets
 	AngleVectors( pparams->cl_viewangles, pparams->forward, pparams->right, pparams->up );
 
+	// RTN Fase 5: Lean (Q/E) - Tarkov-style subtle camera roll + lateral offset
+	if( pparams->cmd )
+	{
+		int leanDir = 0;
+		if( pparams->cmd->buttons & IN_ALT1 ) leanDir = -1;  // Q = left
+		else if( pparams->cmd->buttons & IN_CANCEL ) leanDir = 1;  // E = right
+
+		float targetRoll = (float)leanDir * 5.0f;  // subtle 5deg
+		g_flLeanRoll += (targetRoll - g_flLeanRoll) * Q_min( 1.0f, pparams->frametime * 10.0f );
+		if( fabs( g_flLeanRoll - targetRoll ) < 0.05f ) g_flLeanRoll = targetRoll;
+		pparams->viewangles[ROLL] += g_flLeanRoll;
+
+		// lateral eye offset (visual, complements server view_ofs lean)
+		float targetOffset = (float)leanDir * 12.0f;  // matches server view_ofs lean
+		g_flLeanOffset += (targetOffset - g_flLeanOffset) * Q_min( 1.0f, pparams->frametime * 10.0f );
+		if( fabs( g_flLeanOffset - targetOffset ) < 0.05f ) g_flLeanOffset = targetOffset;
+		pparams->vieworg += pparams->right * g_flLeanOffset;  // camera eye shifts full 12u
+	}
+
 	cl_entity_t *view = GET_VIEWMODEL();
 	Vector lastAngles = view->angles = pparams->cl_viewangles;
 
@@ -933,6 +998,11 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 	view->angles[YAW] -= bob * 0.5f;
 	view->angles[ROLL] -= bob * 1.0f;
 	view->origin.z -= 1;
+
+	// RTN F5 RIG UNIFICADO: viewmodel acompanha a câmera EXATAMENTE (mesmo roll + mesmo offset).
+	// Antes era 0.5x -> arma ficava "em pé reto" enquanto a câmera inclinava (bug do cano defasado).
+	view->angles[ROLL] += g_flLeanRoll;
+	view->origin += pparams->right * g_flLeanOffset;  // 1.0x: cano visual alinhado com o centro da tela
 
 	// fudge position around to keep amount of weapon visible
 	// roughly equal with different FOV
@@ -956,6 +1026,21 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 	V_CalcViewModelLag( pparams, view->origin, view->angles, lastAngles );
 		
 	pparams->viewangles += pparams->punchangle;
+
+	// RTN F10: micro-shake EXTREMAMENTE LEVE no dano (disparado pelo CHudStatus
+	// via g_flRTNShakeTime). Tremor de alta frequencia, amplitude <= 0.35 graus,
+	// decai em 0.15s - estilo Tarkov (sutil, nao atrapalha a mira).
+	extern float g_flRTNShakeTime;
+	{
+		float fShakeElapsed = pparams->time - g_flRTNShakeTime;
+		if( fShakeElapsed >= 0.0f && fShakeElapsed < 0.15f )
+		{
+			float fAmp = ( 1.0f - fShakeElapsed / 0.15f ) * 0.35f;
+			float fPhase = pparams->time * 45.0f;
+			pparams->viewangles[0] += sin( fPhase ) * fAmp;
+			pparams->viewangles[1] += cos( fPhase * 0.6f ) * fAmp;
+		}
+	}
 
 	static float lasttime, oldz = 0;
 

@@ -36,7 +36,11 @@
 #include "customentity.h"
 #include "weapons.h"
 #include "weaponinfo.h"
+#include "nvg_controller.h"
 #include "weapons/rpg.h"
+#include "user_messages.h"
+#include "weapon_context.h"
+#include "weapons/stimulant.h"
 #include "weapons/satchel.h"
 #include "weapons/handgrenade.h"
 #include "weapons/egon.h"
@@ -399,7 +403,10 @@ void ClientCommand( edict_t *pEntity )
 */
 	else if ( FStrEq(pcmd, "give" ) )
 	{
-		if ( g_flWeaponCheat != 0.0)
+		// RTN F10 fix: le sv_cheats NA HORA (o g_flWeaponCheat global so e
+		// atualizado no spawn do mapa - se o user digita sv_cheats 1 depois,
+		// o give era ignorado silenciosamente)
+		if ( g_flWeaponCheat != 0.0 || CVAR_GET_FLOAT( "sv_cheats" ) != 0.0 )
 		{
 			int iszItem = ALLOC_STRING( CMD_ARGV(1) );	// Make a copy of the classname
 			GetClassPtr((CBasePlayer *)pev)->GiveNamedItem( STRING(iszItem) );
@@ -455,6 +462,77 @@ void ClientCommand( edict_t *pEntity )
 	else if ( FStrEq(pcmd, "use" ) )
 	{
 		GetClassPtr((CBasePlayer *)pev)->SelectItem((char *)CMD_ARGV(1));
+	}
+	else if ( FStrEq(pcmd, "nvg_toggle" ) )
+	{
+		// RTN Fase 8: NVG on/off (tecla N) - comando vem via pfnServerCmd do client
+		// (NAO chega aos pfnAddServerCommand - esse registro so pega console do host)
+		CNVGController::GetInstance().Toggle( GetClassPtr((CBasePlayer *)pev) );
+	}
+	else if ( FStrEq(pcmd, "stimulant_use" ) )
+	{
+		// RTN F10: estimulante (tecla V) - agora e ARMA no slot 1. O V:
+		//   - se NAO esta equipado: equipa (SelectItem) + marca pending p/ o
+		//     WeaponIdle disparar o PrimaryAttack AUTOMATICAMENTE apos o deploy
+		//     (1 clique no V = seringa na mao + anim + efeitos)
+		//   - se JA esta equipado: PrimaryAttack direto (usa 1 dose)
+		// Sem SelectLastItem apos o uso (fica equipado) -> sem duplo clique.
+		CBasePlayer *pPlayer = GetClassPtr((CBasePlayer *)pev);
+		CBasePlayerItem *pStim = FindPlayerItemByName( pPlayer, "item_stimulant" );
+		if( pStim )
+		{
+			CBasePlayerWeapon *pWeap = dynamic_cast<CBasePlayerWeapon *>( pStim );
+			int iDoses = ( pWeap && pWeap->m_pWeaponContext ) ? pWeap->m_pWeaponContext->m_iClip : 0;
+			if( iDoses > 0 )
+			{
+				if( pStim != pPlayer->m_pActiveItem )
+				{
+					pPlayer->SelectItem( "item_stimulant" );
+					CStimulantWeaponContext *pCtx = dynamic_cast<CStimulantWeaponContext *>( pWeap->m_pWeaponContext.get() );
+					if( pCtx )
+						pCtx->m_bPendingUse = true;
+				}
+				else
+				{
+					CStimulantWeaponContext *pCtx = dynamic_cast<CStimulantWeaponContext *>( pWeap->m_pWeaponContext.get() );
+					if( pCtx )
+						pCtx->PrimaryAttack();  // ja equipado: usa direto
+				}
+			}
+		}
+	}
+	else if ( FStrEq(pcmd, "rtn_query_items" ) )
+	{
+		// RTN F10 fix (Erro 3): o client pede o estado do inventario no
+		// primeiro frame (RefreshAllUI) - garante que os icones de
+		// estimulante/painkiller aparecam mesmo se a mensagem inicial foi
+		// perdida (ex: give antes do HUD do client estar pronto).
+		SendRTNItemsHUD( GetClassPtr((CBasePlayer *)pev) );
+	}
+	else if ( FStrEq(pcmd, "painkiller_use" ) )
+	{
+		// RTN F9: painkiller (tecla H) - estilo Paranoia 2: cura 25 sem mexer stamina
+		CBasePlayer *pPlayer = GetClassPtr((CBasePlayer *)pev);
+		int iAmmo = pPlayer->GetAmmoIndex( "painkillers" );
+		if( iAmmo >= 0 && pPlayer->m_rgAmmo[iAmmo] > 0 )
+		{
+			if( pPlayer->TakeHealth( 25.0f, DMG_GENERIC ) )
+			{
+				pPlayer->m_rgAmmo[iAmmo]--;
+				// smallmedkit1.wav = som de uso do medkit do HL base (o Paranoia 2 usa painkiller_use.wav, mesmo som renomeado)
+				EMIT_SOUND( ENT( pPlayer ), CHAN_ITEM, "items/smallmedkit1.wav", 1.0, ATTN_NORM );
+				// flash leve branco (sem droga)
+				UTIL_ScreenFade( pPlayer, Vector(255, 255, 255), 0.15f, 0.3f, 120, 0 );
+				// atualiza HUD lateral
+				SendRTNItemsHUD( pPlayer );
+			}
+			else
+			{
+				// RTN F10: vida cheia - feedback de "nao pode usar" (nao consome a dose,
+				// igual Paranoia 2: TakeHealth false = nada acontece)
+				EMIT_SOUND( ENT( pPlayer ), CHAN_ITEM, "common/wpn_denyselect.wav", 1.0, ATTN_NORM );
+			}
+		}
 	}
 	else if (((pstr = strstr(pcmd, "weapon_")) != NULL)  && (pstr == pcmd))
 	{
@@ -684,6 +762,9 @@ void StartFrame( void )
 	if ( g_pGameRules )
 		g_pGameRules->Think();
 
+	// RTN F8: NVG battery drain / auto-shutdown (tecla N)
+	CNVGController::GetInstance().Update();
+
 	if ( g_fGameOver )
 		return;
 
@@ -792,6 +873,16 @@ void ClientPrecache( void )
 	PRECACHE_SOUND("player/pl_pain7.wav");
 
 	PRECACHE_MODEL("models/player.mdl");
+	PRECACHE_MODEL("models/player_legs.mdl");  // RTN F10: pernas (olhar p/ baixo)
+
+	// RTN F10 fix: MUZZLE FLASH por SPRITES - o client (HUD_MuzzleFlash)
+	// procura os sprites via EV_FindModelIndex; SEM o precache aqui o indice
+	// e 0 e o flash nao aparece. (models/m_flash1.mdl ainda e precached pelo
+	// weapons.cpp p/ compatibilidade, mas o flash novo usa os sprites.)
+	PRECACHE_MODEL("sprites/muzzleflash1.spr");
+	PRECACHE_MODEL("sprites/muzzleflash2.spr");
+	PRECACHE_MODEL("sprites/muzzleflash3.spr");
+	PRECACHE_MODEL("sprites/muzzleflash4.spr");
 
 	// hud sounds
 
@@ -1691,7 +1782,8 @@ void UpdateClientData ( const struct edict_s *ent, int sendweapons, struct clien
 
 	cd->flags			= pev->flags;
 	cd->health			= pev->health;
-	cd->viewmodel		= MODEL_INDEX(STRING(pev->viewmodel));
+	cd->fuser2			= pev->fuser2;  // RTN F10 fix: STAMINA ao client (era 0 -> barra zerada)
+	cd->viewmodel			= MODEL_INDEX(STRING(pev->viewmodel));
 	cd->waterlevel		= pev->waterlevel;
 	cd->watertype		= pev->watertype;
 	cd->weapons			= 0; // not used
@@ -1711,9 +1803,20 @@ void UpdateClientData ( const struct edict_s *ent, int sendweapons, struct clien
 	strncpy(cd->physinfo, ENGINE_GETPHYSINFO(ent), sizeof(cd->physinfo));
 
 	cd->maxspeed		= pev->maxspeed;
-	cd->fov				= pev->fov;
+	cd->fov			= pev->fov;
 	cd->weaponanim		= pev->weaponanim;
 	cd->pushmsec		= pev->pushmsec;
+
+	// RTN F10: STAMINA via mensagem (estilo Paranoia 2 - player.cpp:1082-1084).
+	// O curstate.fuser2 nao chega ao jogador local (clientdata -> pmove apenas,
+	// nao -> curstate), entao enviamos uma mensagem propria com dirty-check.
+	if( player && gmsgStamina && player->m_iClientStamina != (int)pev->fuser2 )
+	{
+		player->m_iClientStamina = (int)pev->fuser2;
+		MESSAGE_BEGIN( MSG_ONE, gmsgStamina, NULL, pev );
+			WRITE_SHORT( player->m_iClientStamina );
+		MESSAGE_END();
+	}
 
 	if (sendweapons && player)
 	{
@@ -1913,6 +2016,59 @@ ShouldCollide
   touch function.
 ================================
 */
+//=========================================================
+// RTN F9: acha um item no inventario do jogador pelo classname
+//=========================================================
+CBasePlayerItem *FindPlayerItemByName( CBasePlayer *pPlayer, const char *pszName )
+{
+	if( !pPlayer || !pszName )
+		return NULL;
+
+	for( int i = 0; i < MAX_ITEM_TYPES; i++ )
+	{
+		CBasePlayerItem *pItem = pPlayer->m_rgpPlayerItems[i];
+		while( pItem )
+		{
+			if( FClassnameIs( pItem->pev, pszName ) )
+				return pItem;
+			pItem = pItem->m_pNext;
+		}
+	}
+	return NULL;
+}
+
+//=========================================================
+// RTN F9: envia as doses de estimulante/painkiller pro HUD lateral
+// (gmsgRTNItems = 2 shorts: doses estimulante, doses painkiller)
+//=========================================================
+void SendRTNItemsHUD( CBasePlayer *pPlayer )
+{
+	if( !pPlayer || !gmsgRTNItems )
+		return;
+
+	int iStimDoses = 0;
+	int iPainDoses = 0;
+
+	// estimulante: doses = m_iClip do item no inventario
+	CBasePlayerItem *pStim = FindPlayerItemByName( pPlayer, "item_stimulant" );
+	if( pStim )
+	{
+		CBasePlayerWeapon *pWeap = dynamic_cast<CBasePlayerWeapon *>( pStim );
+		if( pWeap && pWeap->m_pWeaponContext )
+			iStimDoses = pWeap->m_pWeaponContext->m_iClip;
+	}
+
+	// painkiller: doses = ammo "painkillers"
+	int iPainIdx = pPlayer->GetAmmoIndex( "painkillers" );
+	if( iPainIdx >= 0 )
+		iPainDoses = pPlayer->m_rgAmmo[iPainIdx];
+
+	MESSAGE_BEGIN( MSG_ONE, gmsgRTNItems, NULL, pPlayer->pev );
+		WRITE_SHORT( iStimDoses );
+		WRITE_SHORT( iPainDoses );
+	MESSAGE_END();
+}
+
 int ShouldCollide( edict_t *pentTouched, edict_t *pentOther )
 {
 	CBaseEntity *pTouch = CBaseEntity::Instance( pentTouched );

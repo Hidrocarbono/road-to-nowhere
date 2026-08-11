@@ -159,6 +159,12 @@ void CHudHealth::GetPainColor( int &r, int &g, int &b )
 
 int CHudHealth::Draw( float flTime )
 {
+	// RTN F10: com o HUD novo (rtn_hud_style 1), o numero classico de vida
+	// some - a silhueta + bloody HUD ditam o tamanho da vida (pedido do user).
+	extern cvar_t *rtn_hud_style;
+	if( rtn_hud_style && rtn_hud_style->value >= 1.0f )
+		return 0;
+
 	int r, g, b;
 	int a = 0, x, y;
 	int HealthWidth;

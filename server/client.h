@@ -18,6 +18,10 @@
 
 extern void respawn( CBaseEntity *pClient, BOOL fCopyCorpse );
 extern BOOL ClientConnect( edict_t *pEntity, const char *pszName, const char *pszAddress, char szRejectReason[128] );
+
+// RTN F9: itens de tecla (estimulante/painkiller)
+CBasePlayerItem *FindPlayerItemByName( CBasePlayer *pPlayer, const char *pszName );
+void SendRTNItemsHUD( CBasePlayer *pPlayer );
 extern void ClientDisconnect( edict_t *pEntity );
 extern void ClientKill( edict_t *pEntity );
 extern void ClientPutInServer( edict_t *pEntity );

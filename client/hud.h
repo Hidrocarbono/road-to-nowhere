@@ -94,6 +94,11 @@ struct HUDLIST
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
+#include "hud_rtn_items.h"
+#include "hud_bloody.h"
+#include "hud_status.h"
+#include "hud_weaponbox.h"
+#include "hud_interact.h"
 #include "cl_entity.h"
 
 //
@@ -117,11 +122,13 @@ public:
 	int MsgFunc_AmmoX( const char *pszName, int iSize, void *pbuf );
 
 	void SlotInput( int iSlot );
+	void _cdecl UserCmd_NVG_Toggle( void );
 	void _cdecl UserCmd_Slot1( void );
 	void _cdecl UserCmd_Slot2( void );
 	void _cdecl UserCmd_Slot3( void );
 	void _cdecl UserCmd_Slot4( void );
 	void _cdecl UserCmd_Slot5( void );
+	WEAPON *GetWeapon( void ) { return m_pWeapon; }  // RTN F10: CHudWeaponBox le a arma ativa
 	void _cdecl UserCmd_Slot6( void );
 	void _cdecl UserCmd_Slot7( void );
 	void _cdecl UserCmd_Slot8( void );
@@ -364,6 +371,7 @@ public:
 	int VidInit( void );
 	int Draw(float flTime);
 	int MsgFunc_Battery(const char *pszName,  int iSize, void *pbuf );
+	int GetBat( void ) { return m_iBat; }  // RTN F10: CHudStatus le o armor
 
 private:
 	SpriteHandle m_hSprite1;
@@ -420,6 +428,7 @@ struct message_parms_t
 	int r, g, b;
 	int text;
 	int fadeBlend;
+	int useColor2;	// RTN F10: linha 0 = $color (titulo), demais = $color2 (mensagem)
 	float charTime;
 	float fadeTime;
 };
@@ -525,6 +534,7 @@ public:
 	float m_flTime;	 // the current client time
 	float m_fOldTime;	 // the time at which the HUD was last redrawn
 	double m_flTimeDelta;// the difference between flTime and fOldTime
+	float m_flDeadTime;  // RTN F10: momento da morte (p/ dessaturacao, estilo Paranoia 2)
 	Vector m_vecOrigin;
 	Vector m_vecAngles;
 	int m_iKeyBits;
@@ -577,6 +587,11 @@ public:
 	CHudAmmoSecondary	m_AmmoSecondary;
 	CHudTextMessage	m_TextMessage;
 	CHudStatusIcons	m_StatusIcons;
+	CHudRTNItems	m_RTNItems;  // RTN F9: contadores laterais (estimulante/painkiller)
+	CHudBloody	m_Bloody;    // RTN F10: HUD de sangue em tela cheia (estilo COD)
+	CHudStatus	m_Status;    // RTN F10: silhueta de vida + barras armor/stamina (P2)
+	CHudWeaponBox	m_WeaponBox; // RTN F10: silhueta da arma + municao (P2)
+	CHudInteract	m_Interact;  // RTN F10: maozinha de interacao (P2)
 	CHudMOTD		m_MOTD;
 
 	ViewSmoothingData_t	m_ViewSmoothingData;

@@ -20,6 +20,8 @@ GNU General Public License for more details.
 #include "event_api.h"
 #include "event_args.h"
 #include "pm_defs.h"
+#include "material.h"   // RTN F10: matdef_t + COM_MatDefFromSurface (gibs)
+#include "gl_rpart.h"   // RTN F10: g_pParticles (CQuakePartSystem)
 
 void GameEventUtils::EjectBrass(const Vector &origin, const Vector &angles, const Vector &velocity, int modelIndex, int soundType)
 {
@@ -30,7 +32,7 @@ void GameEventUtils::EjectBrass(const Vector &origin, const Vector &angles, cons
 		2.5, modelIndex, soundType);
 }
 
-void GameEventUtils::FireBullet(int entIndex, const matrix3x3 &camera, const Vector &origin, const Vector &direction, int tracerFreq)
+void GameEventUtils::FireBullet(int entIndex, const matrix3x3 &camera, const Vector &origin, const Vector &muzzleOrigin, const Vector &direction, int tracerFreq)
 {
 	pmtrace_t tr;
 	Vector endPos = origin + direction * 8196.f;
@@ -40,7 +42,44 @@ void GameEventUtils::FireBullet(int entIndex, const matrix3x3 &camera, const Vec
 	gEngfuncs.pEventAPI->EV_SetSolidPlayers(entIndex - 1);
 	gEngfuncs.pEventAPI->EV_SetTraceHull(2); // 2 is a point hull
 	gEngfuncs.pEventAPI->EV_PlayerTrace(const_cast<float*>(&origin.x), endPos, PM_NORMAL, -1, &tr);
-	CreateTracer(camera, origin, tr.endpos, tracerFreq);
+	// RTN: TRACANTE CORTADO (build #90): o tracante roda no fire event ANTES do
+	// viewmodel ser desenhado -> attachment[0] ainda zerado -> nascia do olho
+	// (fallback fixo) e nao acompanhava o cano. Fumaca/flash continuam na origem
+	// (rodam durante o desenho). O dano (hitscan) e inalterado - trace do olho.
+
+	// RTN F10: GIBS/MATERIAIS (porta do Paranoia 2 - ev_hldm.cpp:55-90).
+	// O material da superficie atingida (materials.def + *.mat) define as
+	// PARTICULAS do impacto (impact_parts -> effects.txt -> CreateEffect) e
+	// o SOM (impact_sounds). Antes o impacto nao spawnava nada no client.
+	if( tr.fraction < 1.0f )
+	{
+		physent_t *pe = gEngfuncs.pEventAPI->EV_GetPhysent( tr.ent );
+		matdef_t *pMat = NULL;
+
+		if( pe && ( pe->solid == SOLID_BSP || pe->movetype == MOVETYPE_PUSHSTEP ))
+		{
+			pMat = COM_MatDefFromSurface( gEngfuncs.pEventAPI->EV_TraceSurface( tr.ent, const_cast<float*>(&origin.x), endPos ), tr.endpos );
+		}
+
+		if( pMat )
+		{
+			// particulas do material (gibs!) - nomes do effects.txt
+			for( int cnt = 0; pMat->impact_parts[cnt] != NULL; cnt++ )
+				g_pParticles.CreateEffect( pMat->impact_parts[cnt], tr.endpos, tr.plane.normal );
+
+			// som do impacto (aleatorio da lista do material)
+			int numSounds = 0;
+			for( int cnt = 0; pMat->impact_sounds[cnt] != NULL; cnt++ )
+				numSounds++;
+
+			if( numSounds > 0 )
+			{
+				const char *pSound = pMat->impact_sounds[gEngfuncs.pfnRandomLong( 0, numSounds - 1 )];
+				gEngfuncs.pEventAPI->EV_PlaySound( 0, tr.endpos, CHAN_STATIC, pSound, 0.9f, ATTN_NORM, 0, 96 + gEngfuncs.pfnRandomLong( 0, 0xf ));
+			}
+		}
+	}
+
 	gEngfuncs.pEventAPI->EV_PopPMStates();
 }
 
@@ -50,8 +89,31 @@ void GameEventUtils::CreateTracer(const matrix3x3 &camera, const Vector &origin,
 	if (count % frequency == 0) 
 	{
 		const Vector offset = Vector(0.f, 0.f, -4.f);
-		Vector startPos = origin + offset + camera.GetRight() * -6.f + camera.GetForward() * 10.f;
-		gEngfuncs.pEfxAPI->R_TracerEffect(startPos, const_cast<float*>(&end.x));
+		Vector startPos = origin + offset + camera.GetRight() * -3.f + camera.GetForward() * 10.f;
+		int beamSprite = gEngfuncs.pEventAPI->EV_FindModelIndex("sprites/laserbeam.spr");
+
+		// RTN: DASHED tracer - short segments with gaps (subtle, thin, almost transparent)
+		// 8 dashes along the flight path; each dash ~12u long with ~28u gap
+		Vector dir = end - startPos;
+		float totalLen = dir.Length();
+		if (totalLen < 1.0f) return;
+		dir = dir / totalLen;
+
+		const float dashLen = 12.0f;
+		const float gapLen = 28.0f;
+		const float stepLen = dashLen + gapLen;
+		const int maxDashes = 8;
+		float traveled = 0.0f;
+		int dashCount = 0;
+		while (traveled + dashLen < totalLen && dashCount < maxDashes)
+		{
+			Vector segStart = startPos + dir * traveled;
+			Vector segEnd = segStart + dir * dashLen;
+			// width 0.3 (hairline), brightness 60 (~25% alpha - barely visible)
+			gEngfuncs.pEfxAPI->R_BeamPoints(segStart, segEnd, beamSprite, 0.05f, 0.3f, 0, 60, 0, 0, 0, 255, 255, 200);
+			traveled += stepLen;
+			dashCount++;
+		}
 	}
 	count++;
 }

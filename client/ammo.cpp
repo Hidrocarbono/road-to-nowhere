@@ -220,6 +220,7 @@ DECLARE_COMMAND( m_Ammo, Slot10 );
 DECLARE_COMMAND( m_Ammo, Close );
 DECLARE_COMMAND( m_Ammo, NextWeapon );
 DECLARE_COMMAND( m_Ammo, PrevWeapon );
+DECLARE_COMMAND( m_Ammo, NVG_Toggle );
 
 // width of ammo fonts
 #define AMMO_SMALL_WIDTH	10
@@ -251,6 +252,7 @@ int CHudAmmo::Init( void )
 	HOOK_COMMAND( "cancelselect", Close );
 	HOOK_COMMAND( "invnext", NextWeapon );
 	HOOK_COMMAND( "invprev", PrevWeapon );
+	HOOK_COMMAND( "nvg", NVG_Toggle );
 
 	Reset();
 
@@ -645,6 +647,12 @@ int CHudAmmo::MsgFunc_WeaponList( const char *pszName, int iSize, void *pbuf )
 //------------------------------------------------------------------------
 // Command Handlers
 //------------------------------------------------------------------------
+// RTN F8: NVG on/off (bind: bind n "nvg") - envia comando ao server que aplica o postfx
+void CHudAmmo::UserCmd_NVG_Toggle( void )
+{
+	gEngfuncs.pfnServerCmd( "nvg_toggle" );
+}
+
 // Slot button pressed
 void CHudAmmo::SlotInput( int iSlot )
 {
@@ -803,6 +811,12 @@ void CHudAmmo::UserCmd_PrevWeapon( void )
 //-------------------------------------------------------------------------
 int CHudAmmo::Draw( float flTime )
 {
+	// RTN F10: com o HUD novo (rtn_hud_style 1), a municao classica some -
+	// o CHudWeaponBox mostra no canto inferior direito (estilo Paranoia 2).
+	extern cvar_t *rtn_hud_style;
+	if( rtn_hud_style && rtn_hud_style->value >= 1.0f )
+		return 1;
+
 	int a, x, y, r, g, b;
 	int AmmoWidth;
 

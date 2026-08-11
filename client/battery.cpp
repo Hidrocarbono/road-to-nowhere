@@ -71,6 +71,12 @@ int CHudBattery:: MsgFunc_Battery(const char *pszName, int iSize, void *pbuf )
 
 int CHudBattery::Draw( float flTime )
 {
+	// RTN F10: com o HUD novo (rtn_hud_style 1), o numero classico de armor
+	// some - a barra azul do CHudStatus mostra (estilo Paranoia 2).
+	extern cvar_t *rtn_hud_style;
+	if( rtn_hud_style && rtn_hud_style->value >= 1.0f )
+		return 1;
+
 	if( gHUD.m_iHideHUDDisplay & HIDEHUD_HEALTH )
 		return 1;
 

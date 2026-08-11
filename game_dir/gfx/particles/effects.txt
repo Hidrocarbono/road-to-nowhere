@@ -12,7 +12,7 @@
 	"length"		"4..12"
 	"lengthVelocity"	"4..12"
 	"bounceFactor"	"0.2"
-	"flags"		"Stretch|Bounce|Friction|Additive|NotInWater"
+	"flags"		"Stretch|Bounce|Friction|Light|NotInWater"
 	"useNormal"	"ofs+dir"
 }
 
@@ -84,7 +84,7 @@
 	"length"		"2"
 	"rotation"	"0..360"
 	"bounceFactor"	"0.2"
-	"flags"		"Light|Bounce|Additive"
+	"flags"		"Light|Bounce"
 	"useNormal"	"ofs"
 }
 
@@ -120,7 +120,7 @@
 	"length"		"1"
 	"rotation"	"0..90"
 	"bounceFactor"	"0.2"
-	"flags"		"Light|Bounce|Additive|NotInWater"
+	"flags"		"Light|Bounce|NotInWater"
 	"useNormal"	"ofs"
 }
 
@@ -139,7 +139,7 @@
 	"length"		"1"
 	"lengthVelocity"	"4..12"
 	"rotation"	"0..360"
-	"flags"		"Light|Additive"
+	"flags"		"Light"
 	"useNormal"	"ofs"
 }
 
