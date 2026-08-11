@@ -327,9 +327,9 @@ void HUD_MuzzleFlash( const cl_entity_t *e, const Vector &pos, const Vector &fwd
 	vec3_t vecNull( 0, 0, 0 );
 	TEMPENTITY *pTemp = gEngfuncs.pEfxAPI->R_TempSprite(
 		(float *)&pos, vecNull,
-		// RTN: scale reduzido a 1/4 (0.8-1.5 -> 0.2-0.375) - o flash estava
-		// grande demais; o user ajusta depois se precisar
-		gEngfuncs.pfnRandomFloat( 0.2f, 0.375f ),  // scale (ajustavel aqui)
+		// RTN: scale reduzido (0.2-0.375 -> 0.1-0.1875 = METADE do anterior,
+		// ajuste fino #2 do user - o flash estava exagerado)
+		gEngfuncs.pfnRandomFloat( 0.1f, 0.1875f ),  // scale (ajustavel aqui)
 		modelIndex,
 		kRenderTransAdd,      // aditivo: o preto da textura soma 0 -> invisivel
 		kRenderFxNone,
