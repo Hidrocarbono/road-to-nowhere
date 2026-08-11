@@ -33,7 +33,13 @@ GNU General Public License for more details.
 
 #define DEFAULT_SMOOTHNESS			0.0f
 #define FILTER_SIZE					2
-#define SKY_FOG_DENSITY_FACTOR		0.00005f	// experimentally determined value (chislo s potolka)
+// RTN F10 fix: SKY_FOG_DENSITY_FACTOR x10 (0.00005 -> 0.0005). O fog do
+// worldspawn 'fog R G B D' usa o byte D (0-255) como density. Com 0.00005,
+// o byte 10 (mapa do user) dava density 0.0005 -> o exp2 nunca saturava ->
+// o mundo ao longe ficava claro ('fog clareando'). Com 0.0005, o byte 10
+// da density 0.005 -> satura a ~660u (exp2(-3.3)=0.1). O user ajusta o D
+// no mapa (10 = nevoa a ~660u; 30 = a ~220u; 2 = a ~3300u).
+#define SKY_FOG_DENSITY_FACTOR		0.0005f	// experimentally determined value (chislo s potolka)
 #define WATER_FOG_DENSITY_FACTOR	0.000025f
 
 // defined in cdll_int.cpp

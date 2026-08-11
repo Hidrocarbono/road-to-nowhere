@@ -370,16 +370,24 @@ void DLLEXPORT HUD_StudioEvent( const struct mstudioevent_s *event, const struct
 		// entity e const -> nao escreve no attachment; usa variavel local.
 		{
 			Vector muzzlePos = pos;
+			Vector upCam;
 			if( entity == GET_VIEWMODEL( ))
 			{
 				Vector fwdCam;
-				gEngfuncs.pfnAngleVectors( entity->angles, fwdCam, NULL, NULL );
+				gEngfuncs.pfnAngleVectors( entity->angles, fwdCam, NULL, upCam );
 				dir = fwdCam;
 				VectorMA( muzzlePos, 32.0f, fwdCam, muzzlePos );
 			}
+			// RTN F10 fix: o FLASH nasce na MESMA origem da fumaca (o
+			// muzzlePos = attachment[0] + 32u - a ponta do cano)
 			HUD_MuzzleFlash( entity, muzzlePos, dir, atoi( event->options), mul );
 			DlightFlash((float *)&muzzlePos, entity->index );
-			g_pParticles.GunSmoke(muzzlePos, 2);
+			// RTN F10 fix: fumaca levemente ACIMA (+4u) e mais para a PONTA
+			// (+8u) - o usuario pediu o smoke mais alto e distante no cano
+			Vector smokePos = muzzlePos;
+			VectorMA( smokePos, 4.0f, upCam, smokePos );
+			VectorMA( smokePos, 8.0f, dir, smokePos );
+			g_pParticles.GunSmoke(smokePos, 2);
 		}
 		break;
 	case 5007:		 		
@@ -402,19 +410,32 @@ void DLLEXPORT HUD_StudioEvent( const struct mstudioevent_s *event, const struct
 		R_StudioAttachmentPosDir( entity, 1, &pos, &dir );
 		HUD_MuzzleFlash( entity, pos, dir, atoi( event->options), mul );
 		DlightFlash((float *)&entity->attachment[1], entity->index );
-		g_pParticles.GunSmoke(entity->attachment[1], 2);
+		// RTN F10 fix: fumaca levemente ACIMA (+4u) e mais para a PONTA (+8u)
+		{
+			Vector fwd, up;
+			gEngfuncs.pfnAngleVectors( entity->angles, fwd, NULL, up );
+			g_pParticles.GunSmoke( entity->attachment[1] + up * 4.0f + fwd * 8.0f, 2 );
+		}
 		break;
 	case 5021:
 		R_StudioAttachmentPosDir( entity, 2, &pos, &dir );
 		HUD_MuzzleFlash( entity, pos, dir, atoi( event->options), mul );
 		DlightFlash((float *)&entity->attachment[2], entity->index );
-		g_pParticles.GunSmoke(entity->attachment[2], 2);
+		{
+			Vector fwd, up;
+			gEngfuncs.pfnAngleVectors( entity->angles, fwd, NULL, up );
+			g_pParticles.GunSmoke( entity->attachment[2] + up * 4.0f + fwd * 8.0f, 2 );
+		}
 		break;
 	case 5031:
 		R_StudioAttachmentPosDir( entity, 3, &pos, &dir );
 		HUD_MuzzleFlash( entity, pos, dir, atoi( event->options), mul );
 		DlightFlash((float *)&entity->attachment[3], entity->index );
-		g_pParticles.GunSmoke(entity->attachment[3], 2);
+		{
+			Vector fwd, up;
+			gEngfuncs.pfnAngleVectors( entity->angles, fwd, NULL, up );
+			g_pParticles.GunSmoke( entity->attachment[3] + up * 4.0f + fwd * 8.0f, 2 );
+		}
 		break;
 	case 5002:
 		gEngfuncs.pEfxAPI->R_SparkEffect( (float *)&entity->attachment[0], atoi( event->options), -100, 100 );

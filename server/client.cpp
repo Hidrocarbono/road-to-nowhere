@@ -875,6 +875,15 @@ void ClientPrecache( void )
 	PRECACHE_MODEL("models/player.mdl");
 	PRECACHE_MODEL("models/player_legs.mdl");  // RTN F10: pernas (olhar p/ baixo)
 
+	// RTN F10 fix: MUZZLE FLASH por SPRITES - o client (HUD_MuzzleFlash)
+	// procura os sprites via EV_FindModelIndex; SEM o precache aqui o indice
+	// e 0 e o flash nao aparece. (models/m_flash1.mdl ainda e precached pelo
+	// weapons.cpp p/ compatibilidade, mas o flash novo usa os sprites.)
+	PRECACHE_MODEL("sprites/muzzleflash1.spr");
+	PRECACHE_MODEL("sprites/muzzleflash2.spr");
+	PRECACHE_MODEL("sprites/muzzleflash3.spr");
+	PRECACHE_MODEL("sprites/muzzleflash4.spr");
+
 	// hud sounds
 
 	PRECACHE_SOUND("common/wpn_hudoff.wav");
