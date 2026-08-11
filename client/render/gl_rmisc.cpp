@@ -1012,12 +1012,13 @@ void R_UpdateFogParameters()
 		// RTN F10 fix: PARENTESES + cast unsigned! O original fazia
 		// 'fog_settings & 0xFF000000 >> 24' = '& (0xFF000000>>24)' = '& 0xFF'
 		// (precedencia: >> antes de &) -> as 3 cores liam o byte da DENSITY
-		// -> com density alta o fog ficava CINZA/BRANCO. E o fog_settings e
-		// int signed: sem cast, o bit alto (R>127) vira negativo no shift.
-		const unsigned int fogSettings = (unsigned int)tr.movevars->fog_settings;
-		tr.fogColor[0] = pow(((fogSettings & 0xFF000000u) >> 24) / 255.0f, 1.f / 2.2f);
-		tr.fogColor[1] = pow(((fogSettings & 0xFF0000u) >> 16) / 255.0f, 1.f / 2.2f);
-		tr.fogColor[2] = pow(((fogSettings & 0xFF00u) >> 8) / 255.0f, 1.f / 2.2f);
+		// apply gamma-correction because user sets color in sRGB space
+		// RTN F10 fix CRITICO: a potencia estava INVERTIDA (1.f/2.2f) - isso
+		// CLAREIA a cor (63 -> 193!) em vez de linearizar. O 63 47 2 do mapa
+		// virava um creme/branco. Correto: sRGB->linear = pow(x, 2.2).
+		tr.fogColor[0] = pow(((fogSettings & 0xFF000000u) >> 24) / 255.0f, 2.2f);
+		tr.fogColor[1] = pow(((fogSettings & 0xFF0000u) >> 16) / 255.0f, 2.2f);
+		tr.fogColor[2] = pow(((fogSettings & 0xFF00u) >> 8) / 255.0f, 2.2f);
 
 		const float skyScaleMultiplier = FBitSet(RI->params, RP_SKYPORTALVIEW) ? tr.sky_camera->curstate.scale : 1.0f;
 		tr.fogDensity = (fogSettings & 0xFF) * SKY_FOG_DENSITY_FACTOR * skyScaleMultiplier;
