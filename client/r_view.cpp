@@ -285,11 +285,13 @@ void V_CalcGunAngle( struct ref_params_s *pparams )
 	viewent->angles[PITCH] = pparams->viewangles[PITCH] + pparams->crosshairangle[PITCH] * 0.25f;
 
 	// RTN F10: CORRIDA - segurando o SHIFT (IN_RUN) a arma vai para perto do
-	// corpo: rotacao sutil no YAW (eixo Z) para a ESQUERDA (-2 a -5 graus),
+	// corpo: rotacao sutil no YAW (eixo Z) para a ESQUERDA (+2 a +5 graus),
 	// com LERP suave (transicao andar<->correr nao da tapa). Le o IN_RUN do
-	// gHUD.m_iKeyBits (o ref_params nao expoe o button). -3.5 = meio do range.
+	// gHUD.m_iKeyBits (o ref_params nao expoe o button). +3.5 = meio do range.
+	// NOTA (fix do user): o -3.5 mandava a arma para a DIREITA na tela -
+	// a convencao do yaw do viewmodel e inversa; +3.5 vai para a ESQUERDA.
 	static float s_flGunYaw = 0.0f;
-	float flTargetYaw = ( gHUD.m_iKeyBits & IN_RUN ) ? -3.5f : 0.0f;
+	float flTargetYaw = ( gHUD.m_iKeyBits & IN_RUN ) ? 3.5f : 0.0f;
 	float flLerp = bound( 0.0f, pparams->frametime * 12.0f, 1.0f );
 	s_flGunYaw += ( flTargetYaw - s_flGunYaw ) * flLerp;
 	viewent->angles[YAW] += s_flGunYaw;
