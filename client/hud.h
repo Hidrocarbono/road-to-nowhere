@@ -100,6 +100,7 @@ struct HUDLIST
 #include "hud_weaponbox.h"
 #include "hud_interact.h"
 #include "hud_textwindow.h"
+#include "hud_radio.h"
 #include "cl_entity.h"
 
 //
@@ -594,6 +595,7 @@ public:
 	CHudWeaponBox	m_WeaponBox; // RTN F10: silhueta da arma + municao (P2)
 	CHudInteract	m_Interact;  // RTN F10: maozinha de interacao (P2)
 	CHudTextWindow	m_TextWindow;  // RTN F10: janela de documento (trigger_textwindow/P2)
+	CHudRadio	m_Radio;  // RTN F10: radio_sentence (icone do speaker + talker)
 	CHudMOTD		m_MOTD;
 
 	ViewSmoothingData_t	m_ViewSmoothingData;

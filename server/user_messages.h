@@ -17,6 +17,7 @@ extern int gmsgBattery;
 extern int gmsgCanUse;  // RTN F10: maozinha de interacao
 extern int gmsgStamina; // RTN F10: stamina
 extern int gmsgTextWindow; // RTN F10: janela de documento (trigger_textwindow)
+extern int gmsgRadioIcon; // RTN F10: radio_sentence (icone do speaker + talker)
 extern int gmsgTrain;
 extern int gmsgLogo;
 extern int gmsgWeaponList;

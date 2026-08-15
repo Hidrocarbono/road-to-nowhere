@@ -21,6 +21,7 @@ int gmsgBattery = 0;
 int gmsgCanUse = 0;  // RTN F10: maozinha de interacao (estilo Paranoia 2)
 int gmsgStamina = 0; // RTN F10: stamina (estilo P2 - o curstate.fuser2 nao chega ao client)
 int gmsgTextWindow = 0; // RTN F10: janela de documento (trigger_textwindow/P2)
+int gmsgRadioIcon = 0;  // RTN F10: radio_sentence (icone do speaker + talker)
 int gmsgTrain = 0;
 int gmsgLogo = 0;
 int gmsgWeaponList = 0;
@@ -96,6 +97,7 @@ void LinkUserMessages()
 	gmsgServerName = REG_USER_MSG("ServerName", -1);
 	gmsgAmmoPickup = REG_USER_MSG("AmmoPickup", -1);  // RTN F10: -1 (variável) - agora leva o WRITE_STRING do nome no fim
 	gmsgTextWindow = REG_USER_MSG("TextWindow", -1);  // RTN F10: janela de documento (string variável)
+	gmsgRadioIcon = REG_USER_MSG("RadioIcon", -1);    // RTN F10: radio_sentence (string variável)
 	gmsgWeapPickup = REG_USER_MSG("WeapPickup", 1);
 	gmsgItemPickup = REG_USER_MSG("ItemPickup", -1);
 	gmsgHideWeapon = REG_USER_MSG("HideWeapon", 1);
