@@ -686,6 +686,15 @@ int CBasePlayerWeapon::AddToPlayer( CBasePlayer *pPlayer )
 
 	pPlayer->AddWeapon( m_pWeaponContext->m_iId );
 
+	// RTN F10: pickup message da arma ("!weapon_<id>" no titles.txt - P2)
+	// o client monta o "!<nome>" pelo iIndex e mostra o pickup discreto
+	if ( gmsgWeapPickup )
+	{
+		MESSAGE_BEGIN( MSG_ONE, gmsgWeapPickup, NULL, pPlayer->pev );
+			WRITE_BYTE( m_pWeaponContext->m_iId );
+		MESSAGE_END();
+	}
+
 	if ( !m_pWeaponContext->m_iPrimaryAmmoType )
 	{
 		m_pWeaponContext->m_iPrimaryAmmoType = pPlayer->GetAmmoIndex( pszAmmo1() );

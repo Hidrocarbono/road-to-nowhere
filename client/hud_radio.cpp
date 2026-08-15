@@ -137,37 +137,47 @@ int CHudRadio::Draw( float flTime )
 	}
 
 	// medidas (o P2: x = largura - painel - 8, y = altura/2)
-	int iconSize = 16;	// speaker4.tga e 16x16
-	int textWide = (int)Q_strlen( szText ) * 8;  // ~8px por caractere (Roboto)
-	if ( textWide > (ScreenWidth * 2) / 3 )
+	// RTN F10 ajustes: icone do tamanho da FONTE do talker, nome SEM corte,
+	// espacamento entre o texto e o icone (gap)
+	int iconSize = gHUD.m_iFontHeight;  // o icone do tamanho da fonte do talker
+	if( iconSize < 12 ) iconSize = 14;
+	int textWide = (int)Q_strlen( szText ) * 12 + 8;  // ~12px/char + folga (sem corte)
+	if( textWide > (ScreenWidth * 2) / 3 )
 		textWide = (ScreenWidth * 2) / 3;
 	int border = 2;
-	int bgWide = textWide + iconSize + border * 3;
+	int gap = 10;  // o espaco entre o nome e o icone
+	int bgWide = textWide + gap + iconSize + border * 3;
 	int bgTall = iconSize + border * 2;
 	int x = ScreenWidth - bgWide - 8;
 	int y = ScreenHeight / 2;
+	int textY = y + (bgTall - gHUD.m_iFontHeight) / 2;
 
 	// fundo do painel (a cor + o alpha do renderamt * fade)
 	int a = (int)(m_iAlpha * fFadeAlpha);
 	a = Q_min( 255, Q_max( 0, a ));
 	gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
 	gEngfuncs.pTriAPI->Color4f( m_iRed / 255.0f, m_iGreen / 255.0f, m_iBlue / 255.0f, a / 255.0f );
+	GL_Blend( GL_TRUE );  // RTN F10 fix: sem o blend o alpha nao e aplicado
 	GL_Bind( 0, FIND_TEXTURE( "*white" ));
 	OrthoQuad( x, y, x + bgWide, y + bgTall );
 
-	// icone do speaker (a direita do painel)
+	// icone do speaker (a direita do painel - do tamanho da fonte - branco)
 	if ( m_hSpeaker.Initialized( ))
 	{
 		int iconX = x + bgWide - iconSize - border;
-		int iconY = y + border;
+		int iconY = y + (bgTall - iconSize) / 2;
 		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
 		gEngfuncs.pTriAPI->Color4f( 1.0f, 1.0f, 1.0f, fFadeAlpha );
 		GL_Bind( 0, m_hSpeaker );
 		OrthoQuad( iconX, iconY, iconX + iconSize, iconY + iconSize );
 	}
 
-	// nome do talker (Roboto - a esquerda do painel)
-	gHUD.DrawHudString( x + border, y + border + 2, x + border + textWide, szText, 255, 255, 255 );
+	// nome do talker (Roboto - a esquerda - com folga p/ nao cortar)
+	gHUD.DrawHudString( x + border, textY, x + border + textWide + 4, szText, 255, 255, 255 );
+
+	// RTN F10 fix: restaura o estado GL (blend desligado - nao vazar)
+	GL_Blend( GL_FALSE );
+	gEngfuncs.pTriAPI->RenderMode( kRenderNormal );
 
 	return 1;
 }

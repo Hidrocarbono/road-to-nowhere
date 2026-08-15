@@ -493,7 +493,13 @@ int CHudMessage::MsgFunc_HudText( const char *pszName, int iSize, void *pbuf )
 
 	char *pString = READ_STRING();
 
-	MessageAdd( pString, gHUD.m_flTime );
+	// RTN F10 fix: %player_name% no F7 (env_message -> HudText). O substituto
+	// estava so no MsgFunc_TextMsg (canal errado - o F7 usa o HudText).
+	extern char *RTN_SubstituteLocalPlayerName( char *dst, size_t dstSize, const char *src );
+	char szNameBuf[512];
+	RTN_SubstituteLocalPlayerName( szNameBuf, sizeof( szNameBuf ), pString );
+
+	MessageAdd( szNameBuf, gHUD.m_flTime );
 
 	// remember the time -- to fix up level transitions
 	m_parms.time = gHUD.m_flTime;

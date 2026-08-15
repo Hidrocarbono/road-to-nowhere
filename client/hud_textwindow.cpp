@@ -216,8 +216,11 @@ int CHudTextWindow::Draw( float flTime )
 
 	// fundo escurecido (quad preto translucido em tela cheia - 50% p/ o
 	// usuario nao ver a tela 100% preta - RTN F10 ajuste)
+	// RTN F10 fix: o GL_Blend(GL_TRUE) - sem ele o quad preto saia OPACO
+	// (o alpha do Color4f ignorado - o mesmo problema do muzzle)
 	gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
 	gEngfuncs.pTriAPI->Color4f( 0.0f, 0.0f, 0.0f, 0.5f );
+	GL_Blend( GL_TRUE );
 	GL_Bind( 0, FIND_TEXTURE( "*white" ));
 	OrthoQuad( 0, 0, ScreenWidth, ScreenHeight );
 
@@ -256,6 +259,11 @@ int CHudTextWindow::Draw( float flTime )
 		}
 		m_bWasAttack = bAttack;
 	}
+
+	// RTN F10 fix: restaura o estado GL (o blend desligado p/ nao vazar
+	// para os outros elementos do HUD)
+	GL_Blend( GL_FALSE );
+	gEngfuncs.pTriAPI->RenderMode( kRenderNormal );
 
 	return 1;
 }
