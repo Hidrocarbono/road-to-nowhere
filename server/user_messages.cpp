@@ -20,6 +20,7 @@ int gmsgDamage = 0;
 int gmsgBattery = 0;
 int gmsgCanUse = 0;  // RTN F10: maozinha de interacao (estilo Paranoia 2)
 int gmsgStamina = 0; // RTN F10: stamina (estilo P2 - o curstate.fuser2 nao chega ao client)
+int gmsgTextWindow = 0; // RTN F10: janela de documento (trigger_textwindow/P2)
 int gmsgTrain = 0;
 int gmsgLogo = 0;
 int gmsgWeaponList = 0;
