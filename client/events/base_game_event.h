@@ -16,8 +16,7 @@ GNU General Public License for more details.
 #pragma once
 #include "event_args.h"
 #include "vector.h"
-#include "cl_entity.h"   // RTN F10 fix: cl_entity_t (GetOrigin soma o view_ofs)
-#include "enginecallback.h"  // RTN F10 fix: gEngfuncs (GetLocalPlayer)
+#include "gl_local.h"   // RTN F10 fix: GetVieworg (o olho da camera p/ o trace dos gibs)
 #include <stdint.h>
 
 class CBaseGameEvent
@@ -30,20 +29,15 @@ protected:
 	Vector GetOrigin() const
 	{
 		// RTN F10 fix: o origin do evento 5001 vem do engine como o pev->origin
-		// (CENTRO do jogador - cl_events.c:446: 'VectorCopy(state->origin...'
+		// (CENTRO do jogador - cl_events.c:446 'VectorCopy(state->origin...'
 		// quando o QC nao passa o origin). SEM o view_ofs, o trace dos GIBs
 		// saia do centro da tela (sem o offset do LEAN) -> impacto na parede
-		// errada (onde o jogador esta encostado). Soma o view_ofs do jogador
-		// local (o olho inclinado - sincronizado via delta) p/ o trace do
-		// client bater com o FireBullets do server (pev->origin + view_ofs).
-		Vector v = Vector(m_arguments->origin);
+		// errada (onde o jogador esta encostado). Usa o GetVieworg() (o olho
+		// real da camera - inclinado pelo lean) p/ o trace do client bater
+		// com o FireBullets do server (pev->origin + view_ofs).
 		if( IsEventLocal( ))
-		{
-			cl_entity_t *pLocal = gEngfuncs.GetLocalPlayer();
-			if( pLocal )
-				v += pLocal->curstate.view_ofs;
-		}
-		return v;
+			return GetVieworg();
+		return Vector(m_arguments->origin);
 	};
 	Vector GetAngles() const { return Vector(m_arguments->angles); };
 	Vector GetVelocity() const { return Vector(m_arguments->velocity); };
