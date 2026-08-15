@@ -62,7 +62,18 @@ void CHudTextWindow::Open( const char *pszFileName )
 	if( m_bOpen )
 		return;
 
-	Q_strncpy( m_szFileName, pszFileName, sizeof( m_szFileName ));
+	// RTN F10 fix: normaliza o nome - o user poe no message da entidade
+	// 'doc_cadaver' OU 'texts/doc_cadaver.txt'; o Open monta texts/<nome>.txt
+	// -> SEM a normalizacao ficava texts/texts/doc_cadaver.txt.txt (nao abria)
+	char szName[64];
+	Q_strncpy( szName, pszFileName, sizeof( szName ));
+	if( !Q_strnicmp( szName, "texts/", 6 ))  // tira o 'texts/' do inicio
+		memmove( szName, szName + 6, Q_strlen( szName + 6 ) + 1 );
+	int iLen = Q_strlen( szName );
+	if( iLen > 4 && !Q_stricmp( szName + iLen - 4, ".txt" ))  // tira o '.txt' do fim
+		szName[iLen-4] = 0;
+
+	Q_strncpy( m_szFileName, szName, sizeof( m_szFileName ));
 	ParseDocument();
 
 	// RTN F10 fix (analise pre-build): carrega as texturas UMA vez (no Open)
@@ -122,82 +133,64 @@ void CHudTextWindow::ParseDocument( void )
 	}
 
 	// parseia o <HEAD ...> - extrai xsize/ysize/background/imgbutton/scrollpos
+	// RTN F10 fix: parser REESCRITO (metodo robusto nome=valor, com/sem aspas)
+	// - o anterior (loop com p--/pName) extraia valores errados em casos de
+	// borda (ex: 'sprites/vgui/backpane12' e 'game' no arquivo do user).
 	char *pText = (char *)pFile;
 	char *pHead = strstr( pText, "<HEAD" );
 	if( pHead )
 	{
-		char *p = pHead;
+		char *p = pHead + 5;  // depois do "<HEAD"
 		while( p && *p && *p != '>' )
 		{
-			char szParam[32], szValue[64];
-			szParam[0] = szValue[0] = 0;
+			while( *p == ' ' || *p == '	' ) p++;
+			if( *p == '>' || !*p ) break;
 
-			// procura o proximo parametro (letra seguida de =)
-			p = strstr( p, "=" );
-			if( !p ) break;
-			p--;
+			// le o nome do parametro (letras/digitos ate o '=')
+			char szParam[32];
+			int i = 0;
+			while( *p && *p != '=' && *p != ' ' && *p != '>' && i < 31 )
+				szParam[i++] = *p++;
+			szParam[i] = 0;
+			if( *p != '=' ) break;  // sem '=' -> formato invalido, para
+			p++;  // pula o '='
 
-			// volta ate o inicio do nome do parametro
-			char *pName = p;
-			while( pName > pHead && *(pName-1) != ' ' && *(pName-1) != '<' )
-				pName--;
-
-			int iNameLen = p - pName;
-			if( iNameLen > 0 && iNameLen < (int)sizeof( szParam ))
+			// le o valor (entre aspas OU ate o espaco/>)
+			char szValue[128];
+			int j = 0;
+			if( *p == '"' )
 			{
-				Q_strncpy( szParam, pName, iNameLen + 1 );
+				p++;
+				while( *p && *p != '"' && j < 127 )
+					szValue[j++] = *p++;
+				if( *p == '"' ) p++;
+			}
+			else
+			{
+				while( *p && *p != ' ' && *p != '>' && j < 127 )
+					szValue[j++] = *p++;
+			}
+			szValue[j] = 0;
 
-				// valor: entre aspas ou ate o espaco
-				p++; // pula o '='
-				while( *p == ' ' ) p++;
-				if( *p == '"' )
+			// aplica o parametro (desconhecidos - imgscroll/buttoncolor - ignorados)
+			if( !Q_stricmp( szParam, "xsize" ))
+				m_iXSize = atoi( szValue );
+			else if( !Q_stricmp( szParam, "ysize" ))
+				m_iYSize = atoi( szValue );
+			else if( !Q_stricmp( szParam, "background" ))
+				Q_strncpy( m_szPanelImage, szValue, sizeof( m_szPanelImage ));
+			else if( !Q_stricmp( szParam, "imgbutton" ))
+				Q_strncpy( m_szButtonImage, szValue, sizeof( m_szButtonImage ));
+			else if( !Q_stricmp( szParam, "scrollpos" ))
+			{
+				// "x y w h"
+				int vals[4] = { 0, 0, 0, 0 };
+				if( sscanf( szValue, "%d %d %d %d", &vals[0], &vals[1], &vals[2], &vals[3] ) == 4 )
 				{
-					p++;
-					char *pEnd = strstr( p, "\"" );
-					if( !pEnd ) break;
-					int iValLen = pEnd - p;
-					if( iValLen < (int)sizeof( szValue ))
-					{
-						Q_strncpy( szValue, p, iValLen + 1 );
-						p = pEnd + 1;
-					}
-					else break;
-				}
-				else
-				{
-					char *pEnd = p;
-					while( *pEnd && *pEnd != ' ' && *pEnd != '>' ) pEnd++;
-					int iValLen = pEnd - p;
-					if( iValLen < (int)sizeof( szValue ))
-					{
-						Q_strncpy( szValue, p, iValLen + 1 );
-						p = pEnd;
-					}
-					else break;
-				}
-
-				// aplica o parametro
-				if( !Q_stricmp( szParam, "xsize" ))
-					m_iXSize = atoi( szValue );
-				else if( !Q_stricmp( szParam, "ysize" ))
-					m_iYSize = atoi( szValue );
-				else if( !Q_stricmp( szParam, "background" ))
-					Q_strncpy( m_szPanelImage, szValue, sizeof( m_szPanelImage ));
-				else if( !Q_stricmp( szParam, "imgbutton" ))
-					Q_strncpy( m_szButtonImage, szValue, sizeof( m_szButtonImage ));
-				else if( !Q_stricmp( szParam, "scrollpos" ))
-				{
-					// "x y w h"
-					int vals[4] = { 0, 0, 0, 0 };
-					int n = sscanf( szValue, "%d %d %d %d", &vals[0], &vals[1], &vals[2], &vals[3] );
-					if( n == 4 )
-					{
-						m_iScrollX = vals[0]; m_iScrollY = vals[1];
-						m_iScrollW = vals[2]; m_iScrollH = vals[3];
-					}
+					m_iScrollX = vals[0]; m_iScrollY = vals[1];
+					m_iScrollW = vals[2]; m_iScrollH = vals[3];
 				}
 			}
-			else break;
 		}
 	}
 
