@@ -203,8 +203,9 @@ int CHudTextWindow::Draw( float flTime )
 		return 0;
 
 	extern cvar_t *rtn_hud_style;
-	if( !rtn_hud_style || rtn_hud_style->value < 1.0f )
-		return 0;
+	(void)rtn_hud_style;  // RTN F10 fix: o documento desenha SEMPRE (o if do
+	// rtn_hud_style < 1 impedia a janela no estilo classico - jogo pausava
+	// preso na tela preta sem o documento visivel!)
 
 	int cx = ScreenWidth / 2;
 	int cy = ScreenHeight / 2;
@@ -213,9 +214,10 @@ int CHudTextWindow::Draw( float flTime )
 	int x = cx - w / 2;
 	int y = cy - h / 2;
 
-	// fundo escurecido (quad preto translucido em tela cheia)
+	// fundo escurecido (quad preto translucido em tela cheia - 50% p/ o
+	// usuario nao ver a tela 100% preta - RTN F10 ajuste)
 	gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
-	gEngfuncs.pTriAPI->Color4f( 0.0f, 0.0f, 0.0f, 0.6f );
+	gEngfuncs.pTriAPI->Color4f( 0.0f, 0.0f, 0.0f, 0.5f );
 	GL_Bind( 0, FIND_TEXTURE( "*white" ));
 	OrthoQuad( 0, 0, ScreenWidth, ScreenHeight );
 
