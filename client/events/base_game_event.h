@@ -16,6 +16,8 @@ GNU General Public License for more details.
 #pragma once
 #include "event_args.h"
 #include "vector.h"
+#include "cl_entity.h"   // RTN F10 fix: cl_entity_t (GetOrigin soma o view_ofs)
+#include "enginecallback.h"  // RTN F10 fix: gEngfuncs (GetLocalPlayer)
 #include <stdint.h>
 
 class CBaseGameEvent
