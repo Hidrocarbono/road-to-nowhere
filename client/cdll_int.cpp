@@ -337,6 +337,15 @@ extern "C" void DLLEXPORT HUD_Frame( double time )
 
 extern "C" int DLLEXPORT HUD_Key_Event( int down, int keynum, const char *pszCurrentBinding )
 {
+	// RTN F10: janela de documento aberta - ESC/ENTER fecha (e bloqueia o menu)
+	if( down && gHUD.m_TextWindow.IsOpen( ))
+	{
+		if( keynum == 27 || keynum == 13 )  // K_ESCAPE / K_ENTER
+		{
+			gHUD.m_TextWindow.Close();
+			return 1;
+		}
+	}
 	return g_ImGuiManager.KeyInput(down != 0, keynum, pszCurrentBinding) ? 1 : 0;
 }
 

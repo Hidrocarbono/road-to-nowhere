@@ -109,3 +109,66 @@ Aviso_Estrada
 ATENCAO
 A estrada nao tem volta.
 }
+
+// ============================================================================
+//  PICKUP MESSAGES (RTN F10 - automatico ao pegar municao)
+//  O server envia o nome do ammo via AmmoPickup; o client monta "!<nome>"
+//  e busca aqui. Sem a entrada, o fallback mostra o texto cru (feio) -
+//  entao crie uma entrada para cada tipo de municao do mod.
+//  Local: canto inferior-esquerdo, discreto (estilo Tarkov).
+// ============================================================================
+$position 0.02 -0.12
+$effect 0
+$color 255 200 0
+$color2 255 255 255
+$fadein 0.1
+$fadeout 0.5
+$holdtime 3
+!9mm
+{
+Municao 9mm
+}
+
+$position 0.02 -0.12
+$effect 0
+$color 255 200 0
+$color2 255 255 255
+$fadein 0.1
+$fadeout 0.5
+$holdtime 3
+!buckshot
+{
+Municao de escopeta
+}
+
+$position 0.02 -0.12
+$effect 0
+$color 255 200 0
+$color2 255 255 255
+$fadein 0.1
+$fadeout 0.5
+$holdtime 3
+!357
+{
+Municao .357
+}
+
+$position 0.02 -0.12
+$effect 0
+$color 255 200 0
+$color2 255 255 255
+$fadein 0.1
+$fadeout 0.5
+$holdtime 3
+!ARgrenades
+{
+Granadas
+}
+
+// ============================================================================
+//  DOCUMENTOS (RTN F10 - trigger_textwindow)
+//  No mapa: entidade trigger_textwindow com o keyvalue message = "p_army1b"
+//  (sem #!). O client abre texts/p_army1b.txt e exibe a janela com a imagem.
+//  A imagem (texts/images/*.tga) e o botao fechar (imgbutton) sao definidos
+//  no <HEAD> do proprio documento. O jogo pausa com a janela aberta.
+// ============================================================================

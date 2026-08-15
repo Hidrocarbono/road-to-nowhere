@@ -93,7 +93,8 @@ void LinkUserMessages()
 	gmsgGameMode = REG_USER_MSG("GameMode", 1);
 	gmsgMOTD = REG_USER_MSG("MOTD", -1);
 	gmsgServerName = REG_USER_MSG("ServerName", -1);
-	gmsgAmmoPickup = REG_USER_MSG("AmmoPickup", 2);
+	gmsgAmmoPickup = REG_USER_MSG("AmmoPickup", -1);  // RTN F10: -1 (variável) - agora leva o WRITE_STRING do nome no fim
+	gmsgTextWindow = REG_USER_MSG("TextWindow", -1);  // RTN F10: janela de documento (string variável)
 	gmsgWeapPickup = REG_USER_MSG("WeapPickup", 1);
 	gmsgItemPickup = REG_USER_MSG("ItemPickup", -1);
 	gmsgHideWeapon = REG_USER_MSG("HideWeapon", 1);

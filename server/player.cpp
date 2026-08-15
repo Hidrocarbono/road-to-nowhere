@@ -4205,7 +4205,8 @@ int CBasePlayer :: GiveAmmo( int iCount, char *szName, int iMax )
 		// Send the message that ammo has been picked up
 		MESSAGE_BEGIN( MSG_ONE, gmsgAmmoPickup, NULL, pev );
 			WRITE_BYTE( GetAmmoIndex(szName) );		// ammo ID
-			WRITE_BYTE( iAdd );		// amount
+			WRITE_BYTE( iAdd );				// amount
+			WRITE_STRING( szName );				// RTN F10: nome do ammo p/ o pickup do titles.txt ("!9mm" etc)
 		MESSAGE_END();
 	}
 
