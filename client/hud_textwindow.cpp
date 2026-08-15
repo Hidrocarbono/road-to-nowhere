@@ -65,6 +65,13 @@ void CHudTextWindow::Open( const char *pszFileName )
 	Q_strncpy( m_szFileName, pszFileName, sizeof( m_szFileName ));
 	ParseDocument();
 
+	// RTN F10 fix (analise pre-build): carrega as texturas UMA vez (no Open)
+	// - o LOAD_TEXTURE no Draw carregaria a CADA frame (custo de IO + risco
+	// de alocar texturas em loop). O P2 carregava no construtor; aqui no Open.
+	m_hPanelTex = LOAD_TEXTURE( m_szPanelImage, NULL, 0, TF_CLAMP | TF_IMAGE );
+	if( m_szButtonImage[0] )
+		m_hButtonTex = LOAD_TEXTURE( m_szButtonImage, NULL, 0, TF_CLAMP | TF_IMAGE );
+
 	// pausa o jogo e esconde o icone "Paused" da engine (showpause 0)
 	gEngfuncs.pfnClientCmd( "showpause 0\n" );
 	gEngfuncs.pfnClientCmd( "pause\n" );
@@ -79,6 +86,14 @@ void CHudTextWindow::Close( void )
 		return;
 
 	m_bOpen = false;
+
+	// libera as texturas do documento (nao acumula entre documentos)
+	if( m_hPanelTex.Initialized( ))
+		FREE_TEXTURE( m_hPanelTex );
+	if( m_hButtonTex.Initialized( ))
+		FREE_TEXTURE( m_hButtonTex );
+	m_hPanelTex = TextureHandle::Null();
+	m_hButtonTex = TextureHandle::Null();
 
 	// despausa e restaura o icone de pausa
 	gEngfuncs.pfnClientCmd( "showpause 1\n" );
@@ -212,44 +227,39 @@ int CHudTextWindow::Draw( float flTime )
 	OrthoQuad( 0, 0, ScreenWidth, ScreenHeight );
 
 	// painel do documento (a imagem - texts/images/*.tga ou o sprite)
-	TextureHandle hTex = LOAD_TEXTURE( m_szPanelImage, NULL, 0, TF_CLAMP | TF_IMAGE );
-	if( hTex.Initialized( ))
+	if( m_hPanelTex.Initialized( ))
 	{
 		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
 		gEngfuncs.pTriAPI->Color4f( 1.0f, 1.0f, 1.0f, 1.0f );
-		GL_Bind( 0, hTex );
+		GL_Bind( 0, m_hPanelTex );
 		OrthoQuad( x, y, x + w, y + h );
 	}
 
 	// botao fechar (X) - no canto superior direito do painel
-	if( m_szButtonImage[0] )
+	if( m_hButtonTex.Initialized( ))
 	{
-		TextureHandle hBtn = LOAD_TEXTURE( m_szButtonImage, NULL, 0, TF_CLAMP | TF_IMAGE );
-		if( hBtn.Initialized( ))
-		{
-			int btnX = x + w - RTN_TW_BUTTON_SIZE - 6;
-			int btnY = y + 6;
-			gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
-			gEngfuncs.pTriAPI->Color4f( 1.0f, 1.0f, 1.0f, 1.0f );
-			GL_Bind( 0, hBtn );
-			OrthoQuad( btnX, btnY, btnX + RTN_TW_BUTTON_SIZE, btnY + RTN_TW_BUTTON_SIZE );
+		int btnX = x + w - RTN_TW_BUTTON_SIZE - 6;
+		int btnY = y + 6;
+		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
+		gEngfuncs.pTriAPI->Color4f( 1.0f, 1.0f, 1.0f, 1.0f );
+		GL_Bind( 0, m_hButtonTex );
+		OrthoQuad( btnX, btnY, btnX + RTN_TW_BUTTON_SIZE, btnY + RTN_TW_BUTTON_SIZE );
 
-			// clique no botao (mouse + IN_ATTACK, edge detect)
-			int mx = 0, my = 0;
-			gEngfuncs.GetMousePosition( &mx, &my );
-			bool bAttack = ( gHUD.m_iKeyBits & IN_ATTACK ) != 0;
-			if( bAttack && !m_bWasAttack )
+		// clique no botao (mouse + IN_ATTACK, edge detect)
+		int mx = 0, my = 0;
+		gEngfuncs.GetMousePosition( &mx, &my );
+		bool bAttack = ( gHUD.m_iKeyBits & IN_ATTACK ) != 0;
+		if( bAttack && !m_bWasAttack )
+		{
+			if( mx >= btnX && mx <= btnX + RTN_TW_BUTTON_SIZE &&
+			    my >= btnY && my <= btnY + RTN_TW_BUTTON_SIZE )
 			{
-				if( mx >= btnX && mx <= btnX + RTN_TW_BUTTON_SIZE &&
-				    my >= btnY && my <= btnY + RTN_TW_BUTTON_SIZE )
-				{
-					Close();
-					m_bWasAttack = bAttack;
-					return 1;
-				}
+				Close();
+				m_bWasAttack = bAttack;
+				return 1;
 			}
-			m_bWasAttack = bAttack;
 		}
+		m_bWasAttack = bAttack;
 	}
 
 	return 1;
