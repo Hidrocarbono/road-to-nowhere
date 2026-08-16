@@ -943,6 +943,7 @@ void InitPostTextures();
 void InitPostEffects();
 void InitPostprocessShaders();
 void RenderDOF();
+void RTN_SetIronSightDOF( bool bActive );	// RTN F10: gatilho do DOF da mira de ferro
 void RenderUnderwaterBlur();
 void RenderNerveGasBlur();
 void RenderPostprocessing();

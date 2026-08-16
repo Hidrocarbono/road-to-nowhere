@@ -923,3 +923,28 @@ void RenderAverageLuminance()
 	post.RenderAverageLuminance();
 	post.End();
 }
+
+// RTN F10: gatilho do DOF da mira de ferro (chamado pelo client code quando
+// o jogador entra/sai do modo zoom - hud_msg.cpp SetFOV). Ativa: inicia a
+// transicao suave de 0.3s com a focal length indo de 0 ate fLength (o fundo
+// desfoca, o centro da tela - o alvo - permanece nitido). Desativa: zera
+// imediatamente (o desfoque some junto com o zoom).
+void RTN_SetIronSightDOF( bool bActive )
+{
+	if( bActive )
+	{
+		if( post.m_flDOFStartTime == 0.0f )
+		{
+			post.m_flDOFStartTime = tr.time;
+			post.m_flStartLength = 0.0f;
+			post.m_flOffsetLength = 0.09f;	// intensidade do desfoque de fundo
+		}
+	}
+	else
+	{
+		post.m_flDOFStartTime = 0.0f;
+		post.m_flLastLength = 0.0f;
+		post.m_flStartLength = 0.0f;
+		post.m_flOffsetLength = 0.0f;
+	}
+}

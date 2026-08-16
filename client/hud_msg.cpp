@@ -188,6 +188,11 @@ int CHud::MsgFunc_SetFOV( const char *pszName,  int iSize, void *pbuf )
 		m_zoomMode = true;
 	}
 
+	// RTN F10: mira de ferro - ativa/desativa o DOF (foco no alvo, fundo
+	// desfocado) junto com o zoom
+	extern void RTN_SetIronSightDOF( bool bActive );
+	RTN_SetIronSightDOF( m_zoomMode );
+
 	if( m_iFOV == def_fov )
 	{
 		// reset to saved sensitivity

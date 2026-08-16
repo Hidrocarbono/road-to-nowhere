@@ -279,6 +279,7 @@ static void WS_ApplyWeaponData( void *out, const char *key, const char *val )
 	else if( !WS_stricmp( key, "item_flags" ) ) w->item_flags = WS_FlagsFromString( val );
 	else if( !WS_stricmp( key, "MaxSpeed" ) ) w->MaxSpeed = atof( val );
 	else if( !WS_stricmp( key, "MaxSpeedIS" ) ) w->MaxSpeedIS = atof( val );
+	else if( !WS_stricmp( key, "zoom_fov" ) ) w->zoom_fov = atoi( val );	// RTN F10
 	else if( !WS_stricmp( key, "volume" ) ) WS_strncpy( w->volume, val, sizeof( w->volume ) );
 	else if( !WS_stricmp( key, "flash" ) ) WS_strncpy( w->flash, val, sizeof( w->flash ) );
 }

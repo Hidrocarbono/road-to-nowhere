@@ -57,7 +57,9 @@ CBaseWeaponContext::CBaseWeaponContext(std::unique_ptr<IWeaponLayer> &&layer) :
 	m_iPlayEmptySound(false),
 	m_iPrimaryAmmoType(0),
 	m_iSecondaryAmmoType(0),
-	m_iId(-1)
+	m_iId(-1),
+	m_iZoomFOV(0),			// RTN F10: 0 = sem mira de ferro
+	m_bAiming(false)
 {
 }
 
@@ -67,6 +69,22 @@ CBaseWeaponContext::~CBaseWeaponContext()
 
 void CBaseWeaponContext::ItemPostFrame()
 {
+	// RTN F10: MIRA DE FERRO - segurar IN_ATTACK2 = zoom (hold), estilo
+	// Tarkov. So para armas com m_iZoomFOV > 0. O botao e consumido aqui
+	// (nao dispara SecondaryAttack). Pode atirar mirando (IN_ATTACK segue
+	// o fluxo normal abaixo).
+	if( m_iZoomFOV > 0 )
+	{
+		bool bAimHeld = m_pLayer->CheckPlayerButtonFlag( IN_ATTACK2 );
+		if( bAimHeld != m_bAiming )
+		{
+			m_bAiming = bAimHeld;
+			m_pLayer->SetPlayerFOV( bAimHeld ? (float)m_iZoomFOV : 0.0f );
+		}
+		if( bAimHeld )
+			m_pLayer->ClearPlayerButtonFlag( IN_ATTACK2 );
+	}
+
 	if ((m_fInReload) && m_pLayer->GetPlayerNextAttackTime() <= m_pLayer->GetWeaponTimeBase(false))
 	{
 		// complete the reload. 
