@@ -785,6 +785,9 @@ void ClientPrecache( void )
 {
 	// setup precaches always needed
 	PRECACHE_SOUND("player/sprayer.wav");			// spray paint sound for PreAlpha
+	PRECACHE_SOUND("player/breath_faster.wav");		// RTN F10: respiracao da corrida/dano (loop)
+	PRECACHE_SOUND("player/breath_low_NOREP.wav");	// RTN F10: respiracao ofegante (toque unico da exaustao)
+	PRECACHE_SOUND("player/gameover.wav");			// RTN F10: som da morte do jogador
 	
 	// PRECACHE_SOUND("player/pl_jumpland2.wav");		// UNDONE: play 2x step sound
 	

@@ -804,6 +804,17 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 
 	g_pGameRules->PlayerKilled( this, pevAttacker, g_pevLastInflictor );
 
+	// RTN F10: morte do jogador - suspende TODOS os sons e toca o gameover
+	// UMA vez. Para o breath (corrida/dano - CHAN_STATIC) e desliga todos
+	// os ambient_generic do mapa (Use USE_OFF -> STOP_SOUND do loop).
+	STOP_SOUND( edict(), CHAN_STATIC, "player/breath_faster.wav" );
+	CBaseEntity *pAmbient = NULL;
+	while (( pAmbient = UTIL_FindEntityByClassname( pAmbient, "ambient_generic" )) != NULL )
+	{
+		pAmbient->Use( this, this, USE_OFF, 0 );
+	}
+	EMIT_SOUND( edict(), CHAN_VOICE, "player/gameover.wav", 1.0f, ATTN_NONE );
+
 	if ( m_pTank != NULL )
 	{
 		m_pTank->Use( this, this, USE_OFF, 0 );
