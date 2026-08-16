@@ -294,9 +294,9 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 
 
 	m_parms.y = YPosition( pMessage->y, m_parms.totalHeight );
-	// RTN F10: mensagens de salvamento/itens movem do canto inferior
-	// esquerdo para a MEIA ALTURA do canto esquerdo (o user pediu).
-	m_parms.y = YPosition( 0.5f, m_parms.totalHeight );
+	// RTN F10 fix: o $position do titles.txt (ex.: -1 -0.1 = canto inferior)
+	// DEVE ser respeitado - a meia altura dos salvamentos/pickups fica no
+	// fallback do MessageAdd (g_pCustomMessage), nao aqui.
 	// RTN F10 fix: o desenho deve usar o buffer COM o %player_name% substituido
 	// (o pMessage->pMessage original tem o %player_name% cru - o fix anterior
 	// era PERDIDO aqui e o desenho mostrava o texto sem o nome do jogador)
@@ -464,8 +464,8 @@ void CHudMessage::MessageAdd( const char *pName, float time )
 				g_pCustomMessage.g2 = 110;
 				g_pCustomMessage.b2 = 0;
 				g_pCustomMessage.a2 = 0;
-				g_pCustomMessage.x = -1;		// Centered
-				g_pCustomMessage.y = 0.7;
+				g_pCustomMessage.x = 0.02;	// RTN F10: canto esquerdo (era -1 = centro)
+				g_pCustomMessage.y = 0.5;	// RTN F10: meia altura (era 0.7)
 				g_pCustomMessage.fadein = 0.01;
 				g_pCustomMessage.fadeout = 1.5;
 				g_pCustomMessage.fxtime = 0.25;

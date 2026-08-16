@@ -2,11 +2,11 @@
 //  titles.txt - SISTEMA DE FALAS E DOCUMENTOS DO ROAD TO NOWHERE
 //  Criado por Hermes e Hidrocarboneto.
 //
-//  COMO FUNCIONA (orientaÃ§Ãµes para uso futuro):
+//  COMO FUNCIONA (orientações para uso futuro):
 //  ----------------------------------------------------------------------------
-//  Este Ã© o ARQUIVO CENTRAL de mensagens do jogo. Ele nÃ£o fica no mapa:
+//  Este é o ARQUIVO CENTRAL de mensagens do jogo. Ele não fica no mapa:
 //  as entidades no mapa guardam apenas o NOME da mensagem, e o texto
-//  (com formataÃ§Ã£o) Ã© buscado aqui pelo client.
+//  (com formatação) é buscado aqui pelo client.
 //
 //  FLUXO:
 //    entidade no mapa (ex: env_message ou game_text)
@@ -16,16 +16,16 @@
 //      -> desenha na tela com os atributos abaixo
 //
 //  FORMATO DE CADA MENSAGEM:
-//    (linhas com // no inÃ­cio sÃ£o comentÃ¡rios e sÃ£o ignoradas)
+//    (linhas com // no início são comentários e são ignoradas)
 //
-//    $position x y      -> posiÃ§Ã£o na tela. x e y vÃ£o de 0 a 1
+//    $position x y      -> posição na tela. x e y vão de 0 a 1
 //                          (0 = esquerda/topo, 1 = direita/fundo).
 //                          -1 centraliza no eixo.
-//                          NEGATIVO no y = DISTÃ‚NCIA DO FUNDO:
+//                          NEGATIVO no y = DISTÂNCIA DO FUNDO:
 //                          y -0.1 = 10% acima do fundo (ideal p/ legenda).
 //    $effect 0..2       -> 0 = fade in/out | 1 = flicker (creditos)
 //                          2 = escrever letra por letra (scan)
-//    $color  R G B      -> cor do TÃTULO (linha 1) - 0 a 255
+//    $color  R G B      -> cor do TÍTULO (linha 1) - 0 a 255
 //    $color2 R G B      -> cor da MENSAGEM (linhas 2 em diante)
 //    $fadein  seg       -> tempo de fade-in (ou tempo por caractere no effect 2)
 //    $fadeout seg       -> tempo de fade-out
@@ -33,16 +33,16 @@
 //
 //    NOME_DA_MENSAGEM   <- nome usado pela entidade (SEM # aqui)
 //    {
-//    Linha 1 do texto   <- TÃTULO (cor = $color)
+//    Linha 1 do texto   <- TÍTULO (cor = $color)
 //    Linha 2 do texto   <- MENSAGEM (cor = $color2)
 //    }
 //
-//  SUBSTITUIÃ‡ÃƒO AUTOMÃTICA:
-//    %player_name% no texto Ã© trocado pelo nome do jogador (feito no server).
+//  SUBSTITUIÇÃO AUTOMÁTICA:
+//    %player_name% no texto é trocado pelo nome do jogador (feito no server).
 //
 //  QUEBRA DE LINHA:
 //    Cada linha dentro das chaves { } vira uma linha na tela.
-//    Linha 1 = tÃ­tulo (cor $color), linhas seguintes = mensagem ($color2).
+//    Linha 1 = título (cor $color), linhas seguintes = mensagem ($color2).
 //
 //  FONTE:
 //    O HUD usa a fonte bitmap global do engine (gfx/creditsfont.fnt).
@@ -50,7 +50,7 @@
 //
 //  DICAS:
 //    - Mensagem com # na frente (ex: "#Doutor_Intro") busca aqui.
-//    - Texto sem # Ã© exibido literalmente (com %player_name% e \n funcionando).
+//    - Texto sem # é exibido literalmente (com %player_name% e \n funcionando).
 //    - Para legenda estilo filme: $position -1 -0.1 (centralizada no fundo).
 // ============================================================================
 
@@ -75,7 +75,7 @@ Espero que goste do trabalho.
 
 
 // ============================================================================
-//  EXEMPLO 2 - Documento / arquivo coletÃ¡vel (estilo lore)
+//  EXEMPLO 2 - Documento / arquivo coletável (estilo lore)
 //  Uso no mapa: env_message com message = "#Doc_Primera_Anotacion"
 // ============================================================================
 $position -1 0.2
@@ -94,7 +94,7 @@ Ninguem sabe o que existe alem do desvio.
 
 
 // ============================================================================
-//  EXEMPLO 3 - Mensagem central clÃ¡ssica (aviso / tutorial)
+//  EXEMPLO 3 - Mensagem central clássica (aviso / tutorial)
 //  Uso no mapa: env_message com message = "#Aviso_Estrada"
 // ============================================================================
 $position -1 -1
