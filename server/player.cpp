@@ -1791,6 +1791,39 @@ void CBasePlayer::PreThink(void)
 		// usa +right; aqui usamos a MESMA convencao para o tiro acompanhar a mira.
 		// (Antes era (-sin, +cos) = -right -> tiro saia invertido no lean!)
 		float leanTarget = 0.0f;
+
+		// ===== RTN F10: TONTURA + RESPIRACAO PESADA (crescem com o dano) =====
+		// Com a vida na metade (~50%) o jogador comeca a sentir: a tela
+		// balanca (punchangle senoidal) e a respiracao pesada
+		// (player/breath_faster.wav) sobe o pitch - efeitos que ficam
+		// fortes conforme a vida cai (sensacao brutal estilo Tarkov).
+		{
+			float fInjury = 1.0f - ( pev->health / 100.0f );   // 0 (cheio) a 1 (quase morto)
+			if( fInjury < 0.0f ) fInjury = 0.0f;
+			if( fInjury > 1.0f ) fInjury = 1.0f;
+
+			if( fInjury >= 0.25f )
+			{
+				// tontura: balanco senoidal - comeca suave na metade da vida
+				// (0 em 75% HP, ~4 graus em 50%, ~12 graus perto da morte)
+				float fDizzy = ( fInjury - 0.25f ) * 16.0f;
+				pev->punchangle.x = sin( gpGlobals->time * 3.0f ) * fDizzy;
+				pev->punchangle.y = cos( gpGlobals->time * 2.0f ) * fDizzy * 0.6f;
+
+				// respiracao pesada: pitch 98 (normal) -> 140 (quase morto),
+				// volume 0.4 -> 0.7 (loop no CHAN_STATIC; atualiza via EMIT)
+				int iPitch = 98 + (int)( fInjury * 40.0f );
+				float flVol = 0.35f + fInjury * 0.3f;
+				EMIT_SOUND_DYN( edict(), CHAN_STATIC, "player/breath_faster.wav", flVol, ATTN_NORM, 0, iPitch );
+			}
+			else
+			{
+				// vida boa: para a respiracao e relaxa a tontura
+				STOP_SOUND( edict(), CHAN_STATIC, "player/breath_faster.wav" );
+				pev->punchangle.x = 0;
+				pev->punchangle.y = 0;
+			}
+		}
 		if ( pev->button & IN_ALT1 )
 			leanTarget = -12.0f;
 		else if ( pev->button & IN_CANCEL )
