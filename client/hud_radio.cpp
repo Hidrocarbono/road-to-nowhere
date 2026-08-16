@@ -136,6 +136,11 @@ int CHudRadio::Draw( float flTime )
 			Q_strncpy( szText, pLocalized, sizeof( szText ));
 	}
 
+	// RTN F10 fix: ACENTOS - UTF-8 -> cp1252 (auto-detect) p/ a fonte
+	// cp1252 desenhar corretos (titles.txt pode vir em UTF-8 do editor)
+	extern void RTN_Utf8ToCp1252( char *szText );
+	RTN_Utf8ToCp1252( szText );
+
 	// medidas (o P2: x = largura - painel - 8, y = altura/2)
 	// RTN F10 ajustes: icone do tamanho da FONTE do talker, nome SEM corte,
 	// espacamento entre o texto e o icone (gap)

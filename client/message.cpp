@@ -266,6 +266,13 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 	static char szPlayerNameBuf[1024];
 	pText = RTN_SubstituteLocalPlayerName( szPlayerNameBuf, sizeof( szPlayerNameBuf ), pText );
 
+	// RTN F10 fix: ACENTOS - converte UTF-8 -> cp1252 (auto-detect) p/ a
+	// fonte cp1252 desenhar os acentos corretos (titles.txt pode estar em
+	// UTF-8 se o user editar com Notepad/VS Code - antes virava "nÃ£o")
+	extern void RTN_Utf8ToCp1252( char *szText );
+	RTN_Utf8ToCp1252( szPlayerNameBuf );
+	pText = szPlayerNameBuf;
+
 	// Count lines
 	m_parms.lines = 1;
 	m_parms.time = time;

@@ -167,14 +167,23 @@ void CMP5WeaponContext::SecondaryAttack()
 	CBasePlayer *player = m_pLayer->GetWeaponEntity()->m_pPlayer;
 	if( player )
 	{
-		// RTN F10 v2: FOV do viewmodel INVERTIDO.
-		// cl_viewmodel_fov ALTO = modelo pequeno (parece longe) - era o bug.
-		// cl_viewmodel_fov BAIXO = modelo grande (parece perto do rosto).
-		// Mirado: 50 (max aproximacao, arma na cara) | Normal: 64 (user pediu +2 vs 62)
+		// RTN F10 v3 (user): alem do viewmodel aproximado, a CAMERA aproxima
+		// (FOV 90 -> 65) p/ dar a sensacao de mira. O cl_viewmodel_fov mirado
+		// cai p/ 25: o engine soma flFOVOffset (90-65=25) ao viewmodel FOV,
+		// entao 25+25=50 = o MESMO tamanho de arma de antes (a arma nao muda,
+		// so o mundo aproxima). ATENCAO: o attachment (fumaca) usa o FOV do
+		// viewmodel (50) e o tracante a camera (65) - pode desalinhar um pouco;
+		// se aparecer desvio, reduzir o zoom ou subir o cl_viewmodel_fov.
 		if( m_bInIronSight )
-			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 50\n" );
+		{
+			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 25\n" );
+			m_pLayer->SetPlayerFOV( 65.0f );
+		}
 		else
+		{
 			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 64\n" );
+			m_pLayer->SetPlayerFOV( 0.0f );	// default (90)
+		}
 
 		// RTN F10: avisa o client do estado da mira (1 byte) - o client
 		// ativa/desativa o DOF (foco no alvo, fundo desfocado)

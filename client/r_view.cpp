@@ -291,6 +291,10 @@ void V_CalcGunAngle( struct ref_params_s *pparams )
 				viewent->curstate.sequence = pLocal->curstate.gaitsequence;
 				viewent->curstate.animtime = pparams->time;
 			}
+			// RTN F10 fix (user): corpo em PE - o viewent herda o pitch da
+			// camera (olhar p/ baixo = corpo "deita" na horizontal). O corpo
+			// real nao inclina com o olhar; so o yaw (direcao) acompanha.
+			viewent->angles[PITCH] = 0.0f;
 			g_bRTNLegs = true;  // RTN F10: renderer nao troca o modelo pela arma
 			return;  // pernas nao recebem o bob/roll da arma
 		}

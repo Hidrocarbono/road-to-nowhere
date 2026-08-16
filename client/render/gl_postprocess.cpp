@@ -478,7 +478,7 @@ void InitPostEffects()
 	v_posteffects = CVAR_REGISTER( "gl_posteffects", "1", FCVAR_ARCHIVE );
 	v_sunshafts = CVAR_REGISTER( "gl_sunshafts", "1", FCVAR_ARCHIVE );
 	gl_lensdirt = CVAR_REGISTER( "gl_lensdirt", "1", FCVAR_ARCHIVE );			// RTN F10
-	gl_lensdirt_scale = CVAR_REGISTER( "gl_lensdirt_scale", "0.35", FCVAR_ARCHIVE );	// RTN F10
+	gl_lensdirt_scale = CVAR_REGISTER( "gl_lensdirt_scale", "0.5", FCVAR_ARCHIVE );	// RTN F10
 	r_postfx_enable = CVAR_REGISTER("r_postfx_enable", "1.0", 0);
 	r_tonemap = CVAR_REGISTER("r_tonemap", "1", FCVAR_ARCHIVE);
 	r_bloom = CVAR_REGISTER("r_bloom", "1", FCVAR_ARCHIVE);
@@ -960,7 +960,7 @@ void RTN_SetIronSightDOF( bool bActive )
 		{
 			post.m_flDOFStartTime = tr.time;
 			post.m_flStartLength = 0.0f;
-			post.m_flOffsetLength = 0.09f;	// intensidade do desfoque de fundo
+			post.m_flOffsetLength = 0.15f;	// intensidade do desfoque de fundo (user: mais forte)
 		}
 	}
 	else

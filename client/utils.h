@@ -141,6 +141,10 @@ bool Mod_CheckTempEntityPVS( struct tempent_s *pTemp );
 bool Mod_CheckEntityLeafPVS( const Vector &absmin, const Vector &absmax, struct mleaf_s *leaf );
 bool Mod_CheckBoxVisible( const Vector &absmin, const Vector &absmax );
 void Mod_GetFrames( int modelIndex, int &numFrames );
+// RTN F10: converte UTF-8 -> cp1252 in-place (auto-detect: bytes que nao
+// formam UTF-8 valido passam crus - arquivo ja em cp1252 fica intacto).
+// Remove BOM. Usado nas falas/pickups p/ acentos corretos na fonte cp1252.
+void RTN_Utf8ToCp1252( char *szText );
 byte *Mod_GetCurrentVis(void);
 int Mod_GetType( int modelIndex );
 void SetDLightVis(struct mworldlight_s *wl, int leafnum);
