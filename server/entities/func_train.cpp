@@ -24,6 +24,8 @@ BEGIN_DATADESC( CFuncTrain )
 	DEFINE_FIELD( m_activated, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_bCustomMoveSound, FIELD_BOOLEAN ),  // RTN F10: movesound custom
 	DEFINE_FIELD( m_bCustomStopSound, FIELD_BOOLEAN ),  // RTN F10: stopsound custom
+	DEFINE_ARRAY( m_szMoveSound, FIELD_CHARACTER, 64 ),  // RTN F10: path do custom
+	DEFINE_ARRAY( m_szStopSound, FIELD_CHARACTER, 64 ),
 	DEFINE_FUNCTION( SoundSetup ),
 	DEFINE_FUNCTION( Wait ),
 	DEFINE_FUNCTION( Next ),
@@ -37,12 +39,14 @@ void CFuncTrain :: KeyValue( KeyValueData *pkvd )
 	if ( FStrEq( pkvd->szKeyName, "movesound" ))
 	{
 		pev->noise = ALLOC_STRING( pkvd->szValue );
+		Q_strncpy( m_szMoveSound, pkvd->szValue, sizeof( m_szMoveSound ));  // RTN F10: path salvo p/ o re-apply (o Precache do plat sobrescreve o pev->noise)
 		m_bCustomMoveSound = true;
 		pkvd->fHandled = TRUE;
 	}
 	else if ( FStrEq( pkvd->szKeyName, "stopsound" ))
 	{
 		pev->noise1 = ALLOC_STRING( pkvd->szValue );
+		Q_strncpy( m_szStopSound, pkvd->szValue, sizeof( m_szStopSound ));
 		m_bCustomStopSound = true;
 		pkvd->fHandled = TRUE;
 	}
@@ -342,13 +346,14 @@ void CFuncTrain :: Precache( void )
 {
 	CBasePlatTrain::Precache();
 
-	// RTN F10: sons custom - o CBasePlatTrain::Precache sobrescreve o
-	// pev->noise com o som padrao do movesnd; re-aplica o custom (precacheia
-	// e mantem o caminho p/ o EMIT_SOUND do SoundSetup/Stop)
-	if ( m_bCustomMoveSound && pev->noise )
-		pev->noise = UTIL_PrecacheSound( STRING( pev->noise ));
-	if ( m_bCustomStopSound && pev->noise1 )
-		pev->noise1 = UTIL_PrecacheSound( STRING( pev->noise1 ));
+	// RTN F10: sons custom - o CBasePlatTrain::Precache SOBRESCREVE o
+	// pev->noise (o movesnd 0 = common/null.wav, 1-13 = som padrao - por
+	// isso o custom nunca tocava!). Re-aplica usando o PATH SALVO no
+	// KeyValue (m_szMoveSound) - o STRING(pev->noise) aqui ja e o padrao.
+	if ( m_bCustomMoveSound && m_szMoveSound[ 0 ] )
+		pev->noise = UTIL_PrecacheSound( m_szMoveSound );
+	if ( m_bCustomStopSound && m_szStopSound[ 0 ] )
+		pev->noise1 = UTIL_PrecacheSound( m_szStopSound );
 
 	SetThink( &CFuncTrain :: SoundSetup );
 	SetNextThink( 0.1 );

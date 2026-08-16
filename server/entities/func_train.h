@@ -66,4 +66,6 @@ public:
 	BOOL		m_activated;
 	bool		m_bCustomMoveSound;  // RTN F10: movesound custom (o caminho - wav/ogg)
 	bool		m_bCustomStopSound;  // RTN F10: stopsound custom (o caminho - wav/ogg)
+	char		m_szMoveSound[ 64 ];  // RTN F10: path do custom (salvo NO KeyValue - o CBasePlatTrain::Precache SOBRESCREVE o pev->noise, entao o re-apply usa ESTE campo)
+	char		m_szStopSound[ 64 ];
 };
