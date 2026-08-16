@@ -32,7 +32,7 @@ int CHudRadio::Init( void )
 int CHudRadio::VidInit( void )
 {
 	ResetState();
-	m_hSpeaker = LOAD_TEXTURE( "gfx/vgui/speaker4.tga", NULL, 0, TF_CLAMP | TF_IMAGE );
+	m_hSpeaker = LOAD_TEXTURE( "gfx/vgui/speaker4.tga", NULL, 0, TF_CLAMP | TF_IMAGE | TF_HAS_ALPHA );
 	return 1;
 }
 

@@ -98,7 +98,7 @@ void LinkUserMessages()
 	gmsgAmmoPickup = REG_USER_MSG("AmmoPickup", -1);  // RTN F10: -1 (variável) - agora leva o WRITE_STRING do nome no fim
 	gmsgTextWindow = REG_USER_MSG("TextWindow", -1);  // RTN F10: janela de documento (string variável)
 	gmsgRadioIcon = REG_USER_MSG("RadioIcon", -1);    // RTN F10: radio_sentence (string variável)
-	gmsgWeapPickup = REG_USER_MSG("WeapPickup", 1);
+	gmsgWeapPickup = REG_USER_MSG("WeapPickup", -1);  // RTN F10: -1 (variável) - leva o WRITE_STRING do nome
 	gmsgItemPickup = REG_USER_MSG("ItemPickup", -1);
 	gmsgHideWeapon = REG_USER_MSG("HideWeapon", 1);
 	gmsgSetFOV = REG_USER_MSG("SetFOV", 1);

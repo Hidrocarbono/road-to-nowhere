@@ -686,12 +686,14 @@ int CBasePlayerWeapon::AddToPlayer( CBasePlayer *pPlayer )
 
 	pPlayer->AddWeapon( m_pWeaponContext->m_iId );
 
-	// RTN F10: pickup message da arma ("!weapon_<id>" no titles.txt - P2)
-	// o client monta o "!<nome>" pelo iIndex e mostra o pickup discreto
+	// RTN F10: pickup message da arma ("!weapon_<nome>" no titles.txt - P2)
+	// o server envia o BYTE (historico) + o NOME (a mensagem) - o m_iId do
+	// weapon script NAO e o iIndex do WeaponList (bug: o client nao achava)
 	if ( gmsgWeapPickup )
 	{
 		MESSAGE_BEGIN( MSG_ONE, gmsgWeapPickup, NULL, pPlayer->pev );
 			WRITE_BYTE( m_pWeaponContext->m_iId );
+			WRITE_STRING( pszName() );
 		MESSAGE_END();
 	}
 

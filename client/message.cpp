@@ -258,6 +258,14 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 	unsigned char line[80];
 
 	pText = pMessage->pMessage;
+
+	// RTN F10 fix: %player_name% no texto FINAL do titles (o LookupString
+	// retorna o texto cru do titles - o substituto aqui cobre o F7 + os
+	// pickups + o radio - o lugar certo do fix global)
+	extern char *RTN_SubstituteLocalPlayerName( char *dst, size_t dstSize, const char *src );
+	static char szPlayerNameBuf[1024];
+	pText = RTN_SubstituteLocalPlayerName( szPlayerNameBuf, sizeof( szPlayerNameBuf ), pText );
+
 	// Count lines
 	m_parms.lines = 1;
 	m_parms.time = time;
@@ -482,6 +490,13 @@ void CHudMessage::MessageAdd( const char *pName, float time )
 
 			m_pMessages[i] = tempMessage;
 			m_startTime[i] = time;
+
+			// RTN F10 fix: o gHUD so chama o Draw dos elementos com HUD_ACTIVE -
+			// o MsgFunc_HudText setava mas o MessageAdd (pickups) NAO -> as
+			// mensagens dos pickups nunca desenhavam (bug do user: arma e
+			// municao sem mensagem)
+			m_iFlags |= HUD_ACTIVE;
+
 			return;
 		}
 	}
@@ -493,13 +508,7 @@ int CHudMessage::MsgFunc_HudText( const char *pszName, int iSize, void *pbuf )
 
 	char *pString = READ_STRING();
 
-	// RTN F10 fix: %player_name% no F7 (env_message -> HudText). O substituto
-	// estava so no MsgFunc_TextMsg (canal errado - o F7 usa o HudText).
-	extern char *RTN_SubstituteLocalPlayerName( char *dst, size_t dstSize, const char *src );
-	char szNameBuf[512];
-	RTN_SubstituteLocalPlayerName( szNameBuf, sizeof( szNameBuf ), pString );
-
-	MessageAdd( szNameBuf, gHUD.m_flTime );
+	MessageAdd( pString, gHUD.m_flTime );
 
 	// remember the time -- to fix up level transitions
 	m_parms.time = gHUD.m_flTime;

@@ -79,9 +79,9 @@ void CHudTextWindow::Open( const char *pszFileName )
 	// RTN F10 fix (analise pre-build): carrega as texturas UMA vez (no Open)
 	// - o LOAD_TEXTURE no Draw carregaria a CADA frame (custo de IO + risco
 	// de alocar texturas em loop). O P2 carregava no construtor; aqui no Open.
-	m_hPanelTex = LOAD_TEXTURE( m_szPanelImage, NULL, 0, TF_CLAMP | TF_IMAGE );
+	m_hPanelTex = LOAD_TEXTURE( m_szPanelImage, NULL, 0, TF_CLAMP | TF_IMAGE | TF_HAS_ALPHA );
 	if( m_szButtonImage[0] )
-		m_hButtonTex = LOAD_TEXTURE( m_szButtonImage, NULL, 0, TF_CLAMP | TF_IMAGE );
+		m_hButtonTex = LOAD_TEXTURE( m_szButtonImage, NULL, 0, TF_CLAMP | TF_IMAGE | TF_HAS_ALPHA );
 
 	// pausa o jogo e esconde o icone "Paused" da engine (showpause 0)
 	gEngfuncs.pfnClientCmd( "showpause 0\n" );

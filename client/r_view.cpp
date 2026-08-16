@@ -255,17 +255,16 @@ void V_CalcGunAngle( struct ref_params_s *pparams )
 	if( !viewent ) return;
 
 	// RTN F10: PERNAS - olhando para BAIXO, troca o viewmodel pelo modelo do
-	// jogador (player.mdl - as pernas, mecanismo classico do HL), independente
-	// da arma equipada (so geometrico). O engine re-monta o viewent a cada
-	// frame (cl_view.c:103), entao ao olhar para cima/frente a arma volta.
+	// jogador (as pernas, mecanismo classico do HL), independente da arma
+	// equipada (so geometrico). O engine re-monta o viewent a cada frame
+	// (cl_view.c:103), entao ao olhar para cima/frente a arma volta.
 	// NOTA: usa o VETOR forward (pparams->forward[2] < -0.7 = ~45° p/ baixo)
 	// em vez do pitch - imune a convencao de sinal (GoldSrc: pitch positivo =
 	// baixo; mas o forward.z negativo e SEMPRE "olhando para o chao").
-	// Usa models/player.mdl (tem a gaitsequence - o player_legs.mdl do user
-	// ainda nao tem as sequencias de caminhada, o que travava o desenho).
+	// Usa models/player_legs.mdl (o modelo das pernas do user - precacheado).
 	if( pparams->forward[2] < -0.7f )
 	{
-		int iLegs = gEngfuncs.pEventAPI->EV_FindModelIndex( "models/player.mdl" );
+		int iLegs = gEngfuncs.pEventAPI->EV_FindModelIndex( "models/player_legs.mdl" );
 		if( iLegs > 0 )
 		{
 			viewent->model = IEngineStudio.GetModelByIndex( iLegs );
@@ -277,8 +276,13 @@ void V_CalcGunAngle( struct ref_params_s *pparams )
 				viewent->curstate.sequence = pLocal->curstate.gaitsequence;
 				viewent->curstate.animtime = pparams->time;
 			}
+			return;  // pernas nao recebem o bob/roll da arma
 		}
-		return;  // pernas nao recebem o bob/roll da arma
+		// RTN F10 fix (bug da fumaca): o return ANTIGO ficava FORA do if -
+		// ao olhar para o chao sem o modelo das pernas, o viewent ficava com
+		// o modelo da arma + a animacao pendurada -> o evento 5001 do QC
+		// disparava a fumaca/muzzle sem atirar. Agora: sem o modelo, o
+		// viewmodel normal continua (sem o evento espurio).
 	}
 
 	viewent->angles[YAW] = pparams->viewangles[YAW] + pparams->crosshairangle[YAW];

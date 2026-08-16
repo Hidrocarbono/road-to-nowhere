@@ -504,12 +504,13 @@ int CHudAmmo::MsgFunc_WeapPickup( const char *pszName, int iSize, void *pbuf )
 	gHR.AddToHistory( HISTSLOT_WEAP, iIndex );
 
 	// RTN F10: pickup message da arma ("!weapon_<nome>" - o titles.txt - P2)
-	// o server envia o iIndex - o client monta o "!<nome>" e mostra o pickup
-	WEAPON *weap = gWR.GetWeapon( iIndex );
-	if ( weap )
+	// o server envia o NOME (string) - nao depende do iIndex (o m_iId do
+	// script nao e o iIndex do WeaponList - bug antigo: nada aparecia)
+	const char *szWeaponName = READ_STRING();
+	if ( szWeaponName && szWeaponName[0] )
 	{
 		char msgname[256];
-		Q_snprintf( msgname, sizeof( msgname ), "!%s", weap->szName );
+		Q_snprintf( msgname, sizeof( msgname ), "!%s", szWeaponName );
 		gHUD.m_Message.MessageAdd( msgname, gEngfuncs.GetClientTime() );
 	}
 
