@@ -29,17 +29,11 @@ CMP5::CMP5()
 	auto layerImpl = std::make_unique<CServerWeaponLayerImpl>(this);
 	auto contextImpl = std::make_unique<CMP5WeaponContext>(std::move(layerImpl));
 	m_pWeaponContext = std::move(contextImpl);
-	// RTN F10: mira de ferro com leve zoom (FOV 90 -> 60) na MP5
-	m_pWeaponContext->m_iZoomFOV = 60;
 }
 
 void CMP5::Spawn()
 {
 	m_pScriptInfo = WeaponScript_FindWeaponByName( "weapon_mp5" );
-	// RTN F10: script de arma com zoom_fov (futuro weapon_*.txt) prevalece
-	// sobre o default hardcoded do construtor
-	if( m_pScriptInfo && m_pScriptInfo->zoom_fov > 0 )
-		m_pWeaponContext->m_iZoomFOV = m_pScriptInfo->zoom_fov;
 	pev->classname = MAKE_STRING(CLASSNAME_STR(MP5_CLASSNAME));
 	Precache();
 	if( m_pScriptInfo && m_pScriptInfo->worldmodel[0] )

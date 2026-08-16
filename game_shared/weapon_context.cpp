@@ -69,21 +69,11 @@ CBaseWeaponContext::~CBaseWeaponContext()
 
 void CBaseWeaponContext::ItemPostFrame()
 {
-	// RTN F10: MIRA DE FERRO - segurar IN_ATTACK2 = zoom (hold), estilo
-	// Tarkov. So para armas com m_iZoomFOV > 0. O botao e consumido aqui
-	// (nao dispara SecondaryAttack). Pode atirar mirando (IN_ATTACK segue
-	// o fluxo normal abaixo).
-	if( m_iZoomFOV > 0 )
-	{
-		bool bAimHeld = m_pLayer->CheckPlayerButtonFlag( IN_ATTACK2 );
-		if( bAimHeld != m_bAiming )
-		{
-			m_bAiming = bAimHeld;
-			m_pLayer->SetPlayerFOV( bAimHeld ? (float)m_iZoomFOV : 0.0f );
-		}
-		if( bAimHeld )
-			m_pLayer->ClearPlayerButtonFlag( IN_ATTACK2 );
-	}
+	// NOTA RTN F10: o mecanismo de aim generico (m_iZoomFOV) ficou como
+	// preparacao para o futuro script de armas, mas NAO consome o IN_ATTACK2
+	// aqui - a MP5 tem o iron sight proprio (toggle + cl_viewmodel_fov, ver
+	// CMP5WeaponContext::SecondaryAttack) e o fluxo abaixo DEVE continuar
+	// chamando o SecondaryAttack virtual de cada arma.
 
 	if ((m_fInReload) && m_pLayer->GetPlayerNextAttackTime() <= m_pLayer->GetWeaponTimeBase(false))
 	{

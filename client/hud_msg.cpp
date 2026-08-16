@@ -36,6 +36,7 @@ DECLARE_HUDMESSAGE( ViewMode );
 DECLARE_HUDMESSAGE( Particle );
 DECLARE_HUDMESSAGE( KillPart );
 DECLARE_HUDMESSAGE( SetFOV );
+DECLARE_HUDMESSAGE( IronSight );	// RTN F10: estado da mira de ferro (DOF)
 DECLARE_HUDMESSAGE( Concuss );
 DECLARE_HUDMESSAGE( GameMode );
 DECLARE_HUDMESSAGE( MusicFade );
@@ -54,6 +55,7 @@ int CHud :: InitHUDMessages( void )
 	HOOK_MESSAGE( InitHUD );
 	HOOK_MESSAGE( ViewMode );
 	HOOK_MESSAGE( SetFOV );
+	HOOK_MESSAGE( IronSight );		// RTN F10: mira de ferro (DOF)
 	HOOK_MESSAGE( Concuss );
 	HOOK_MESSAGE( Weapons );
 	HOOK_MESSAGE( Particle );
@@ -188,11 +190,6 @@ int CHud::MsgFunc_SetFOV( const char *pszName,  int iSize, void *pbuf )
 		m_zoomMode = true;
 	}
 
-	// RTN F10: mira de ferro - ativa/desativa o DOF (foco no alvo, fundo
-	// desfocado) junto com o zoom
-	extern void RTN_SetIronSightDOF( bool bActive );
-	RTN_SetIronSightDOF( m_zoomMode );
-
 	if( m_iFOV == def_fov )
 	{
 		// reset to saved sensitivity
@@ -205,6 +202,20 @@ int CHud::MsgFunc_SetFOV( const char *pszName,  int iSize, void *pbuf )
 		// scale by zoom ratio
 		m_flMouseSensitivity *= ((float)newfov / def_fov) * CVAR_GET_FLOAT( "zoom_sensitivity_ratio" );
 	}
+
+	END_READ();
+
+	return 1;
+}
+
+int CHud :: MsgFunc_IronSight( const char *pszName, int iSize, void *pbuf )
+{
+	BEGIN_READ( pszName, pbuf, iSize );
+
+	// RTN F10: o server avisa o estado real da mira de ferro (toggle) -
+	// ativa/desativa o DOF (foco no alvo, fundo desfocado com bokeh)
+	extern void RTN_SetIronSightDOF( bool bActive );
+	RTN_SetIronSightDOF( READ_BYTE() != 0 );
 
 	END_READ();
 

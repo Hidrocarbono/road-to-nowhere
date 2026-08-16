@@ -617,6 +617,7 @@ public:
 	int _cdecl MsgFunc_InitHUD( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_ViewMode( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_SetFOV(const char *pszName,  int iSize, void *pbuf);
+	int _cdecl MsgFunc_IronSight(const char *pszName,  int iSize, void *pbuf);	// RTN F10: mira de ferro (DOF)
 	int _cdecl MsgFunc_Concuss( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_RainData( const char *pszName, int iSize, void *pbuf ); 
 	int _cdecl MsgFunc_SetBody( const char *pszName, int iSize, void *pbuf );

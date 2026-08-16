@@ -163,6 +163,7 @@ void CMP5WeaponContext::SecondaryAttack()
 		SendWeaponAnim( MP5_ANIM_AIM_OUT );
 
 #ifndef CLIENT_DLL
+	extern int gmsgIronSight;	// RTN F10 (server/user_messages.h)
 	CBasePlayer *player = m_pLayer->GetWeaponEntity()->m_pPlayer;
 	if( player )
 	{
@@ -174,6 +175,12 @@ void CMP5WeaponContext::SecondaryAttack()
 			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 50\n" );
 		else
 			g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 64\n" );
+
+		// RTN F10: avisa o client do estado da mira (1 byte) - o client
+		// ativa/desativa o DOF (foco no alvo, fundo desfocado)
+		MESSAGE_BEGIN( MSG_ONE, gmsgIronSight, NULL, player->edict() );
+		WRITE_BYTE( m_bInIronSight ? 1 : 0 );
+		MESSAGE_END();
 	}
 #endif
 
