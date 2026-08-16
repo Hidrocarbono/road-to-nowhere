@@ -165,6 +165,8 @@ typedef enum
 	UT_VIGNETTESCALE,
 	UT_FILMGRAINSCALE,
 	UT_ACCENTCOLOR,
+	UT_DIRTMAP,			// RTN F10: lens dirt (textura de sujeira)
+	UT_DIRTSCALE,		// RTN F10: lens dirt (intensidade)
 	UT_LIGHTGAMMA,
 	UT_LIGHTSCALE,
 	UT_LIGHTTHRESHOLD,

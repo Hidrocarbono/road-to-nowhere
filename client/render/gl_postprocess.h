@@ -22,8 +22,10 @@ public:
 	word	luminanceDownscaleShader;
 	word	blurMipShader;
 	word	bloomShader;
+	word	lensDirtShader;		// RTN F10: lens dirt (sujeira na luz)
 
 	TextureHandle	target_rgb[2];
+	TextureHandle	m_dirtTexture;	// RTN F10: textura de sujeira (lensdirt.tga)
 	float	blurFactor[2];
 	bool	m_bUseTarget;
 	CPostFxParameters fxParameters;
@@ -52,7 +54,7 @@ public:
 
 	void InitializeTextures();
 	void InitializeShaders();
-
+	void InitLensDirt();		// RTN F10
 	void RequestScreenColor();
 	void RequestScreenDepth();
 	void RequestTargetCopy(int slot);

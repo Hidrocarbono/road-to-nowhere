@@ -498,6 +498,7 @@ void GL_BackendEndFrame( ref_viewpass_t *rvp, RefParams params )
 
 	R_RenderDebugStudioList( true ); // 3D
 	RenderSunShafts();			// 2D
+	RenderLensDirt();			// 2D (RTN F10)
 	RenderPostprocessing();		// 2D
 	R_ShowLightMaps();			// 2D
 	

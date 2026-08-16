@@ -23,6 +23,7 @@ void CBasePostEffects::InitializeTextures()
 	InitTargetColor(0);
 	InitDepthOfField();
 	InitAutoExposure();
+	InitLensDirt();		// RTN F10
 }
 
 void CBasePostEffects::InitializeShaders()
@@ -49,6 +50,9 @@ void CBasePostEffects::InitializeShaders()
 
 	// render sunshafts
 	drawSunShafts = GL_FindShader("postfx/drawshafts", "postfx/generic", "postfx/drawshafts");
+
+	// RTN F10: lens dirt (sujeira de lente na luz forte)
+	lensDirtShader = GL_FindShader("postfx/lensdirt", "postfx/generic", "postfx/lensdirt");
 
 	// tonemapping
 	if (CVAR_TO_BOOL(r_show_luminance)) {
@@ -108,6 +112,17 @@ void CBasePostEffects :: InitTargetColor( int slot )
 		tex_flags = TF_IMAGE;
 
 	target_rgb[slot] = CREATE_TEXTURE(va( "*target%i", slot ), TARGET_SIZE, TARGET_SIZE, NULL, tex_flags);
+}
+
+void CBasePostEffects :: InitLensDirt( void )
+{
+	// RTN F10: textura de sujeira de lente (gerada proceduralmente no repo)
+	if( m_dirtTexture.Initialized( ))
+	{
+		FREE_TEXTURE( m_dirtTexture );
+		m_dirtTexture = TextureHandle::Null();
+	}
+	m_dirtTexture = LOAD_TEXTURE( "textures/lensdirt.tga", NULL, 0, TF_CLAMP | TF_IMAGE | TF_HAS_ALPHA );
 }
 
 void CBasePostEffects :: RequestScreenColor( void )
@@ -462,6 +477,8 @@ void InitPostEffects()
 {
 	v_posteffects = CVAR_REGISTER( "gl_posteffects", "1", FCVAR_ARCHIVE );
 	v_sunshafts = CVAR_REGISTER( "gl_sunshafts", "1", FCVAR_ARCHIVE );
+	gl_lensdirt = CVAR_REGISTER( "gl_lensdirt", "1", FCVAR_ARCHIVE );			// RTN F10
+	gl_lensdirt_scale = CVAR_REGISTER( "gl_lensdirt_scale", "0.35", FCVAR_ARCHIVE );	// RTN F10
 	r_postfx_enable = CVAR_REGISTER("r_postfx_enable", "1.0", 0);
 	r_tonemap = CVAR_REGISTER("r_tonemap", "1", FCVAR_ARCHIVE);
 	r_bloom = CVAR_REGISTER("r_bloom", "1", FCVAR_ARCHIVE);
@@ -585,6 +602,12 @@ void V_RenderPostEffect( word hProgram )
 			break;
 		case UT_VIGNETTESCALE:
 			u->SetValue(post.fxParameters.GetVignetteScale());
+			break;
+		case UT_DIRTMAP:		// RTN F10: lens dirt
+			u->SetValue( post.m_dirtTexture.ToInt() );
+			break;
+		case UT_DIRTSCALE:		// RTN F10: lens dirt (intensidade)
+			u->SetValue( gl_lensdirt_scale->value );
 			break;
 		case UT_FILMGRAINSCALE:
 			u->SetValue(post.fxParameters.GetFilmGrainScale());
@@ -947,4 +970,25 @@ void RTN_SetIronSightDOF( bool bActive )
 		post.m_flStartLength = 0.0f;
 		post.m_flOffsetLength = 0.0f;
 	}
+}
+
+// RTN F10: lens dirt - sujeira de lente mascarada pelo brilho da cena
+// (sol, luzes acesas, explosoes). Roda DEPOIS do tonemap (cena 0..1) e
+// ANTES do postprocessing final (vignette/grain). Cvar: gl_lensdirt 0/1,
+// gl_lensdirt_scale (intensidade).
+void RenderLensDirt( void )
+{
+	if( !CVAR_TO_BOOL( gl_lensdirt ))
+		return;
+
+	if( !post.lensDirtShader || !post.m_dirtTexture.Initialized( ))
+		return;
+
+	GL_DEBUG_SCOPE();
+	if( !post.Begin( ))
+		return;
+
+	post.RequestScreenColor();
+	V_RenderPostEffect( post.lensDirtShader );
+	post.End();
 }
