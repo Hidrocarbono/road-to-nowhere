@@ -294,6 +294,9 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 
 
 	m_parms.y = YPosition( pMessage->y, m_parms.totalHeight );
+	// RTN F10: mensagens de salvamento/itens movem do canto inferior
+	// esquerdo para a MEIA ALTURA do canto esquerdo (o user pediu).
+	m_parms.y = YPosition( 0.5f, m_parms.totalHeight );
 	// RTN F10 fix: o desenho deve usar o buffer COM o %player_name% substituido
 	// (o pMessage->pMessage original tem o %player_name% cru - o fix anterior
 	// era PERDIDO aqui e o desenho mostrava o texto sem o nome do jogador)

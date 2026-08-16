@@ -270,6 +270,13 @@ void V_CalcGunAngle( struct ref_params_s *pparams )
 		{
 			viewent->model = IEngineStudio.GetModelByIndex( iLegs );
 			viewent->curstate.modelindex = iLegs;
+			// RTN F10 fix (pernas nao apareciam - so a sombra): o viewent
+			// herda o estado do viewmodel da arma (renderamt 0 / EF_NODRAW
+			// em alguns casos) - garante o desenho visivel do corpo
+			viewent->curstate.renderamt = 255;
+			viewent->curstate.effects &= ~EF_NODRAW;
+			viewent->curstate.frame = 0;
+			viewent->curstate.framerate = 1.0f;
 			// animacao: usa a gaitsequence do jogador (caminhada/parado)
 			cl_entity_t *pLocal = gEngfuncs.GetLocalPlayer();
 			if( pLocal )
