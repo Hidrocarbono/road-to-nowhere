@@ -261,10 +261,11 @@ void V_CalcGunAngle( struct ref_params_s *pparams )
 	// NOTA: usa o VETOR forward (pparams->forward[2] < -0.7 = ~45° p/ baixo)
 	// em vez do pitch - imune a convencao de sinal (GoldSrc: pitch positivo =
 	// baixo; mas o forward.z negativo e SEMPRE "olhando para o chao").
-	// Usa models/player_legs.mdl (o modelo das pernas do user - precacheado).
+	// Usa models/player.mdl (o modelo COMPLETO do jogador - 77 sequencias -
+	// o mecanismo classico do HL: a gaitsequence da caminhada real).
 	if( pparams->forward[2] < -0.7f )
 	{
-		int iLegs = gEngfuncs.pEventAPI->EV_FindModelIndex( "models/player_legs.mdl" );
+		int iLegs = gEngfuncs.pEventAPI->EV_FindModelIndex( "models/player.mdl" );
 		if( iLegs > 0 )
 		{
 			viewent->model = IEngineStudio.GetModelByIndex( iLegs );

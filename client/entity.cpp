@@ -365,13 +365,12 @@ void DLLEXPORT HUD_StudioEvent( const struct mstudioevent_s *event, const struct
 	{
 	case 5001:
 		// RTN F10 fix (bug do user: fumaca/muzzle/brilho ao olhar p/ o chao):
-		// o QC do modelo das PERNAS (player_legs.mdl) tem o evento 5001 (o
-		// modelo foi compilado com o evento do tiro) - ao olhar p/ baixo o
-		// viewent vira as pernas e o evento dispara a fumaca/muzzle/brilho
-		// sem atirar. Ignora o evento quando o modelo e o player_legs.
+		// o viewent vira o modelo do jogador/pernas (player.mdl - o QC do
+		// modelo completo nao tem o evento do tiro, mas por seguranca ignora
+		// o evento 5001 quando o modelo e um modelo de jogador)
 		if( entity && entity->model && entity->model->name )
 		{
-			if( Q_strstr( entity->model->name, "player_legs" ))
+			if( Q_strstr( entity->model->name, "player" ))
 				return;
 		}
 		R_StudioAttachmentPosDir( entity, 0, &pos, &dir );
