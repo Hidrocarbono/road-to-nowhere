@@ -25,6 +25,11 @@ GNU General Public License for more details.
 #include <mathlib.h>
 #include "pm_defs.h"
 #include "stringlib.h"
+
+// RTN F10: modo PERNAS (definida no r_view.cpp) - enquanto ativa, o
+// viewent carrega o corpo do jogador (player.mdl) e o DrawViewModel
+// NAO pode trocar o modelo de volta para o viewmodel da arma.
+extern bool g_bRTNLegs;
 #include "triangleapi.h"
 #include "entity_types.h"
 #include "gl_shader.h"
@@ -2629,7 +2634,11 @@ void CStudioModelRenderer :: DrawViewModel( void )
 	bool bCustom = ComputeCustomFov( projMatrix, worldViewProjMatrix );
 
 	// prevent ugly blinking when weapon is changed
-	view->model = MODEL_HANDLE( gHUD.m_iViewModelIndex );
+	// RTN F10: no modo PERNAS (olhando para baixo) o viewent carrega o
+	// player.mdl (corpo) - NUNCA trocar de volta para o viewmodel da arma,
+	// senao o corpo nem chega a ser desenhado (bug das pernas invisiveis)
+	if( !g_bRTNLegs )
+		view->model = MODEL_HANDLE( gHUD.m_iViewModelIndex );
 
 	// copy viewhands modelindx into weaponmodel
 	if( view->index > 0 )

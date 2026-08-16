@@ -30,6 +30,11 @@ static bool is_paused = false;
 static float g_flLeanRoll = 0.0f;
 static float g_flLeanOffset = 0.0f;
 
+// RTN F10: modo PERNAS - true quando o viewent carrega o corpo do jogador
+// (olhando para baixo). O renderer (gl_studio_draw.cpp) NAO re-sobrescreve
+// o modelo com o viewmodel da arma enquanto esta flag estiver ligada.
+bool g_bRTNLegs = false;
+
 cvar_t	*cl_bobcycle;
 cvar_t	*cl_bob;
 cvar_t	*cl_bobup;
@@ -251,6 +256,8 @@ void V_CalcGunAngle( struct ref_params_s *pparams )
 {	
 	cl_entity_t *viewent;
 	
+	g_bRTNLegs = false;  // RTN F10: so fica ativo se o corpo for aplicado abaixo
+
 	viewent = GET_VIEWMODEL();
 	if( !viewent ) return;
 
@@ -284,6 +291,7 @@ void V_CalcGunAngle( struct ref_params_s *pparams )
 				viewent->curstate.sequence = pLocal->curstate.gaitsequence;
 				viewent->curstate.animtime = pparams->time;
 			}
+			g_bRTNLegs = true;  // RTN F10: renderer nao troca o modelo pela arma
 			return;  // pernas nao recebem o bob/roll da arma
 		}
 		// RTN F10 fix (bug da fumaca): o return ANTIGO ficava FORA do if -
@@ -1038,6 +1046,13 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 	}
 
 	V_CalcViewModelLag( pparams, view->origin, view->angles, lastAngles );
+
+	// RTN F10: no modo PERNAS o corpo desce para o CHAO - a origem do
+	// viewmodel fica na altura dos olhos (~28u), mas o player.mdl tem a
+	// origem nos pes; sem isso o corpo seria desenhado "em pe" a partir
+	// da camera (invisivel/estranho ao olhar para baixo).
+	if( g_bRTNLegs )
+		view->origin[2] -= 28.0f;
 		
 	pparams->viewangles += pparams->punchangle;
 
