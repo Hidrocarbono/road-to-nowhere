@@ -364,6 +364,16 @@ void DLLEXPORT HUD_StudioEvent( const struct mstudioevent_s *event, const struct
 	switch( event->event )
 	{
 	case 5001:
+		// RTN F10 fix (bug do user: fumaca/muzzle/brilho ao olhar p/ o chao):
+		// o QC do modelo das PERNAS (player_legs.mdl) tem o evento 5001 (o
+		// modelo foi compilado com o evento do tiro) - ao olhar p/ baixo o
+		// viewent vira as pernas e o evento dispara a fumaca/muzzle/brilho
+		// sem atirar. Ignora o evento quando o modelo e o player_legs.
+		if( entity && entity->model && entity->model->name )
+		{
+			if( Q_strstr( entity->model->name, "player_legs" ))
+				return;
+		}
 		R_StudioAttachmentPosDir( entity, 0, &pos, &dir );
 		// RTN F10 fix: no viewmodel, o dir do attachment do modelo novo aponta
 		// PRA CIMA (flash vertical). Usa o forward da CAMERA (onde o jogador

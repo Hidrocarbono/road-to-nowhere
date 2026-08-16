@@ -22,10 +22,33 @@ BEGIN_DATADESC( CFuncTrain )
 	DEFINE_FIELD( m_hCurrentTarget, FIELD_EHANDLE ),
 	DEFINE_FIELD( m_pSequence, FIELD_CLASSPTR ),
 	DEFINE_FIELD( m_activated, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_bCustomMoveSound, FIELD_BOOLEAN ),  // RTN F10: movesound custom
+	DEFINE_FIELD( m_bCustomStopSound, FIELD_BOOLEAN ),  // RTN F10: stopsound custom
 	DEFINE_FUNCTION( SoundSetup ),
 	DEFINE_FUNCTION( Wait ),
 	DEFINE_FUNCTION( Next ),
 END_DATADESC()
+
+// RTN F10: sons custom do func_train (o caminho do arquivo - wav/ogg)
+// - movesound = o som de MOVIMENTO (loop - o pev->noise do HL)
+// - stopsound = o som de PARADA (o toque - o pev->noise1 do HL)
+void CFuncTrain :: KeyValue( KeyValueData *pkvd )
+{
+	if ( FStrEq( pkvd->szKeyName, "movesound" ))
+	{
+		pev->noise = ALLOC_STRING( pkvd->szValue );
+		m_bCustomMoveSound = true;
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "stopsound" ))
+	{
+		pev->noise1 = ALLOC_STRING( pkvd->szValue );
+		m_bCustomStopSound = true;
+		pkvd->fHandled = TRUE;
+	}
+	else
+		BaseClass::KeyValue( pkvd );
+}
 
 void CFuncTrain :: Blocked( CBaseEntity *pOther )
 {
@@ -318,6 +341,14 @@ void CFuncTrain :: Spawn( void )
 void CFuncTrain :: Precache( void )
 {
 	CBasePlatTrain::Precache();
+
+	// RTN F10: sons custom - o CBasePlatTrain::Precache sobrescreve o
+	// pev->noise com o som padrao do movesnd; re-aplica o custom (precacheia
+	// e mantem o caminho p/ o EMIT_SOUND do SoundSetup/Stop)
+	if ( m_bCustomMoveSound && pev->noise )
+		pev->noise = UTIL_PrecacheSound( STRING( pev->noise ));
+	if ( m_bCustomStopSound && pev->noise1 )
+		pev->noise1 = UTIL_PrecacheSound( STRING( pev->noise1 ));
 
 	SetThink( &CFuncTrain :: SoundSetup );
 	SetNextThink( 0.1 );

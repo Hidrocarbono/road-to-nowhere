@@ -2510,6 +2510,8 @@
 		12: "odd elev 1"
 		13: "odd elev 2"
 	]
+	movesound(sound) : "Move Sound (custom - arquivo wav/ogg, sobrescreve o Move Sound)" : ""
+	stopsound(sound) : "Stop Sound (custom - arquivo wav/ogg, sobrescreve o Stop Sound)" : ""
 	stopsnd(choices) : "Stop Sound" : 0 = 
 	[
 		0: "No Sound"
