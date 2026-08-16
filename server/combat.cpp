@@ -813,6 +813,9 @@ void CGib :: Spawn( const char *szGibModel )
 	SET_MODEL( edict(), szGibModel );
 	UTIL_SetSize( pev, g_vecZero, g_vecZero );
 
+	// RTN F10: gibs menores (o user achava grandes) - 40-70% do tamanho natural
+	pev->scale = RANDOM_FLOAT( 0.4f, 0.7f );
+
 	SetNextThink( 4 );
 	m_lifeTime = 25;
 	SetThink( &CGib::WaitTillLand );
@@ -1384,6 +1387,9 @@ void CBaseMonster :: TraceAttack( entvars_t *pevAttacker, float flDamage, Vector
 		}
 
 		SpawnBlood(ptr->vecEndPos, BloodColor(), flDamage);// a little surface blood.
+		// RTN F10: sangue no CORPO do monstro (decal no modelo - o P2 so
+		// fazia no jogador; os monstros so deixavam o decal na parede)
+		UTIL_BloodStudioDecalTrace( ptr, BloodColor() );
 		TraceBleed( flDamage, vecDir, ptr, bitsDamageType );
 		AddMultiDamage( pevAttacker, this, flDamage, bitsDamageType );
 	}
