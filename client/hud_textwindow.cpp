@@ -214,15 +214,9 @@ int CHudTextWindow::Draw( float flTime )
 	int x = cx - w / 2;
 	int y = cy - h / 2;
 
-	// fundo escurecido (quad preto translucido em tela cheia - 50% p/ o
-	// usuario nao ver a tela 100% preta - RTN F10 ajuste)
-	// RTN F10 fix: o GL_Blend(GL_TRUE) - sem ele o quad preto saia OPACO
-	// (o alpha do Color4f ignorado - o mesmo problema do muzzle)
-	gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
-	gEngfuncs.pTriAPI->Color4f( 0.0f, 0.0f, 0.0f, 0.5f );
-	GL_Blend( GL_TRUE );
-	GL_Bind( 0, FIND_TEXTURE( "*white" ));
-	OrthoQuad( 0, 0, ScreenWidth, ScreenHeight );
+	// RTN F10: fundo preto de tela cheia REMOVIDO a pedido do user - a cena
+	// fica totalmente visivel atras do documento (imersao estilo Tarkov).
+	// Se faltar contraste p/ ler, da pra voltar com alpha bem baixo (~0.12).
 
 	// painel do documento (a imagem - texts/images/*.tga ou o sprite)
 	if( m_hPanelTex.Initialized( ))
