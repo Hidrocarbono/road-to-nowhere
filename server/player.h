@@ -132,6 +132,7 @@ public:
 
 	int		m_afButtonLast;
 	int		m_afButtonPressed;
+	BOOL	m_bWasRunning;   // RTN F10: jogador corria no frame anterior (p/ o toque unico do breath_low ao parar)
 	int		m_afButtonReleased;
 	
 	edict_t		*m_pentSndLast;			// last sound entity to modify player room type

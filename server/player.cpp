@@ -1792,26 +1792,41 @@ void CBasePlayer::PreThink(void)
 		// (Antes era (-sin, +cos) = -right -> tiro saia invertido no lean!)
 		float leanTarget = 0.0f;
 
-		// ===== RTN F10: TONTURA + RESPIRACAO PESADA (crescem com o dano) =====
-		// Com a vida na metade (~50%) o jogador comeca a sentir: a tela
-		// balanca (punchangle senoidal) e a respiracao pesada
-		// (player/breath_faster.wav) sobe o pitch - efeitos que ficam
-		// fortes conforme a vida cai (sensacao brutal estilo Tarkov).
+		// ===== RTN F10: RESPIRACAO (corrida + dano) + TONTURA =====
+		// breath_faster.wav = loop da CORRIDA (pitch sobe com a exaustao);
+		// breath_low_NOREP.wav = toque UNICO ao parar de correr / zerar a
+		// stamina; vida baixa (<= 75%) = breath_faster com pitch alto +
+		// tontura (punchangle senoidal). A prioridade e a CORRIDA.
 		{
 			float fInjury = 1.0f - ( pev->health / 100.0f );   // 0 (cheio) a 1 (quase morto)
 			if( fInjury < 0.0f ) fInjury = 0.0f;
 			if( fInjury > 1.0f ) fInjury = 1.0f;
 
-			if( fInjury >= 0.25f )
+			// correndo? (IN_RUN + stamina + andando rapido)
+			BOOL bRunning = ( pev->button & IN_RUN ) && flStamina > 1 && pev->velocity.Length2D() > 100;
+
+			if( bRunning )
 			{
-				// tontura: balanco senoidal - comeca suave na metade da vida
-				// (0 em 75% HP, ~4 graus em 50%, ~12 graus perto da morte)
+				// loop da corrida: pitch 98 (cheio) -> ~138 (exausto)
+				int iPitch = 98 + (int)( ( 100.0f - flStamina ) * 0.4f );
+				EMIT_SOUND_DYN( edict(), CHAN_STATIC, "player/breath_faster.wav", 0.5f, ATTN_NORM, 0, iPitch );
+				m_bWasRunning = TRUE;
+			}
+			else if( m_bWasRunning )
+			{
+				// acabou de parar de correr (ou zerou a stamina): toque UNICO
+				// da respiracao ofegante e para o loop da corrida
+				STOP_SOUND( edict(), CHAN_STATIC, "player/breath_faster.wav" );
+				EMIT_SOUND( edict(), CHAN_ITEM, "player/breath_low_NOREP.wav", 0.7f, ATTN_NORM );
+				m_bWasRunning = FALSE;
+			}
+			else if( fInjury >= 0.25f )
+			{
+				// vida baixa: tontura + respiracao pesada (crescem com o dano)
 				float fDizzy = ( fInjury - 0.25f ) * 16.0f;
 				pev->punchangle.x = sin( gpGlobals->time * 3.0f ) * fDizzy;
 				pev->punchangle.y = cos( gpGlobals->time * 2.0f ) * fDizzy * 0.6f;
 
-				// respiracao pesada: pitch 98 (normal) -> 140 (quase morto),
-				// volume 0.4 -> 0.7 (loop no CHAN_STATIC; atualiza via EMIT)
 				int iPitch = 98 + (int)( fInjury * 40.0f );
 				float flVol = 0.35f + fInjury * 0.3f;
 				EMIT_SOUND_DYN( edict(), CHAN_STATIC, "player/breath_faster.wav", flVol, ATTN_NORM, 0, iPitch );
