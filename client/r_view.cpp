@@ -268,11 +268,12 @@ void V_CalcGunAngle( struct ref_params_s *pparams )
 	// NOTA: usa o VETOR forward (pparams->forward[2] < -0.7 = ~45° p/ baixo)
 	// em vez do pitch - imune a convencao de sinal (GoldSrc: pitch positivo =
 	// baixo; mas o forward.z negativo e SEMPRE "olhando para o chao").
-	// Usa models/player.mdl (o modelo COMPLETO do jogador - 77 sequencias -
-	// o mecanismo classico do HL: a gaitsequence da caminhada real).
+	// Usa models/player_legs.mdl (o modelo de PERNAS do P2 - 8 sequencias;
+	// as SOMBRAS dinamicas continuam com o player.mdl completo, que e o
+	// modelo real do jogador no mundo - o viewent nao gera sombra).
 	if( pparams->forward[2] < -0.7f )
 	{
-		int iLegs = gEngfuncs.pEventAPI->EV_FindModelIndex( "models/player.mdl" );
+		int iLegs = gEngfuncs.pEventAPI->EV_FindModelIndex( "models/player_legs.mdl" );
 		if( iLegs > 0 )
 		{
 			viewent->model = IEngineStudio.GetModelByIndex( iLegs );
@@ -288,7 +289,30 @@ void V_CalcGunAngle( struct ref_params_s *pparams )
 			cl_entity_t *pLocal = gEngfuncs.GetLocalPlayer();
 			if( pLocal )
 			{
-				viewent->curstate.sequence = pLocal->curstate.gaitsequence;
+				int iSeq = pLocal->curstate.gaitsequence;
+				// RTN F10 fix: o player_legs.mdl tem as 8 seq em ORDEM
+				// DIFERENTE do player.mdl (walk2handed=3/run2=4 invertidos
+				// vs 4/3). Mapeia pelo LABEL da sequencia (robusto, nao
+				// depende da ordem dos indices).
+				studiohdr_t *pPlayerHdr = (studiohdr_t *)IEngineStudio.Mod_Extradata(
+					IEngineStudio.GetModelByIndex( gEngfuncs.pEventAPI->EV_FindModelIndex( "models/player.mdl" )));
+				studiohdr_t *pLegsHdr = (studiohdr_t *)IEngineStudio.Mod_Extradata( viewent->model );
+				if( pPlayerHdr && pLegsHdr && iSeq >= 0 && iSeq < pPlayerHdr->numseq )
+				{
+					mstudioseqdesc_t *pSrc = (mstudioseqdesc_t *)((byte *)pPlayerHdr + pPlayerHdr->seqindex) + iSeq;
+					int iMatch = -1;
+					for( int i = 0; i < pLegsHdr->numseq; i++ )
+					{
+						mstudioseqdesc_t *pDst = (mstudioseqdesc_t *)((byte *)pLegsHdr + pLegsHdr->seqindex) + i;
+						if( !Q_strncmp( pSrc->label, pDst->label, 32 ))
+						{
+							iMatch = i;
+							break;
+						}
+					}
+					if( iMatch >= 0 ) iSeq = iMatch;
+				}
+				viewent->curstate.sequence = iSeq;
 				viewent->curstate.animtime = pparams->time;
 			}
 			// RTN F10 fix (user): corpo em PE - o viewent herda o pitch da
