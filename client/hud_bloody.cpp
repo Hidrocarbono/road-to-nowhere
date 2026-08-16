@@ -23,7 +23,7 @@ static float RTN_BloodyBase( int iHealth )
 	float hp = (float)iHealth;
 	if( hp <= 0.0f ) hp = 0.0f;
 	if( hp >= 100.0f ) return 0.0f;
-	return ( 100.0f - hp ) * 3.2f;
+	return ( 100.0f - hp ) * 4.5f;   // RTN F10: mais visivel ainda (50 HP -> 225)
 }
 
 int CHudBloody::Init( void )

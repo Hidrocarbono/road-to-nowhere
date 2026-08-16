@@ -1807,9 +1807,17 @@ void CBasePlayer::PreThink(void)
 
 			if( bRunning )
 			{
-				// loop da corrida: pitch 98 (cheio) -> ~138 (exausto)
+				// loop da corrida: pitch 98 (cheio) -> ~138 (exausto).
+				// RTN F10 fix (som INAUDIVEL): o EMIT a cada frame reiniciava o
+				// som em ~16ms (cortado antes de tocar) - agora so o START usa
+				// o flag 0; enquanto ja corre, SND_CHANGE_VOL|SND_CHANGE_PITCH
+				// atualiza o som existente SEM reiniciar.
 				int iPitch = 98 + (int)( ( 100.0f - flStamina ) * 0.4f );
-				EMIT_SOUND_DYN( edict(), CHAN_STATIC, "player/breath_faster.wav", 0.5f, ATTN_NORM, 0, iPitch );
+				float flVol = 0.5f;
+				if( !m_bWasRunning )
+					EMIT_SOUND_DYN( edict(), CHAN_STATIC, "player/breath_faster.wav", flVol, ATTN_NORM, 0, iPitch );
+				else
+					EMIT_SOUND_DYN( edict(), CHAN_STATIC, "player/breath_faster.wav", flVol, ATTN_NORM, SND_CHANGE_VOL | SND_CHANGE_PITCH, iPitch );
 				m_bWasRunning = TRUE;
 			}
 			else if( m_bWasRunning )
@@ -1822,14 +1830,20 @@ void CBasePlayer::PreThink(void)
 			}
 			else if( fInjury >= 0.25f )
 			{
-				// vida baixa: tontura + respiracao pesada (crescem com o dano)
-				float fDizzy = ( fInjury - 0.25f ) * 16.0f;
+				// vida baixa: tontura MUITO leve (o user pediu - 0.25 a 1.5
+				// graus, antes era ate 12 = impossivel mirar) + respiracao
+				// pesada com o mesmo fix do som (start/update sem restart)
+				float fDizzy = ( fInjury - 0.25f ) * 2.0f;
 				pev->punchangle.x = sin( gpGlobals->time * 3.0f ) * fDizzy;
 				pev->punchangle.y = cos( gpGlobals->time * 2.0f ) * fDizzy * 0.6f;
 
 				int iPitch = 98 + (int)( fInjury * 40.0f );
 				float flVol = 0.35f + fInjury * 0.3f;
-				EMIT_SOUND_DYN( edict(), CHAN_STATIC, "player/breath_faster.wav", flVol, ATTN_NORM, 0, iPitch );
+				if( !m_bDizzy )
+					EMIT_SOUND_DYN( edict(), CHAN_STATIC, "player/breath_faster.wav", flVol, ATTN_NORM, 0, iPitch );
+				else
+					EMIT_SOUND_DYN( edict(), CHAN_STATIC, "player/breath_faster.wav", flVol, ATTN_NORM, SND_CHANGE_VOL | SND_CHANGE_PITCH, iPitch );
+				m_bDizzy = TRUE;
 			}
 			else
 			{
@@ -1837,6 +1851,7 @@ void CBasePlayer::PreThink(void)
 				STOP_SOUND( edict(), CHAN_STATIC, "player/breath_faster.wav" );
 				pev->punchangle.x = 0;
 				pev->punchangle.y = 0;
+				m_bDizzy = FALSE;
 			}
 		}
 		if ( pev->button & IN_ALT1 )
