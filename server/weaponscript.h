@@ -99,6 +99,7 @@ typedef struct weaponinfo_s
 	int	item_flags;
 	float	MaxSpeed;
 	float	MaxSpeedIS;
+	int	zoom_fov;			// RTN F10: FOV da mira de ferro (0 = sem mira)
 	char	volume[16];
 	char	flash[16];
 

@@ -480,6 +480,16 @@ int CHudAmmo::MsgFunc_AmmoPickup( const char *pszName, int iSize, void *pbuf )
 	// Add ammo to the history
 	gHR.AddToHistory( HISTSLOT_AMMO, iIndex, abs( iCount ));
 
+	// RTN F10: pickup message do titles.txt ("!<nome>" - estilo P2 ammo.cpp)
+	// Nao mostra se nao achar a entrada no titles.txt (silencioso).
+	const char *szAmmoName = READ_STRING();
+	if( szAmmoName && szAmmoName[0] )
+	{
+		char msgname[256];
+		Q_snprintf( msgname, sizeof( msgname ), "!%s", szAmmoName );
+		gHUD.m_Message.MessageAdd( msgname, gEngfuncs.GetClientTime( ));
+	}
+
 	END_READ();
 
 	return 1;
@@ -492,6 +502,17 @@ int CHudAmmo::MsgFunc_WeapPickup( const char *pszName, int iSize, void *pbuf )
 
 	// Add the weapon to the history
 	gHR.AddToHistory( HISTSLOT_WEAP, iIndex );
+
+	// RTN F10: pickup message da arma ("!weapon_<nome>" - o titles.txt - P2)
+	// o server envia o NOME (string) - nao depende do iIndex (o m_iId do
+	// script nao e o iIndex do WeaponList - bug antigo: nada aparecia)
+	const char *szWeaponName = READ_STRING();
+	if ( szWeaponName && szWeaponName[0] )
+	{
+		char msgname[256];
+		Q_snprintf( msgname, sizeof( msgname ), "!%s", szWeaponName );
+		gHUD.m_Message.MessageAdd( msgname, gEngfuncs.GetClientTime() );
+	}
 
 	END_READ();
 

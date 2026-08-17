@@ -15,13 +15,15 @@
 
 #define BLOODY_SPRITE	"sprites/bloodyhud.spr"
 
-// alpha base inverso a vida: 100 HP -> 0, 0 HP -> 220
+// alpha base inverso a vida: 100 HP -> 0, 50 HP -> 160 (visivel na metade!),
+// 0 HP -> 320 (clamp 255 - sangue forte). O user pediu: comeca a aparecer
+// de forma ostensiva na METADE da vida (antes so no limite).
 static float RTN_BloodyBase( int iHealth )
 {
 	float hp = (float)iHealth;
 	if( hp <= 0.0f ) hp = 0.0f;
 	if( hp >= 100.0f ) return 0.0f;
-	return ( 100.0f - hp ) * 2.2f;
+	return ( 100.0f - hp ) * 4.5f;   // RTN F10: mais visivel ainda (50 HP -> 225)
 }
 
 int CHudBloody::Init( void )
@@ -67,10 +69,14 @@ int CHudBloody::Draw( float flTime )
 	if( fSince >= 0.0f && fSince < 1.2f )
 		fPeak = m_flDamageAmt * ( 1.0f - fSince / 1.2f );
 
-	// base inversa a vida (100% HP = 0, 0% HP = 220)
+	// base inversa a vida (100% HP = 0, 0% HP = 320 -> clamp 255)
 	float fBase = RTN_BloodyBase( iHealth );
 
-	float fAlpha = fPeak + fBase;
+	// RTN F10: efeito pulsante (aparecendo e dissolvendo) - o sin oscila
+	// o alpha ~ +/-30% num ciclo de ~2.5s. Quanto mais dano, mais forte o
+	// pulso (a oscilacao eh proporcional ao fBase, que cresce com o dano).
+	float fPulse = sin( flTime * 2.5f ) * 0.5f + 0.5f;   // 0..1
+	float fAlpha = fPeak + fBase * ( 0.7f + 0.3f * fPulse );
 	if( fAlpha <= 2.0f )
 		return 1;
 

@@ -57,7 +57,9 @@ CBaseWeaponContext::CBaseWeaponContext(std::unique_ptr<IWeaponLayer> &&layer) :
 	m_iPlayEmptySound(false),
 	m_iPrimaryAmmoType(0),
 	m_iSecondaryAmmoType(0),
-	m_iId(-1)
+	m_iId(-1),
+	m_iZoomFOV(0),			// RTN F10: 0 = sem mira de ferro
+	m_bAiming(false)
 {
 }
 
@@ -67,6 +69,12 @@ CBaseWeaponContext::~CBaseWeaponContext()
 
 void CBaseWeaponContext::ItemPostFrame()
 {
+	// NOTA RTN F10: o mecanismo de aim generico (m_iZoomFOV) ficou como
+	// preparacao para o futuro script de armas, mas NAO consome o IN_ATTACK2
+	// aqui - a MP5 tem o iron sight proprio (toggle + cl_viewmodel_fov, ver
+	// CMP5WeaponContext::SecondaryAttack) e o fluxo abaixo DEVE continuar
+	// chamando o SecondaryAttack virtual de cada arma.
+
 	if ((m_fInReload) && m_pLayer->GetPlayerNextAttackTime() <= m_pLayer->GetWeaponTimeBase(false))
 	{
 		// complete the reload. 

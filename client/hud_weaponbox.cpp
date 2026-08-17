@@ -113,9 +113,12 @@ int CHudWeaponBox::Draw( float flTime )
 	if( w <= 0 ) w = XRES( 96 );
 	if( h <= 0 ) h = YRES( 30 );
 
-	// silhueta da arma (branca) - topo
+	// silhueta da arma (branca) - o SPRITE desce junto com a linha (abaixo
+	// dela, no canto inferior direito). A linha (nome + municao) fica NA
+	// MESMA ALTURA da barra de stamina (ScreenHeight - YRES(12)).
 	int wbX = ScreenWidth - w - XRES( 10 );
-	int wbY = ScreenHeight - YRES( 12 ) - h - YRES( 30 );
+	int ty  = ScreenHeight - YRES( 12 );          // altura da barra de stamina
+	int wbY = ty - h - YRES( 2 );                 // sprite acima da linha (espacamento mantido)
 
 	if( m_hWeaponSpr )
 	{
@@ -123,17 +126,22 @@ int CHudWeaponBox::Draw( float flTime )
 		SPR_Draw( 0, wbX, wbY, NULL );
 	}
 
-	// nome da arma (pequeno, cinza claro)
-	int ty = wbY + h + YRES( 2 );
+	// nome da arma (pequeno, cinza claro) + municao "00/000" NA MESMA LINHA
+	// (logo apos o nome - o formato que o user pediu: NOME DA ARMA  00/000)
+	char szAmmo[ 16 ];
+	Q_snprintf( szAmmo, sizeof( szAmmo ), "%02d/%03d", m_iClip, m_iAmmo );
+
+	int nw = 0;   // largura do nome em pixels (charWidths da fonte atual)
+	for( const char *p = m_szName; *p; p++ )
+		nw += gHUD.m_scrinfo.charWidths[(unsigned char)*p];
+
+	gHUD.DrawHudString( wbX + 1, ty + 1, wbX + XRES( 140 ) + 1, m_szName, 0, 0, 0 );
 	gHUD.DrawHudString( wbX, ty, wbX + XRES( 140 ), m_szName, 220, 220, 220 );
 
-	// municao "clip / reserva" em Roboto BOLD (creditsfont agora e Bold)
-	char szAmmo[ 16 ];
-	Q_snprintf( szAmmo, sizeof( szAmmo ), "%d / %d", m_iClip, m_iAmmo );
-	ty += gHUD.m_iFontHeight + YRES( 1 );
+	int ammoX = wbX + nw + XRES( 8 );
 	// contorno escuro p/ legibilidade
-	gHUD.DrawHudString( wbX + 1, ty + 1, wbX + XRES( 140 ) + 1, szAmmo, 0, 0, 0 );
-	gHUD.DrawHudString( wbX, ty, wbX + XRES( 140 ), szAmmo, 255, 255, 255 );
+	gHUD.DrawHudString( ammoX + 1, ty + 1, ammoX + XRES( 80 ) + 1, szAmmo, 0, 0, 0 );
+	gHUD.DrawHudString( ammoX, ty, ammoX + XRES( 80 ), szAmmo, 255, 255, 255 );
 
 	return 1;
 }

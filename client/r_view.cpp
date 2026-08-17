@@ -30,6 +30,11 @@ static bool is_paused = false;
 static float g_flLeanRoll = 0.0f;
 static float g_flLeanOffset = 0.0f;
 
+// RTN F10: modo PERNAS - true quando o viewent carrega o corpo do jogador
+// (olhando para baixo). O renderer (gl_studio_draw.cpp) NAO re-sobrescreve
+// o modelo com o viewmodel da arma enquanto esta flag estiver ligada.
+bool g_bRTNLegs = false;
+
 cvar_t	*cl_bobcycle;
 cvar_t	*cl_bob;
 cvar_t	*cl_bobup;
@@ -251,45 +256,90 @@ void V_CalcGunAngle( struct ref_params_s *pparams )
 {	
 	cl_entity_t *viewent;
 	
+	g_bRTNLegs = false;  // RTN F10: so fica ativo se o corpo for aplicado abaixo
+
 	viewent = GET_VIEWMODEL();
 	if( !viewent ) return;
 
 	// RTN F10: PERNAS - olhando para BAIXO, troca o viewmodel pelo modelo do
-	// jogador (player.mdl - as pernas, mecanismo classico do HL), independente
-	// da arma equipada (so geometrico). O engine re-monta o viewent a cada
-	// frame (cl_view.c:103), entao ao olhar para cima/frente a arma volta.
+	// jogador (as pernas, mecanismo classico do HL), independente da arma
+	// equipada (so geometrico). O engine re-monta o viewent a cada frame
+	// (cl_view.c:103), entao ao olhar para cima/frente a arma volta.
 	// NOTA: usa o VETOR forward (pparams->forward[2] < -0.7 = ~45° p/ baixo)
 	// em vez do pitch - imune a convencao de sinal (GoldSrc: pitch positivo =
 	// baixo; mas o forward.z negativo e SEMPRE "olhando para o chao").
-	// Usa models/player.mdl (tem a gaitsequence - o player_legs.mdl do user
-	// ainda nao tem as sequencias de caminhada, o que travava o desenho).
+	// Usa models/player_legs.mdl (o modelo de PERNAS do P2 - 8 sequencias;
+	// as SOMBRAS dinamicas continuam com o player.mdl completo, que e o
+	// modelo real do jogador no mundo - o viewent nao gera sombra).
 	if( pparams->forward[2] < -0.7f )
 	{
-		int iLegs = gEngfuncs.pEventAPI->EV_FindModelIndex( "models/player.mdl" );
+		int iLegs = gEngfuncs.pEventAPI->EV_FindModelIndex( "models/player_legs.mdl" );
 		if( iLegs > 0 )
 		{
 			viewent->model = IEngineStudio.GetModelByIndex( iLegs );
 			viewent->curstate.modelindex = iLegs;
+			// RTN F10 fix (pernas nao apareciam - so a sombra): o viewent
+			// herda o estado do viewmodel da arma (renderamt 0 / EF_NODRAW
+			// em alguns casos) - garante o desenho visivel do corpo
+			viewent->curstate.renderamt = 255;
+			viewent->curstate.effects &= ~EF_NODRAW;
+			viewent->curstate.frame = 0;
+			viewent->curstate.framerate = 1.0f;
 			// animacao: usa a gaitsequence do jogador (caminhada/parado)
 			cl_entity_t *pLocal = gEngfuncs.GetLocalPlayer();
 			if( pLocal )
 			{
-				viewent->curstate.sequence = pLocal->curstate.gaitsequence;
+				int iSeq = pLocal->curstate.gaitsequence;
+				// RTN F10 fix: o player_legs.mdl tem as 8 seq em ORDEM
+				// DIFERENTE do player.mdl (walk2handed=3/run2=4 invertidos
+				// vs 4/3). Mapeia pelo LABEL da sequencia (robusto, nao
+				// depende da ordem dos indices).
+				studiohdr_t *pPlayerHdr = (studiohdr_t *)IEngineStudio.Mod_Extradata(
+					IEngineStudio.GetModelByIndex( gEngfuncs.pEventAPI->EV_FindModelIndex( "models/player.mdl" )));
+				studiohdr_t *pLegsHdr = (studiohdr_t *)IEngineStudio.Mod_Extradata( viewent->model );
+				if( pPlayerHdr && pLegsHdr && iSeq >= 0 && iSeq < pPlayerHdr->numseq )
+				{
+					mstudioseqdesc_t *pSrc = (mstudioseqdesc_t *)((byte *)pPlayerHdr + pPlayerHdr->seqindex) + iSeq;
+					int iMatch = -1;
+					for( int i = 0; i < pLegsHdr->numseq; i++ )
+					{
+						mstudioseqdesc_t *pDst = (mstudioseqdesc_t *)((byte *)pLegsHdr + pLegsHdr->seqindex) + i;
+						if( !Q_strncmp( pSrc->label, pDst->label, 32 ))
+						{
+							iMatch = i;
+							break;
+						}
+					}
+					if( iMatch >= 0 ) iSeq = iMatch;
+				}
+				viewent->curstate.sequence = iSeq;
 				viewent->curstate.animtime = pparams->time;
 			}
+			// RTN F10 fix (user): corpo em PE - o viewent herda o pitch da
+			// camera (olhar p/ baixo = corpo "deita" na horizontal). O corpo
+			// real nao inclina com o olhar; so o yaw (direcao) acompanha.
+			viewent->angles[PITCH] = 0.0f;
+			g_bRTNLegs = true;  // RTN F10: renderer nao troca o modelo pela arma
+			return;  // pernas nao recebem o bob/roll da arma
 		}
-		return;  // pernas nao recebem o bob/roll da arma
+		// RTN F10 fix (bug da fumaca): o return ANTIGO ficava FORA do if -
+		// ao olhar para o chao sem o modelo das pernas, o viewent ficava com
+		// o modelo da arma + a animacao pendurada -> o evento 5001 do QC
+		// disparava a fumaca/muzzle sem atirar. Agora: sem o modelo, o
+		// viewmodel normal continua (sem o evento espurio).
 	}
 
 	viewent->angles[YAW] = pparams->viewangles[YAW] + pparams->crosshairangle[YAW];
 	viewent->angles[PITCH] = pparams->viewangles[PITCH] + pparams->crosshairangle[PITCH] * 0.25f;
 
 	// RTN F10: CORRIDA - segurando o SHIFT (IN_RUN) a arma vai para perto do
-	// corpo: rotacao sutil no YAW (eixo Z) para a ESQUERDA (-2 a -5 graus),
+	// corpo: rotacao sutil no YAW (eixo Z) para a ESQUERDA (+2 a +5 graus),
 	// com LERP suave (transicao andar<->correr nao da tapa). Le o IN_RUN do
-	// gHUD.m_iKeyBits (o ref_params nao expoe o button). -3.5 = meio do range.
+	// gHUD.m_iKeyBits (o ref_params nao expoe o button). +3.5 = meio do range.
+	// NOTA (fix do user): o -3.5 mandava a arma para a DIREITA na tela -
+	// a convencao do yaw do viewmodel e inversa; +3.5 vai para a ESQUERDA.
 	static float s_flGunYaw = 0.0f;
-	float flTargetYaw = ( gHUD.m_iKeyBits & IN_RUN ) ? -3.5f : 0.0f;
+	float flTargetYaw = ( gHUD.m_iKeyBits & IN_RUN ) ? 3.5f : 0.0f;
 	float flLerp = bound( 0.0f, pparams->frametime * 12.0f, 1.0f );
 	s_flGunYaw += ( flTargetYaw - s_flGunYaw ) * flLerp;
 	viewent->angles[YAW] += s_flGunYaw;
@@ -1024,6 +1074,13 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 	}
 
 	V_CalcViewModelLag( pparams, view->origin, view->angles, lastAngles );
+
+	// RTN F10: no modo PERNAS o corpo desce para o CHAO - a origem do
+	// viewmodel fica na altura dos olhos (~28u), mas o player.mdl tem a
+	// origem nos pes; sem isso o corpo seria desenhado "em pe" a partir
+	// da camera (invisivel/estranho ao olhar para baixo).
+	if( g_bRTNLegs )
+		view->origin[2] -= 28.0f;
 		
 	pparams->viewangles += pparams->punchangle;
 

@@ -100,4 +100,10 @@ public:
 	int	m_fInReload;					// Are we in the middle of a reload;
 	int	m_iDefaultAmmo;					// how much ammo you get when you pick up this weapon as placed by a level designer.
 	std::unique_ptr<IWeaponLayer> m_pLayer;
+
+	// RTN F10: MIRA DE FERRO - segurar IN_ATTACK2 = zoom (hold). m_iZoomFOV e
+	// o FOV da mira (0 = arma sem mira de ferro); m_bAiming = estado atual
+	// (edge detect p/ so setar o FOV do player na transicao).
+	int	m_iZoomFOV;
+	bool m_bAiming;
 };

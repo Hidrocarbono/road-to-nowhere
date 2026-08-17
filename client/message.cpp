@@ -258,6 +258,21 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 	unsigned char line[80];
 
 	pText = pMessage->pMessage;
+
+	// RTN F10 fix: %player_name% no texto FINAL do titles (o LookupString
+	// retorna o texto cru do titles - o substituto aqui cobre o F7 + os
+	// pickups + o radio - o lugar certo do fix global)
+	extern char *RTN_SubstituteLocalPlayerName( char *dst, size_t dstSize, const char *src );
+	static char szPlayerNameBuf[1024];
+	pText = RTN_SubstituteLocalPlayerName( szPlayerNameBuf, sizeof( szPlayerNameBuf ), pText );
+
+	// RTN F10 fix: ACENTOS - converte UTF-8 -> cp1252 (auto-detect) p/ a
+	// fonte cp1252 desenhar os acentos corretos (titles.txt pode estar em
+	// UTF-8 se o user editar com Notepad/VS Code - antes virava "nÃ£o")
+	extern void RTN_Utf8ToCp1252( char *szText );
+	RTN_Utf8ToCp1252( szPlayerNameBuf );
+	pText = szPlayerNameBuf;
+
 	// Count lines
 	m_parms.lines = 1;
 	m_parms.time = time;
@@ -286,7 +301,13 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 
 
 	m_parms.y = YPosition( pMessage->y, m_parms.totalHeight );
-	pText = pMessage->pMessage;
+	// RTN F10 fix: o $position do titles.txt (ex.: -1 -0.1 = canto inferior)
+	// DEVE ser respeitado - a meia altura dos salvamentos/pickups fica no
+	// fallback do MessageAdd (g_pCustomMessage), nao aqui.
+	// RTN F10 fix: o desenho deve usar o buffer COM o %player_name% substituido
+	// (o pMessage->pMessage original tem o %player_name% cru - o fix anterior
+	// era PERDIDO aqui e o desenho mostrava o texto sem o nome do jogador)
+	pText = szPlayerNameBuf;
 
 	m_parms.charTime = 0;
 
@@ -450,8 +471,8 @@ void CHudMessage::MessageAdd( const char *pName, float time )
 				g_pCustomMessage.g2 = 110;
 				g_pCustomMessage.b2 = 0;
 				g_pCustomMessage.a2 = 0;
-				g_pCustomMessage.x = -1;		// Centered
-				g_pCustomMessage.y = 0.7;
+				g_pCustomMessage.x = 0.02;	// RTN F10: canto esquerdo (era -1 = centro)
+				g_pCustomMessage.y = 0.5;	// RTN F10: meia altura (era 0.7)
 				g_pCustomMessage.fadein = 0.01;
 				g_pCustomMessage.fadeout = 1.5;
 				g_pCustomMessage.fxtime = 0.25;
@@ -482,6 +503,13 @@ void CHudMessage::MessageAdd( const char *pName, float time )
 
 			m_pMessages[i] = tempMessage;
 			m_startTime[i] = time;
+
+			// RTN F10 fix: o gHUD so chama o Draw dos elementos com HUD_ACTIVE -
+			// o MsgFunc_HudText setava mas o MessageAdd (pickups) NAO -> as
+			// mensagens dos pickups nunca desenhavam (bug do user: arma e
+			// municao sem mensagem)
+			m_iFlags |= HUD_ACTIVE;
+
 			return;
 		}
 	}

@@ -301,6 +301,8 @@ static uniformTable_t glsl_uniformTable[] =
 { "u_DofDebug",		UT_DOFDEBUG,		0 },
 { "u_FStop",		UT_FSTOP,			0 },
 { "u_Brightness",		UT_BRIGHTNESS,		0 },
+{ "u_DirtMap",			UT_DIRTMAP,			UFL_TEXTURE_UNIT },	// RTN F10
+{ "u_DirtScale",		UT_DIRTSCALE,		0 },				// RTN F10
 { "u_Saturation",		UT_SATURATION,		0 },
 { "u_Contrast",			UT_CONTRAST,		0 },
 { "u_ColorLevels",		UT_COLORLEVELS,		0 },

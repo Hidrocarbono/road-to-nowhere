@@ -46,7 +46,7 @@
 "grass"
 {
 	"impact_decal"	"shot"
-	"impact_parts"	"dirt_gibs" "test_impact" "test_smoke"
+	"impact_parts"	"dirt_gibs" "test_smoke"
 	"impact_sound"	"debris/concrete1.wav" "debris/concrete2.wav" "debris/concrete3.wav" "debris/concrete4.wav"
 	"step_sound"	"player/pl_grass1.wav" "player/pl_grass2.wav" "player/pl_grass3.wav" "player/pl_grass4.wav"
 }
@@ -54,7 +54,7 @@
 "shlak"
 {
 	"impact_decal"	"shot"
-	"impact_parts"	"dirt_gibs" "test_impact" "test_smoke"
+	"impact_parts"	"dirt_gibs" "test_smoke"
 	"impact_sound"	"debris/concrete1.wav" "debris/concrete2.wav" "debris/concrete3.wav" "debris/concrete4.wav"
 	"step_sound"	"player/pl_slosh1.wav" "player/pl_slosh2.wav" "player/pl_slosh3.wav" "player/pl_slosh4.wav" "player/pl_slosh5.wav" "player/pl_slosh6.wav"
 }
@@ -63,7 +63,7 @@
 "lama"
 {
 	"impact_decal"	"shot"
-	"impact_parts"	"dirt_gibs" "test_impact" "test_smoke"
+	"impact_parts"	"dirt_gibs" "test_smoke"
 	"impact_sound"	"debris/concrete1.wav" "debris/concrete2.wav" "debris/concrete3.wav" "debris/concrete4.wav"
 	"step_sound"	"player/pl_mud1.wav" "player/pl_mud2.wav" "player/pl_mud3.wav" "player/pl_mud4.wav" "player/pl_mud5.wav" "player/pl_mud6.wav"
 }
@@ -71,7 +71,7 @@
 "radiacao"
 {
 	"impact_decal"	"shot"
-	"impact_parts"	"dirt_gibs" "test_impact" "test_smoke"
+	"impact_parts"	"dirt_gibs" "test_smoke"
 	"impact_sound"	"debris/concrete1.wav" "debris/concrete2.wav" "debris/concrete3.wav" "debris/concrete4.wav"
 	"step_sound"	"player/geiger1.wav" "player/geiger3.wav" "player/geiger2.wav" "player/geiger5.wav" "player/geiger6.wav" "player/geiger4.wav"
 }
@@ -98,7 +98,7 @@
 "dirt"
 {
 	"impact_decal"	"shot"
-	"impact_parts"	"dirt_gibs" "test_impact" "test_smoke"
+	"impact_parts"	"dirt_gibs" "test_smoke"
 	"impact_sound"	"debris/flesh1.wav" "debris/flesh2.wav" "debris/flesh3.wav"
 	"step_sound"	"player/pl_dirt1.wav" "player/pl_dirt2.wav" "player/pl_dirt3.wav" "player/pl_dirt4.wav"
 }

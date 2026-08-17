@@ -1314,3 +1314,55 @@ bool Sys_RemoveFile(const char *path)
 
 	return (iRet == 0) ? true : false;
 }
+
+// RTN F10: converte UTF-8 -> cp1252 in-place (auto-detect). Remove BOM.
+// Os bytes que NAO formam UTF-8 valido passam crus (arquivo ja em cp1252
+// fica intacto). Cobre os latinos U+00A0-U+00FF (1:1 com cp1252).
+void RTN_Utf8ToCp1252( char *szText )
+{
+	if( !szText ) return;
+
+	// remove BOM (EF BB BF) do inicio
+	if( (byte)szText[0] == 0xEF && (byte)szText[1] == 0xBB && (byte)szText[2] == 0xBF )
+	{
+		char *p = szText;
+		char *q = szText + 3;
+		while( *q ) *p++ = *q++;
+		*p = 0;
+	}
+
+	char *src = szText, *dst = szText;
+	while( *src )
+	{
+		byte c = (byte)*src;
+
+		if( c < 0x80 ) { *dst++ = *src++; continue; }
+
+		// tenta decodificar UTF-8 (2 ou 3 bytes)
+		unsigned int cp = 0;
+		int len = 0;
+		if( c >= 0xC2 && c <= 0xDF && ((byte)src[1] & 0xC0) == 0x80 )
+		{
+			cp = ((unsigned int)(c & 0x1F) << 6) | ((byte)src[1] & 0x3F);
+			len = 2;
+		}
+		else if( c >= 0xE0 && c <= 0xEF && ((byte)src[1] & 0xC0) == 0x80 && ((byte)src[2] & 0xC0) == 0x80 )
+		{
+			cp = ((unsigned int)(c & 0x0F) << 12) | (((byte)src[1] & 0x3F) << 6) | ((byte)src[2] & 0x3F);
+			len = 3;
+		}
+
+		if( len && cp >= 0xA0 && cp <= 0xFF )
+		{
+			// U+00A0..U+00FF == cp1252 (1:1 para os latinos comuns)
+			*dst++ = (char)cp;
+			src += len;
+		}
+		else
+		{
+			// nao e UTF-8 valido (arquivo ja em cp1252) - copia cru
+			*dst++ = *src++;
+		}
+	}
+	*dst = 0;
+}

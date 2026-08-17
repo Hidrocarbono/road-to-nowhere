@@ -99,6 +99,8 @@ struct HUDLIST
 #include "hud_status.h"
 #include "hud_weaponbox.h"
 #include "hud_interact.h"
+#include "hud_textwindow.h"
+#include "hud_radio.h"
 #include "cl_entity.h"
 
 //
@@ -592,6 +594,8 @@ public:
 	CHudStatus	m_Status;    // RTN F10: silhueta de vida + barras armor/stamina (P2)
 	CHudWeaponBox	m_WeaponBox; // RTN F10: silhueta da arma + municao (P2)
 	CHudInteract	m_Interact;  // RTN F10: maozinha de interacao (P2)
+	CHudTextWindow	m_TextWindow;  // RTN F10: janela de documento (trigger_textwindow/P2)
+	CHudRadio	m_Radio;  // RTN F10: radio_sentence (icone do speaker + talker)
 	CHudMOTD		m_MOTD;
 
 	ViewSmoothingData_t	m_ViewSmoothingData;
@@ -613,6 +617,7 @@ public:
 	int _cdecl MsgFunc_InitHUD( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_ViewMode( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_SetFOV(const char *pszName,  int iSize, void *pbuf);
+	int _cdecl MsgFunc_IronSight(const char *pszName,  int iSize, void *pbuf);	// RTN F10: mira de ferro (DOF)
 	int _cdecl MsgFunc_Concuss( const char *pszName, int iSize, void *pbuf );
 	int _cdecl MsgFunc_RainData( const char *pszName, int iSize, void *pbuf ); 
 	int _cdecl MsgFunc_SetBody( const char *pszName, int iSize, void *pbuf );

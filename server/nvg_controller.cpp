@@ -92,7 +92,7 @@ void CNVGController::ApplyState( CBaseEntity *pPlayer, bool active )
 	}
 	else
 	{
-		// restore defaults (no effect)
+		// restore defaults (RTN F10: vignette/grain do jogo, nao 0/0)
 		WRITE_FLOAT( 0.25f );
 		WRITE_FLOAT( 0.0f );
 		WRITE_FLOAT( 1.0f );
@@ -100,8 +100,8 @@ void CNVGController::ApplyState( CBaseEntity *pPlayer, bool active )
 		WRITE_FLOAT( 1.0f );
 		WRITE_FLOAT( 1.0f );
 		WRITE_FLOAT( 1.0f );
-		WRITE_FLOAT( 0.0f );
-		WRITE_FLOAT( 0.0f );
+		WRITE_FLOAT( 0.6f );	// vignette (default do jogo)
+		WRITE_FLOAT( 0.02f );	// film grain (default do jogo)
 		WRITE_FLOAT( 0.0f );
 		WRITE_FLOAT( 1.0f );
 		WRITE_FLOAT( 1.0f );

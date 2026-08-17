@@ -804,6 +804,17 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 
 	g_pGameRules->PlayerKilled( this, pevAttacker, g_pevLastInflictor );
 
+	// RTN F10: morte do jogador - suspende TODOS os sons e toca o gameover
+	// UMA vez. Para o breath (corrida/dano - CHAN_STATIC) e desliga todos
+	// os ambient_generic do mapa (Use USE_OFF -> STOP_SOUND do loop).
+	STOP_SOUND( edict(), CHAN_STATIC, "player/breath_faster.wav" );
+	CBaseEntity *pAmbient = NULL;
+	while (( pAmbient = UTIL_FindEntityByClassname( pAmbient, "ambient_generic" )) != NULL )
+	{
+		pAmbient->Use( this, this, USE_OFF, 0 );
+	}
+	EMIT_SOUND( edict(), CHAN_VOICE, "player/gameover.wav", 1.0f, ATTN_NONE );
+
 	if ( m_pTank != NULL )
 	{
 		m_pTank->Use( this, this, USE_OFF, 0 );
@@ -1791,6 +1802,69 @@ void CBasePlayer::PreThink(void)
 		// usa +right; aqui usamos a MESMA convencao para o tiro acompanhar a mira.
 		// (Antes era (-sin, +cos) = -right -> tiro saia invertido no lean!)
 		float leanTarget = 0.0f;
+
+		// ===== RTN F10: RESPIRACAO (corrida + dano) + TONTURA =====
+		// breath_faster.wav = loop da CORRIDA (pitch sobe com a exaustao);
+		// breath_low_NOREP.wav = toque UNICO ao parar de correr / zerar a
+		// stamina; vida baixa (<= 75%) = breath_faster com pitch alto +
+		// tontura (punchangle senoidal). A prioridade e a CORRIDA.
+		{
+			float fInjury = 1.0f - ( pev->health / 100.0f );   // 0 (cheio) a 1 (quase morto)
+			if( fInjury < 0.0f ) fInjury = 0.0f;
+			if( fInjury > 1.0f ) fInjury = 1.0f;
+
+			// correndo? (IN_RUN + stamina + andando rapido)
+			BOOL bRunning = ( pev->button & IN_RUN ) && flStamina > 1 && pev->velocity.Length2D() > 100;
+
+			if( bRunning )
+			{
+				// loop da corrida: pitch 98 (cheio) -> ~138 (exausto).
+				// RTN F10 fix (som INAUDIVEL): o EMIT a cada frame reiniciava o
+				// som em ~16ms (cortado antes de tocar) - agora so o START usa
+				// o flag 0; enquanto ja corre, SND_CHANGE_VOL|SND_CHANGE_PITCH
+				// atualiza o som existente SEM reiniciar.
+				int iPitch = 98 + (int)( ( 100.0f - flStamina ) * 0.4f );
+				float flVol = 0.5f;
+				if( !m_bWasRunning )
+					EMIT_SOUND_DYN( edict(), CHAN_STATIC, "player/breath_faster.wav", flVol, ATTN_NORM, 0, iPitch );
+				else
+					EMIT_SOUND_DYN( edict(), CHAN_STATIC, "player/breath_faster.wav", flVol, ATTN_NORM, SND_CHANGE_VOL | SND_CHANGE_PITCH, iPitch );
+				m_bWasRunning = TRUE;
+			}
+			else if( m_bWasRunning )
+			{
+				// acabou de parar de correr (ou zerou a stamina): toque UNICO
+				// da respiracao ofegante e para o loop da corrida
+				STOP_SOUND( edict(), CHAN_STATIC, "player/breath_faster.wav" );
+				EMIT_SOUND( edict(), CHAN_ITEM, "player/breath_low_NOREP.wav", 0.7f, ATTN_NORM );
+				m_bWasRunning = FALSE;
+			}
+			else if( fInjury >= 0.25f )
+			{
+				// vida baixa: tontura MUITO leve (o user pediu - 0.25 a 1.5
+				// graus, antes era ate 12 = impossivel mirar) + respiracao
+				// pesada com o mesmo fix do som (start/update sem restart)
+				float fDizzy = ( fInjury - 0.25f ) * 2.0f;
+				pev->punchangle.x = sin( gpGlobals->time * 3.0f ) * fDizzy;
+				pev->punchangle.y = cos( gpGlobals->time * 2.0f ) * fDizzy * 0.6f;
+
+				int iPitch = 98 + (int)( fInjury * 40.0f );
+				float flVol = 0.35f + fInjury * 0.3f;
+				if( !m_bDizzy )
+					EMIT_SOUND_DYN( edict(), CHAN_STATIC, "player/breath_faster.wav", flVol, ATTN_NORM, 0, iPitch );
+				else
+					EMIT_SOUND_DYN( edict(), CHAN_STATIC, "player/breath_faster.wav", flVol, ATTN_NORM, SND_CHANGE_VOL | SND_CHANGE_PITCH, iPitch );
+				m_bDizzy = TRUE;
+			}
+			else
+			{
+				// vida boa: para a respiracao e relaxa a tontura
+				STOP_SOUND( edict(), CHAN_STATIC, "player/breath_faster.wav" );
+				pev->punchangle.x = 0;
+				pev->punchangle.y = 0;
+				m_bDizzy = FALSE;
+			}
+		}
 		if ( pev->button & IN_ALT1 )
 			leanTarget = -12.0f;
 		else if ( pev->button & IN_CANCEL )
@@ -4205,7 +4279,8 @@ int CBasePlayer :: GiveAmmo( int iCount, char *szName, int iMax )
 		// Send the message that ammo has been picked up
 		MESSAGE_BEGIN( MSG_ONE, gmsgAmmoPickup, NULL, pev );
 			WRITE_BYTE( GetAmmoIndex(szName) );		// ammo ID
-			WRITE_BYTE( iAdd );		// amount
+			WRITE_BYTE( iAdd );				// amount
+			WRITE_STRING( szName );				// RTN F10: nome do ammo p/ o pickup do titles.txt ("!9mm" etc)
 		MESSAGE_END();
 	}
 
