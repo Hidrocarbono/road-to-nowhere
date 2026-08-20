@@ -31,7 +31,13 @@ void CWeaponScripted::Spawn( void )
 	// weapon_mp5.txt (never committed) could ever be found here.
 	const char *entClassname = STRING( pev->classname );
 	m_pInfo = WeaponScript_FindWeaponByName( entClassname );
-	m_pWeaponContext->As<CMP5WeaponContext>()->SetScriptInfo( m_pInfo );
+	// static_cast, NOT As<CMP5WeaponContext>(): As<>() asserts m_iId still equals
+	// WEAPON_MP5 (CMP5WeaponContext's AssignedWeaponID), which stops being true
+	// the moment SetScriptInfoWithDynamicId() below gives this context its own
+	// id - the ctor-time m_iId (WEAPON_MP5) is only ever a starting default here.
+	// We already know the concrete type (built as CMP5WeaponContext in our own
+	// ctor above), so the cast is always safe.
+	static_cast<CMP5WeaponContext *>( m_pWeaponContext.get() )->SetScriptInfoWithDynamicId( m_pInfo );
 	Precache();
 	if( m_pInfo && m_pInfo->worldmodel[0] )
 		SET_MODEL( ENT( pev ), m_pInfo->worldmodel );
@@ -48,7 +54,7 @@ void CWeaponScripted::Precache( void )
 	if( entClassname && entClassname[0] )
 	{
 		m_pInfo = WeaponScript_FindWeaponByName( entClassname );
-		m_pWeaponContext->As<CMP5WeaponContext>()->SetScriptInfo( m_pInfo );
+		static_cast<CMP5WeaponContext *>( m_pWeaponContext.get() )->SetScriptInfoWithDynamicId( m_pInfo );
 	}
 	if( m_pInfo )
 	{
@@ -83,11 +89,11 @@ int CWeaponScripted::GetItemInfo( ItemInfo *p ) const
 	// (WeaponScript_FindAmmo), not MAX_WEAPON_NAME (a string-buffer size constant
 	// that has nothing to do with ammo count) - pre-existing, untouched here.
 	p->iMaxAmmo1 = MAX_WEAPON_NAME;
-	// TODO: hardcoded to WEAPON_MP5 because no dedicated WEAPON_* id exists yet for
-	// script-only weapons; fine for a single test weapon, but two CWeaponScripted
-	// instances (or one of these + a real weapon_mp5) sharing the same id will
-	// collide in the player's weapon slot/ammo bookkeeping. Needs a real id (and the
-	// matching HUD/network plumbing) once more than one script weapon is in play.
-	p->iId = WEAPON_MP5;
+	// dynamic id (WeaponScript_GetWeaponID) - was hardcoded WEAPON_MP5 before,
+	// which collided with the real MP5 in ItemInfoArray/HUD/client weapon
+	// selection. m_pInfo is non-null here (checked at the top of this function),
+	// so this always returns an already-assigned id (Spawn()/Precache() assign
+	// it via SetScriptInfoWithDynamicId() before GetItemInfo() can run).
+	p->iId = WeaponScript_GetWeaponID( m_pInfo );
 	return 1;
 }

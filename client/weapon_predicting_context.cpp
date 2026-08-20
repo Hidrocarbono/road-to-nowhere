@@ -369,7 +369,25 @@ CBaseWeaponContext* CWeaponPredictingContext::GetWeaponContext(uint32_t weaponID
 				// nao processava nada -> m_iId preso no estimulante -> armas nao ativavam/miravam.
 				m_weaponsState[weaponID] = std::make_unique<CStimulantWeaponContext>(std::make_unique<CClientWeaponLayerImpl>(m_playerState));
 				break;
-			default: 
+			default:
+				// RTN weapon-script: dynamically-assigned ids (WEAPON_SCRIPT_ID_BASE..
+				// WEAPON_SCRIPT_ID_MAX, see weapons/mp5.h) for CWeaponScripted weapons
+				// (e.g. weapon_parafal). Without this, any such id fell into the
+				// default case above and returned null - HandleWeaponSwitch() then
+				// silently skipped Deploy()/prediction for it (weapon looked "given"
+				// server-side but never actually equipped: no viewmodel, no firing).
+				// Reuses CMP5WeaponContext, same as the server does (weapon_scripted.cpp) -
+				// the client can't parse scripts/weapons/*.txt itself (no filesystem
+				// parser compiled in here), so GetItemInfo() below falls back to the
+				// classic MP5 stats for ItemInfoArray[weaponID]; the actual viewmodel/
+				// weaponmodel shown still comes from the server's authoritative pev
+				// fields (set correctly from script data there - see mp5.cpp Deploy()),
+				// so this is enough to stop prediction from ignoring the weapon.
+				if( weaponID >= WEAPON_SCRIPT_ID_BASE && weaponID <= WEAPON_SCRIPT_ID_MAX )
+				{
+					m_weaponsState[weaponID] = std::make_unique<CMP5WeaponContext>(std::make_unique<CClientWeaponLayerImpl>(m_playerState));
+					break;
+				}
 				return nullptr;
 		}
 

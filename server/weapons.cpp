@@ -32,6 +32,7 @@
 #include "gamerules.h"
 #include "sv_materials.h"
 #include "user_messages.h"
+#include "weaponscript.h"
 
 extern int gEvilImpulse101;
 
@@ -362,6 +363,21 @@ void W_Precache(void)
 	// RTN custom weapons (registrados na ItemInfoArray -> HUD/scroll do mouse)
 	UTIL_PrecacheOtherWeapon( "weapon_mp5" );       // MP5 hardcoded (tambem linkada a weapon_9mmAR)
 	UTIL_PrecacheOtherWeapon( "item_stimulant" );   // estimulante (slot 1 pos 5)
+
+	// RTN weapon-script: registra cada arma carregada de scripts/weapons/*.txt
+	// exatamente como as classicas acima - sem isso, CWeaponScripted nunca
+	// escrevia em ItemInfoArray/AmmoInfoArray por conta propria (so quando
+	// pega pelo jogador), entao CanDeploy()/pszAmmo1()/pszAmmo2()/iItemPosition()
+	// (que nao sao sobrescritos por CMP5WeaponContext, caem no ItemInfoArray
+	// estatico) liam o slot de qualquer arma classica que tivesse registrado
+	// por ultimo naquele id. Precisa de um LINK_ENTITY_TO_CLASS(weapon_<nome>, ...)
+	// correspondente (ver server/weapons/weapon_scripted.cpp) - sem ele
+	// CreateEntityByName falha e UTIL_PrecacheOtherWeapon so loga e ignora.
+	for( int i = 0; i < gNumWeaponInfo; i++ )
+	{
+		if( gWeaponInfo[i].scriptname[0] )
+			UTIL_PrecacheOtherWeapon( gWeaponInfo[i].scriptname );
+	}
 
 	if ( g_pGameRules->IsDeathmatch() )
 	{

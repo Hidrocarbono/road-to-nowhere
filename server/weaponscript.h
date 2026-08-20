@@ -109,6 +109,11 @@ typedef struct weaponinfo_s
 	weaponsprite_t	sprites[MAX_WEAPON_SPRITES];
 	int	num_sprites;
 	char	scriptname[64];
+
+	// Dynamic WEAPON_* id (see WeaponScript_GetWeaponID()/WEAPON_SCRIPT_ID_BASE
+	// below) - -1 until first assigned, then stable for the process lifetime
+	// (gWeaponInfo is only reloaded once, at WeaponScript_Init(), not per map).
+	int	id;
 } weaponinfo_t;
 
 extern ammoinfo_t		gAmmoInfo[MAX_AMMO_TYPES];
@@ -139,5 +144,24 @@ void WeaponScript_Init( void );
 // Must run AFTER W_Precache() on every map load, since W_Precache() wipes
 // AmmoInfoArray clean each time - see the call site in server/world.cpp.
 void WeaponScript_RegisterAmmoTypes( void );
+
+// Assigns (or returns the already-assigned) unique WEAPON_* id for a parsed
+// script weapon - mirrors Paranoia2_original's CBasePlayerItem::GenerateID()/
+// FindWeaponID() (dlls/weapons.cpp). Script weapons must NOT reuse a classic
+// hardcoded WEAPON_* constant (e.g. WEAPON_MP5): doing so makes them collide
+// in CBaseWeaponContext::ItemInfoArray[m_iId] with whichever real weapon owns
+// that id (last one precached each map load wins), which is what broke
+// CanDeploy()/pszAmmo1()/pszAmmo2()/iItemPosition() for every script weapon
+// reusing CMP5WeaponContext. The range below starts right after the highest
+// classic WEAPON_* (WEAPON_STIMULANT=30, see game_shared/weapons/stimulant.h)
+// and stays clear of WEAPON_SUIT (MAX_WEAPONS-1=63, reserved).
+// Defined identically in game_shared/weapons/mp5.h (client + server visible,
+// since client/weapon_predicting_context.cpp also needs the range) - keep
+// both definitions in sync if this ever changes.
+#ifndef WEAPON_SCRIPT_ID_BASE
+#define WEAPON_SCRIPT_ID_BASE	31
+#define WEAPON_SCRIPT_ID_MAX	62
+#endif
+int WeaponScript_GetWeaponID( weaponinfo_t *info );
 
 #endif // WEAPONSCRIPT_H

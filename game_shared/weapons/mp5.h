@@ -13,6 +13,20 @@
 #endif
 
 #define WEAPON_MP5			4
+
+// RTN weapon-script: id range dynamically handed out to script-only weapons
+// (weapon_scripted/CWeaponScripted instances, e.g. weapon_parafal) by
+// WeaponScript_GetWeaponID() (server/weaponscript.h/.cpp) - never a fixed
+// classic WEAPON_* constant, to avoid colliding with the real weapon that
+// owns it in CBaseWeaponContext::ItemInfoArray[m_iId]. Defined here (not just
+// in weaponscript.h) because client/weapon_predicting_context.cpp needs the
+// range too, to build a predicted context for these ids instead of returning
+// null - see GetWeaponContext()'s default case. Keep both copies in sync.
+#ifndef WEAPON_SCRIPT_ID_BASE
+#define WEAPON_SCRIPT_ID_BASE	31
+#define WEAPON_SCRIPT_ID_MAX	62
+#endif
+
 #define MP5_WEIGHT			15
 #define MP5_MAX_CLIP		50
 #define MP5_DEFAULT_AMMO	25
@@ -74,7 +88,23 @@ public:
 	// populated server-side (Spawn/Precache) from WeaponScript_FindWeaponByName();
 	// stays null when no matching scripts/weapons/<classname>.txt was loaded,
 	// in which case Deploy()/GetItemInfo() keep the classic hardcoded MP5 values.
+	// Used by the REAL weapon_mp5 entity (CMP5) - never touches m_iId, so it
+	// stays WEAPON_MP5 always, even if a future weapon_mp5.txt gets added.
 	void SetScriptInfo( const weaponinfo_t *info ) { m_pScriptInfo = info; }
+
+	// Used by CWeaponScripted (any weapon_<name> that isn't the real MP5): same
+	// as SetScriptInfo(), but also gives the context its own dynamic m_iId via
+	// WeaponScript_GetWeaponID() - see the big comment on WEAPON_SCRIPT_ID_BASE
+	// above for why this must NOT stay WEAPON_MP5. Falls back to WEAPON_MP5 when
+	// info is null (no script found), matching the entity's own model/stat
+	// fallback to the classic MP5 in that case - consistent id for a consistent
+	// fallback identity.
+	void SetScriptInfoWithDynamicId( const weaponinfo_t *info )
+	{
+		m_pScriptInfo = info;
+		m_iId = info ? WeaponScript_GetWeaponID( const_cast<weaponinfo_t *>( info ) ) : WEAPON_MP5;
+	}
+
 	const weaponinfo_t *m_pScriptInfo = nullptr;
 #endif
 };

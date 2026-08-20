@@ -427,6 +427,7 @@ int WeaponScript_ParseWeapon( const char *filename )
 	memset( &w, 0, sizeof( w ) );
 	memset( &snd, 0, sizeof( snd ) );
 	w.sound = snd;
+	w.id = -1; // unassigned - see WeaponScript_GetWeaponID()
 
 	p = text;
 	while( true )
@@ -627,4 +628,27 @@ void WeaponScript_RegisterAmmoTypes( void )
 		}
 	}
 	WS_Printf( "WeaponScript: registered %d ammo types from ammodesc.txt into the engine ammo registry\n", registered );
+}
+
+int WeaponScript_GetWeaponID( weaponinfo_t *info )
+{
+	static int nextId = WEAPON_SCRIPT_ID_BASE;
+
+	if( !info )
+		return WEAPON_SCRIPT_ID_BASE; // shouldn't happen - safe fallback bucket
+
+	if( info->id >= 0 )
+		return info->id; // already assigned (Paranoia2's FindWeaponID() equivalent)
+
+	if( nextId > WEAPON_SCRIPT_ID_MAX )
+	{
+		WS_Printf( "WeaponScript: out of script weapon IDs (max %d), reusing %d for [%s]\n",
+			WEAPON_SCRIPT_ID_MAX - WEAPON_SCRIPT_ID_BASE + 1, WEAPON_SCRIPT_ID_MAX, info->scriptname );
+		info->id = WEAPON_SCRIPT_ID_MAX;
+		return info->id;
+	}
+
+	info->id = nextId++;
+	WS_Printf( "WeaponScript: assigned id %d to [%s]\n", info->id, info->scriptname );
+	return info->id;
 }
