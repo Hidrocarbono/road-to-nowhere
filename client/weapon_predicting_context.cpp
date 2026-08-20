@@ -16,6 +16,7 @@ GNU General Public License for more details.
 #include "weapon_predicting_context.h"
 #include "client_weapon_layer_impl.h"
 #include "hud.h"
+#include "ammohistory.h"	// gWR - server-announced weapon list (see GetWeaponContext)
 #include "utils.h"
 #include "weapons/glock.h"
 #include "weapons/crossbow.h"
@@ -372,20 +373,36 @@ CBaseWeaponContext* CWeaponPredictingContext::GetWeaponContext(uint32_t weaponID
 			default:
 				// RTN weapon-script: dynamically-assigned ids (WEAPON_SCRIPT_ID_BASE..
 				// WEAPON_SCRIPT_ID_MAX, see weapons/mp5.h) for CWeaponScripted weapons
-				// (e.g. weapon_parafal). Without this, any such id fell into the
-				// default case above and returned null - HandleWeaponSwitch() then
-				// silently skipped Deploy()/prediction for it (weapon looked "given"
-				// server-side but never actually equipped: no viewmodel, no firing).
-				// Reuses CMP5WeaponContext, same as the server does (weapon_scripted.cpp) -
-				// the client can't parse scripts/weapons/*.txt itself (no filesystem
-				// parser compiled in here), so GetItemInfo() below falls back to the
-				// classic MP5 stats for ItemInfoArray[weaponID]; the actual viewmodel/
-				// weaponmodel shown still comes from the server's authoritative pev
-				// fields (set correctly from script data there - see mp5.cpp Deploy()),
-				// so this is enough to stop prediction from ignoring the weapon.
-				if( weaponID >= WEAPON_SCRIPT_ID_BASE && weaponID <= WEAPON_SCRIPT_ID_MAX )
+				// (e.g. weapon_parafal). Without a context here, HandleWeaponSwitch()
+				// silently skips Deploy()/prediction for the weapon (it looks "given"
+				// server-side but never actually equips). Reuses CMP5WeaponContext,
+				// same as the server does (weapon_scripted.cpp) - the client can't
+				// parse scripts/weapons/*.txt itself (no filesystem parser compiled
+				// in here), so ItemInfoArray[weaponID] below keeps the classic MP5
+				// stats; the viewmodel/weaponmodel actually shown still comes from
+				// the server's authoritative pev fields (set from script data there,
+				// see mp5.cpp Deploy()).
+				//
+				// The gWR check is LOAD-BEARING, not a nicety: ReadWeaponsState()/
+				// WriteWeaponsState() call GetWeaponContext(i) for EVERY i in
+				// 0..MAX_LOCAL_WEAPONS-1 (64) on every single frame. Creating a
+				// context for any id merely inside the range would spawn ~32 phantom
+				// weapons, each one overwriting ItemInfoArray[i] and - because they
+				// all shared one m_iId - writing into the same to->weapondata[] slot,
+				// corrupting the real weapon's predicted state every frame.
+				// gWR.rgWeapons[] is only filled from the server's WeaponList message,
+				// so this builds a context solely for a weapon the server actually
+				// announced (iId is 0 for every id it never sent).
+				if( weaponID >= WEAPON_SCRIPT_ID_BASE && weaponID <= WEAPON_SCRIPT_ID_MAX &&
+					gWR.GetWeapon( static_cast<int>( weaponID ) )->iId == static_cast<int>( weaponID ) )
 				{
-					m_weaponsState[weaponID] = std::make_unique<CMP5WeaponContext>(std::make_unique<CClientWeaponLayerImpl>(m_playerState));
+					auto scriptedWeapon = std::make_unique<CMP5WeaponContext>(std::make_unique<CClientWeaponLayerImpl>(m_playerState));
+					// must match the key it's stored under: the ctor set this to
+					// WEAPON_MP5, and m_iId is what indexes weapondata[]/ItemInfoArray
+					// throughout Read/WriteWeaponSpecificData - leaving it at
+					// WEAPON_MP5 makes this weapon read and write the real MP5's slot.
+					scriptedWeapon->m_iId = static_cast<int>( weaponID );
+					m_weaponsState[weaponID] = std::move( scriptedWeapon );
 					break;
 				}
 				return nullptr;
@@ -393,6 +410,11 @@ CBaseWeaponContext* CWeaponPredictingContext::GetWeaponContext(uint32_t weaponID
 
 		ItemInfo itemInfo;
 		m_weaponsState[weaponID]->GetItemInfo(&itemInfo);
+		// GetItemInfo() reports the context's own id for the classic weapons, but a
+		// script weapon's context borrows CMP5WeaponContext::GetItemInfo(), whose
+		// client-side branch hardcodes the MP5's stats - keep the id we were asked
+		// for so ItemInfoArray[weaponID].iId stays self-consistent.
+		itemInfo.iId = static_cast<int>( weaponID );
 		CBaseWeaponContext::ItemInfoArray[weaponID] = itemInfo;
 		return m_weaponsState[weaponID].get();
 	}

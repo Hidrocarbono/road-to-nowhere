@@ -469,6 +469,31 @@ int WeaponScript_ParseWeapon( const char *filename )
 		}
 	}
 
+	// Paranoia 2 compatibility clamp. The scripts we import are written against
+	// Uncle Mike's HUD, which has MAX_WEAPON_SLOTS 10 (P2 game_shared/cdll_dll.h);
+	// PrimeXT's is 5 (game_shared/cdll_dll.h here), and MAX_WEAPON_POSITIONS is
+	// defined as MAX_WEAPON_SLOTS on the client (client/ammohistory.h). Those
+	// values reach the client's WeaponsResource::rgSlots[6][6] unchecked, via
+	// the WeaponList message and PickupWeapon() - so an out-of-range bucket or
+	// bucket_position both writes out of bounds AND lands the weapon where
+	// GetFirstPos()/GetNextActivePos() (which only walk 0..MAX_WEAPON_POSITIONS-1)
+	// can never find it again: the weapon becomes unselectable in the HUD.
+	// weapon_parafal.txt is a real example - it carries P2's bucket_position 6.
+	// Clamping here (instead of editing the scripts) keeps stock P2 scripts
+	// importable as-is, which is the whole point of the format compatibility.
+	if( w.bucket < 0 || w.bucket >= MAX_WEAPON_SLOTS )
+	{
+		WS_Printf( "WeaponScript: bucket %d out of range (0..%d), clamping - script written for a wider HUD?\n",
+			w.bucket, MAX_WEAPON_SLOTS - 1 );
+		w.bucket = ( w.bucket < 0 ) ? 0 : MAX_WEAPON_SLOTS - 1;
+	}
+	if( w.bucket_position < 0 || w.bucket_position >= MAX_WEAPON_SLOTS )
+	{
+		WS_Printf( "WeaponScript: bucket_position %d out of range (0..%d), clamping - script written for a wider HUD?\n",
+			w.bucket_position, MAX_WEAPON_SLOTS - 1 );
+		w.bucket_position = ( w.bucket_position < 0 ) ? 0 : MAX_WEAPON_SLOTS - 1;
+	}
+
 	if( gNumWeaponInfo < MAX_AMMO_TYPES )
 	{
 		// store the script file basename (e.g. "weapon_mp5") for lookup by name

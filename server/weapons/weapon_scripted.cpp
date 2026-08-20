@@ -70,6 +70,15 @@ void CWeaponScripted::Precache( void )
 	}
 }
 
+int CWeaponScripted::iMaxAmmo1( void )
+{
+	// same source as GetItemInfo()'s p->iMaxAmmo1 - ExtractAmmo()/GiveAmmo() call
+	// this one directly (not through ItemInfo), so the two must agree or reserve
+	// ammo gets clamped to a different ceiling than the HUD advertises.
+	const ammoinfo_t *ammo1 = ( m_pInfo && m_pInfo->primary_ammo[0] ) ? WeaponScript_FindAmmo( m_pInfo->primary_ammo ) : NULL;
+	return ( ammo1 && ammo1->MaxCarry > 0 ) ? Q_min( ammo1->MaxCarry, 254 ) : 1;
+}
+
 int CWeaponScripted::GetItemInfo( ItemInfo *p ) const
 {
 	if( !m_pInfo ) return 0;
@@ -84,11 +93,25 @@ int CWeaponScripted::GetItemInfo( ItemInfo *p ) const
 	p->iSlot = m_pInfo->bucket;
 	p->iPosition = m_pInfo->bucket_position;
 	p->iWeight = m_pInfo->weight;
-	p->iFlags = m_pInfo->item_flags;
-	// TODO: should be the primary_ammo type's MaxCarry from gAmmoInfo
-	// (WeaponScript_FindAmmo), not MAX_WEAPON_NAME (a string-buffer size constant
-	// that has nothing to do with ammo count) - pre-existing, untouched here.
-	p->iMaxAmmo1 = MAX_WEAPON_NAME;
+	// NOT m_pInfo->item_flags: that field holds WIF_IRONSIGHT|WIF_AUTOAIM|
+	// WIF_AUTOFIRE (1|2|4, weaponscript.h), while this field is read as
+	// ITEM_FLAG_SELECTONEMPTY|NOAUTORELOAD|NOAUTOSWITCHEMPTY (1|2|4,
+	// game_shared/item_info.h) - same bits, completely unrelated meanings.
+	// weapon_parafal.txt's "IronSight|AutoAim|AutoFire" was silently turning
+	// into NOAUTORELOAD|NOAUTOSWITCHEMPTY, disabling auto-reload. The WIF_*
+	// flags have no ITEM_FLAG_* equivalent (they describe firing behaviour, not
+	// inventory behaviour), so they stay in m_pInfo for the weapon logic to read
+	// and this reports the same inventory behaviour as the classic MP5.
+	p->iFlags = ITEM_FLAG_SELECTONEMPTY;
+	// max carry comes from the ammo type's MaxCarry in ammodesc.txt (e.g. "ak"
+	// -> 120). Was MAX_WEAPON_NAME (64) - a string-buffer size constant that has
+	// nothing to do with ammo counts, it just happened to be a plausible number.
+	const ammoinfo_t *ammo1 = m_pInfo->primary_ammo[0] ? WeaponScript_FindAmmo( m_pInfo->primary_ammo ) : NULL;
+	// clamped to a byte: UpdateClientData/WeaponList send this with WRITE_BYTE,
+	// and 255 is the wire value the client turns back into -1 ("unlimited").
+	p->iMaxAmmo1 = ( ammo1 && ammo1->MaxCarry > 0 ) ? Q_min( ammo1->MaxCarry, 254 ) : 1;
+	const ammoinfo_t *ammo2 = p->pszAmmo2 ? WeaponScript_FindAmmo( p->pszAmmo2 ) : NULL;
+	p->iMaxAmmo2 = ( ammo2 && ammo2->MaxCarry > 0 ) ? Q_min( ammo2->MaxCarry, 254 ) : -1;
 	// dynamic id (WeaponScript_GetWeaponID) - was hardcoded WEAPON_MP5 before,
 	// which collided with the real MP5 in ItemInfoArray/HUD/client weapon
 	// selection. m_pInfo is non-null here (checked at the top of this function),
