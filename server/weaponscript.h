@@ -128,4 +128,16 @@ weaponinfo_t *WeaponScript_FindWeapon( const char *name );
 weaponinfo_t *WeaponScript_FindWeaponByName( const char *scriptname );
 void WeaponScript_Init( void );
 
+// Registers every ammo type parsed from ammodesc.txt (gAmmoInfo) into the
+// engine's own ammo registry (AmmoInfoArray, via AddAmmoNameToAmmoRegistry -
+// see server/weapons.cpp), so CBasePlayer::GetAmmoIndex()/GiveAmmo() actually
+// recognize script-only ammo names (e.g. "ak", not just the classic hardcoded
+// ones like "9mm"). Without this, any weapon whose primary_ammo isn't already
+// registered by one of the classic hardcoded weapons gets ammo type index -1:
+// GiveAmmo() silently fails (reserve ammo never gets credited, HUD ammo count
+// stays blank), even though the weapon can still fire whatever's in the clip.
+// Must run AFTER W_Precache() on every map load, since W_Precache() wipes
+// AmmoInfoArray clean each time - see the call site in server/world.cpp.
+void WeaponScript_RegisterAmmoTypes( void );
+
 #endif // WEAPONSCRIPT_H

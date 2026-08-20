@@ -610,3 +610,21 @@ void WeaponScript_Init( void )
 	WeaponScript_LoadAll();
 	WS_Printf( "WeaponScript: auto-loaded %d weapons at startup\n", gNumWeaponInfo );
 }
+
+// defined in server/weapons.cpp, no header declares it - it's only ever called
+// from W_Precache() (same file) and from here.
+extern void AddAmmoNameToAmmoRegistry( const char *szAmmoname );
+
+void WeaponScript_RegisterAmmoTypes( void )
+{
+	int registered = 0;
+	for( int i = 0; i < gNumAmmoInfo; i++ )
+	{
+		if( gAmmoInfo[i].name[0] )
+		{
+			AddAmmoNameToAmmoRegistry( gAmmoInfo[i].name );
+			registered++;
+		}
+	}
+	WS_Printf( "WeaponScript: registered %d ammo types from ammodesc.txt into the engine ammo registry\n", registered );
+}

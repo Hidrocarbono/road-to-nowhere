@@ -37,6 +37,7 @@
 #include "meshdesc_factory.h"
 #include "sv_materials.h"
 #include "env_message.h"
+#include "weaponscript.h"
 
 extern CGraph WorldGraph;
 extern CSoundEnt *pSoundEnt;
@@ -698,8 +699,15 @@ void CWorld :: Precache( void )
 
 // the area based ambient sounds MUST be the first precache_sounds
 
-// player precaches     
+// player precaches
 	W_Precache ();									// get weapon precaches
+
+	// RTN weapon-script: W_Precache() just wiped AmmoInfoArray clean (it does
+	// that on every map load), so re-register the script-driven ammo types
+	// (ammodesc.txt, e.g. "ak") here - otherwise CBasePlayer::GetAmmoIndex()/
+	// GiveAmmo() never recognize them (only the classic hardcoded weapons'
+	// ammo names get auto-registered by W_Precache()'s own loop).
+	WeaponScript_RegisterAmmoTypes();
 
 	ClientPrecache();
 
