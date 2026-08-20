@@ -22,6 +22,7 @@ Scripts are line-oriented key/value pairs inside { } blocks.
 #include <filesystem>
 #include "weaponscript.h"
 #include "cbase.h"
+#include "player.h"	// CBasePlayer::m_pActiveItem - ws_give diagnostics
 
 static void WS_Printf( const char *fmt, ... )
 {
@@ -626,6 +627,26 @@ void WeaponScript_Give_f( void )
 	DispatchSpawn( pEnt->edict() );
 	DispatchTouch( pEnt->edict(), pPlayer->edict() );
 	WS_Printf( "ws_give: %s given to player\n", name );
+
+	// Post-mortem of the whole give->pickup->deploy chain in one line, because
+	// every failure mode downstream of here looks identical in game ("pickup
+	// sound, no weapon") while having completely different causes:
+	//   active != the weapon we just gave -> SwitchWeapon() bailed, i.e. either
+	//     CanDeploy() was false (no ammo AND empty clip) or FShouldSwitchWeapon()
+	//     refused because the currently held weapon would not holster;
+	//   viewmodel empty/wrong  -> Deploy() ran but DefaultDeploy() did not set it;
+	//   modelindex 0           -> the model was never precached, so the client
+	//                             resolves it to "no model" and draws an empty
+	//                             hand no matter how correct everything else is;
+	//   everything correct     -> the server is fine and the weapon is being lost
+	//                             on the client (prediction/renderer).
+	CBasePlayer *plr = static_cast<CBasePlayer *>( pPlayer );
+	const char *activeName = ( plr && plr->m_pActiveItem )
+		? STRING( plr->m_pActiveItem->pev->classname ) : "NONE";
+	const char *viewModel = ( plr && plr->pev->viewmodel ) ? STRING( plr->pev->viewmodel ) : "";
+	WS_Printf( "ws_give: active=[%s] viewmodel=[%s] modelindex=%d weaponmodel=[%s]\n",
+		activeName, viewModel, viewModel[0] ? MODEL_INDEX( viewModel ) : 0,
+		( plr && plr->pev->weaponmodel ) ? STRING( plr->pev->weaponmodel ) : "" );
 }
 
 void WeaponScript_Init( void )

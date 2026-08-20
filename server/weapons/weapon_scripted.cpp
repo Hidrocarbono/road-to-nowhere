@@ -38,6 +38,13 @@ void CWeaponScripted::Spawn( void )
 	// We already know the concrete type (built as CMP5WeaponContext in our own
 	// ctor above), so the cast is always safe.
 	static_cast<CMP5WeaponContext *>( m_pWeaponContext.get() )->SetScriptInfoWithDynamicId( m_pInfo );
+	// "defaultammo" from the script instead of CMP5WeaponContext's ctor default
+	// (MP5_DEFAULT_GIVE). This is what ExtractAmmo() hands to AddPrimaryAmmo() on
+	// pickup, so it decides how full the clip starts - and a weapon that arrives
+	// with an empty clip and no reserve ammo fails CanDeploy(), which makes
+	// SwitchWeapon() refuse it without a word: picked up, never equipped.
+	if( m_pInfo && m_pInfo->defaultammo > 0 )
+		m_pWeaponContext->m_iDefaultAmmo = m_pInfo->defaultammo;
 	Precache();
 	if( m_pInfo && m_pInfo->worldmodel[0] )
 		SET_MODEL( ENT( pev ), m_pInfo->worldmodel );

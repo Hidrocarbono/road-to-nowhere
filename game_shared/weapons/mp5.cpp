@@ -88,8 +88,40 @@ bool CMP5WeaponContext::Deploy()
 	// swapped, so this will visibly carry over that known bug until the .txt is fixed.
 	if( m_pScriptInfo && m_pScriptInfo->viewmodel[0] && m_pScriptInfo->playermodel[0] )
 	{
-		return DefaultDeploy( const_cast<char *>( m_pScriptInfo->viewmodel ),
+		bool deployed = DefaultDeploy( const_cast<char *>( m_pScriptInfo->viewmodel ),
 			const_cast<char *>( m_pScriptInfo->playermodel ), MP5_ANIM_DEPLOY, "mp5" );
+		// A viewmodel that was never precached resolves to model index 0 and the
+		// client draws nothing - which looks identical to "the weapon never
+		// deployed". Print both facts so the console tells them apart instead of
+		// us guessing from the symptom.
+		ALERT( at_console, "WeaponScript Deploy [%s]: deployed=%d clip=%d viewmodel=[%s] modelindex=%d\n",
+			m_pScriptInfo->scriptname, deployed ? 1 : 0, m_iClip,
+			m_pScriptInfo->viewmodel, MODEL_INDEX( m_pScriptInfo->viewmodel ) );
+		return deployed;
+	}
+#endif
+#ifdef CLIENT_DLL
+	// A script weapon's viewmodel path lives in scripts/weapons/<name>.txt, which
+	// only the server parses - this build has no parser, so the hardcoded MP5
+	// models below are simply the wrong models for it. They are also not harmless:
+	// SetPlayerViewmodel() writes into the PREDICTED clientdata, and
+	// HUD_TxferLocalOverrides() (client/entity.cpp) copies that straight into
+	// gHUD.m_iViewModelIndex - the very index the renderer draws
+	// (gl_studio_draw.cpp). So predicting a deploy here overwrites the correct
+	// viewmodel the server already sent us: with the MP5's model, or with nothing
+	// at all, since CL_LoadModel() yields index 0 for a path it can't resolve and
+	// index 0 draws an empty hand.
+	// Do everything DefaultDeploy() does EXCEPT touching the models, so the
+	// server's authoritative viewmodel/weaponmodel survive prediction.
+	if( m_iId >= WEAPON_SCRIPT_ID_BASE && m_iId <= WEAPON_SCRIPT_ID_MAX )
+	{
+		if( !CanDeploy() )
+			return false;
+		SendWeaponAnim( MP5_ANIM_DEPLOY );
+		m_pLayer->SetPlayerNextAttackTime( m_pLayer->GetWeaponTimeBase( UsePredicting() ) + 0.5 );
+		m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase( UsePredicting() ) + 1.0;
+		m_flLastFireTime = 0.0f;
+		return true;
 	}
 #endif
 	return DefaultDeploy( "models/v_mp5.mdl", "models/p_mp5.mdl", MP5_ANIM_DEPLOY, "mp5" );
