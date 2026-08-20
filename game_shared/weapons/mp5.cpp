@@ -27,6 +27,31 @@ CMP5WeaponContext::CMP5WeaponContext(std::unique_ptr<IWeaponLayer> &&layer) :
 
 int CMP5WeaponContext::GetItemInfo(ItemInfo *p) const
 {
+#ifndef CLIENT_DLL
+	// script-driven overrides (RTN weapon-script): only clip/ammo-name/slot/weight
+	// are wired here. iMaxAmmo1/iMaxAmmo2 (max carry) would need a second lookup
+	// into gAmmoInfo via WeaponScript_FindAmmo() - not done yet, kept hardcoded.
+	// iFlags is NOT wired to m_pScriptInfo->item_flags on purpose: that field holds
+	// WIF_IRONSIGHT/WIF_AUTOAIM/WIF_AUTOFIRE bits (weaponscript.h), a different bit
+	// layout than ItemInfo::iFlags' ITEM_FLAG_* bits (weapons.h) - assigning it
+	// directly would set the wrong flags.
+	if( m_pScriptInfo )
+	{
+		p->pszName = m_pScriptInfo->scriptname[0] ? m_pScriptInfo->scriptname : CLASSNAME_STR(MP5_CLASSNAME);
+		p->pszAmmo1 = m_pScriptInfo->primary_ammo[0] ? m_pScriptInfo->primary_ammo : "9mm";
+		p->iMaxAmmo1 = _9MM_MAX_CARRY;
+		p->pszAmmo2 = ( m_pScriptInfo->secondary_ammo[0] && stricmp( m_pScriptInfo->secondary_ammo, "none" ) )
+			? m_pScriptInfo->secondary_ammo : NULL;
+		p->iMaxAmmo2 = M203_GRENADE_MAX_CARRY;
+		p->iMaxClip = m_pScriptInfo->clip_size > 0 ? m_pScriptInfo->clip_size : MP5_MAX_CLIP;
+		p->iSlot = m_pScriptInfo->bucket > 0 ? m_pScriptInfo->bucket : 3;
+		p->iPosition = m_pScriptInfo->bucket_position;
+		p->iFlags = ITEM_FLAG_SELECTONEMPTY;
+		p->iId = m_iId;
+		p->iWeight = m_pScriptInfo->weight > 0 ? m_pScriptInfo->weight : MP5_WEIGHT;
+		return 1;
+	}
+#endif
 	p->pszName = CLASSNAME_STR(MP5_CLASSNAME);
 	p->pszAmmo1 = "9mm";
 	p->iMaxAmmo1 = _9MM_MAX_CARRY;
@@ -55,6 +80,17 @@ bool CMP5WeaponContext::Deploy()
 	CBasePlayer *player = m_pLayer->GetWeaponEntity()->m_pPlayer;
 	if( player )
 		g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 64\n" );
+
+	// script-driven models take over once scripts/weapons/<classname>.txt loaded
+	// (m_pScriptInfo set by the entity's Spawn(), see weapon_mp5.cpp/weapon_scripted.cpp).
+	// "playermodel" is the p_ model shown on other players (pev->weaponmodel);
+	// note the RTN test data (weapon_parafal.txt) currently has playermodel/worldmodel
+	// swapped, so this will visibly carry over that known bug until the .txt is fixed.
+	if( m_pScriptInfo && m_pScriptInfo->viewmodel[0] && m_pScriptInfo->playermodel[0] )
+	{
+		return DefaultDeploy( const_cast<char *>( m_pScriptInfo->viewmodel ),
+			const_cast<char *>( m_pScriptInfo->playermodel ), MP5_ANIM_DEPLOY, "mp5" );
+	}
 #endif
 	return DefaultDeploy( "models/v_mp5.mdl", "models/p_mp5.mdl", MP5_ANIM_DEPLOY, "mp5" );
 }

@@ -3,6 +3,15 @@
 #include "weapon_layer.h"
 #include <utility>
 
+#ifndef CLIENT_DLL
+// weaponscript.h lives under server/ and is only on the server's include path
+// (server/CMakeLists.txt); the parser itself (weaponscript.cpp) is server-only
+// too (uses std::filesystem + GET_GAME_DIR), so script-driven data can't reach
+// the client build yet. Client-side prediction keeps using the hardcoded
+// fallback models/anims below until that's ported - see m_pScriptInfo.
+#include "weaponscript.h"
+#endif
+
 #define WEAPON_MP5			4
 #define MP5_WEIGHT			15
 #define MP5_MAX_CLIP		50
@@ -60,6 +69,14 @@ public:
 	bool ShouldWeaponIdle() override { return true; }  // so WeaponIdle runs every frame (FOV lerp)
 	uint16_t m_usEvent1;
 	uint16_t m_usEvent2;
+
+#ifndef CLIENT_DLL
+	// populated server-side (Spawn/Precache) from WeaponScript_FindWeaponByName();
+	// stays null when no matching scripts/weapons/<classname>.txt was loaded,
+	// in which case Deploy()/GetItemInfo() keep the classic hardcoded MP5 values.
+	void SetScriptInfo( const weaponinfo_t *info ) { m_pScriptInfo = info; }
+	const weaponinfo_t *m_pScriptInfo = nullptr;
+#endif
 };
 
 template<>
