@@ -1,0 +1,346 @@
+/*
+ammodesc.txt - description of ammo types and ammo entities
+Copyright (C) 2014 Uncle Mike
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+*/
+
+ammoinfo					// begin ammo definition
+{
+	name		"barret"		// unique name of ammotype
+	MaxCarry		60		// max carry for players
+	PlayerDamage	17		// damage if bullet was fired by player (affected to monsters)
+	MonsterDamage	12		// damage if bullet was fired by monster (affected to client in singleplayer) 
+	ShellModel	"models/glock_shell.mdl"
+}
+
+ammoinfo					// begin ammo definition
+{
+	name		"aps"		// unique name of ammotype
+	MaxCarry		100		// max carry for players
+	PlayerDamage	20		// damage if bullet was fired by player (affected to monsters)
+	MonsterDamage	5		// damage if bullet was fired by monster (affected to client in singleplayer) 
+	ShellModel	"models/aps_shell.mdl"
+}
+
+ammoinfo					// begin ammo definition
+{
+	name		"mp5"		// unique name of ammotype
+	MaxCarry		200		// max carry for players
+	PlayerDamage	13		// damage if bullet was fired by player (affected to monsters)
+	MonsterDamage	8		// damage if bullet was fired by monster (affected to client in singleplayer) 
+	ShellModel	"models/aps_shell.mdl"
+}
+
+ammoinfo					// begin ammo definition
+{
+	name		"m16"		// unique name of ammotype
+	MaxCarry		200		// max carry for players
+	PlayerDamage	20		// damage if bullet was fired by player (affected to monsters)
+	MonsterDamage	12		// damage if bullet was fired by monster (affected to client in singleplayer) 
+	ShellModel	"models/aks_shell.mdl"
+}
+
+ammoinfo					// begin ammo definition
+{
+	name		"ak"		// unique name of ammotype
+	MaxCarry		120		// max carry for players
+	PlayerDamage	20		// damage if bullet was fired by player (affected to monsters)
+	MonsterDamage	12		// damage if bullet was fired by monster (affected to client in singleplayer) 
+	ShellModel	"models/aks_shell.mdl"
+}
+
+ammoinfo					// begin ammo definition
+{
+	name		"5.45"		// unique name of ammotype
+	MaxCarry		150		// max carry for players
+	PlayerDamage	15		// damage if bullet was fired by player (affected to monsters)
+	MonsterDamage	10		// damage if bullet was fired by monster (affected to client in singleplayer) 
+	ShellModel	"models/aks_shell.mdl"
+}
+
+ammoinfo					// begin ammo definition
+{
+	name		"9x39"		// unique name of ammotype
+	MaxCarry		80		// max carry for players
+	PlayerDamage	25		// damage if bullet was fired by player (affected to monsters)
+	MonsterDamage	14		// damage if bullet was fired by monster (affected to client in singleplayer) 
+	ShellModel	"models/val_shell.mdl"
+}
+
+ammoinfo					// begin ammo definition
+{
+	name		"rpk"		// unique name of ammotype
+	MaxCarry		200		// max carry for players
+	PlayerDamage	25		// damage if bullet was fired by player (affected to monsters)
+	MonsterDamage	12		// damage if bullet was fired by monster (affected to client in singleplayer) 
+	ShellModel	"models/rpk_shell.mdl"
+}
+
+ammoinfo					// begin ammo definition
+{
+	name		"tt33"		// unique name of ammotype
+	MaxCarry		60		// max carry for players
+	PlayerDamage	15		// damage if bullet was fired by player (affected to monsters)
+	MonsterDamage	12		// damage if bullet was fired by monster (affected to client in singleplayer) 
+	ShellModel	"models/tt33_shell.mdl"
+}
+
+ammoinfo					// begin ammo definition
+{
+	name		"buckshot"	// unique name of ammotype
+	MaxCarry		125		// max carry for players
+	Damage		10		// damage both for monsters and players
+	Distance		2048
+	NumShots		5
+	ShellModel	"models/spas12_shell.mdl"
+}
+
+// groza grenades
+ammoinfo					// begin ammo definition
+{
+	name		"vog25"		// unique name of ammotype
+	MaxCarry		10		// max carry for players
+	Damage		100		// damage both for monsters and players
+	Distance		800		// throw grenade at 800 units
+	Missile		grenade_vog25	// name of entity
+	count       5
+}
+
+// rpg rockets
+ammoinfo					// begin ammo definition
+{
+	name		"rockets"		// unique name of ammotype
+	MaxCarry		5		// max carry for players
+	Damage		200		// damage both for monsters and players
+	Distance		250		// throw grenade at 250 units
+	Missile		rpg_rocket	// name of entity
+}
+
+// grenades
+ammoinfo					// begin ammo definition
+{
+	name		"Hand Grenade"	// unique name of ammotype
+	MaxCarry		5		// max carry for players
+	Damage		100
+	Distance		500
+}
+
+ammoinfo					// begin ammo definition
+{
+	name		"painkillers"	// unique name of ammotype
+	MaxCarry		10		// max carry for players
+}
+
+
+
+
+
+/////////////////////////////////////
+
+
+
+
+
+ammo_9mmclip
+{
+	model	"models/w_glockammo.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"barret"			// ammo type what will be added to player
+	count	17			// count of ammo
+}
+
+ammo_glock
+{
+	model	"models/w_glockammo.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"barret"			// ammo type what will be added to player
+	count	17			// count of ammo
+}
+
+ammo_glockbox
+{
+	model	"models/w_glockammobox.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"barret"			// ammo type what will be added to player
+	count	200			// count of ammo
+}
+
+ammo_aps
+{
+	model	"models/w_apsammo.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"aps"			// ammo type what will be added to player
+	count	12			// count of ammo
+}
+
+ammo_apsbox
+{
+	model	"models/w_apsammobox.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"aps"			// ammo type what will be added to player
+	count	120			// count of ammo
+}
+
+
+ammo_aks
+{
+	model	"models/ammo_aks_clip.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"5.45"			// ammo type what will be added to player
+	count	30			// count of ammo
+}
+
+ammo_aksbox
+{
+	model	"models/ammo_aks_box.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"5.45"			// ammo type what will be added to player
+	count	120			// count of ammo
+}
+
+ammo_ak74
+{
+	model	"models/w_ak74ammo.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"ak"			// ammo type what will be added to player
+	count	30			// count of ammo
+}
+
+ammo_mp5
+{
+	model	"models/ammo_mp5_box.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"mp5"			// ammo type what will be added to player
+	count	60			// count of ammo
+}
+
+ammo_m16box
+{
+	model	"models/w_m4a1ammobox.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"m16"			// ammo type what will be added to player
+	count	60			// count of ammo
+}
+
+ammo_m16
+{
+	model	"models/w_m4a1ammo.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"m16"			// ammo type what will be added to player
+	count	30			// count of ammo
+}
+
+ammo_ak74box
+{
+	model	"models/w_ak74ammobox.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"ak"			// ammo type what will be added to player
+	count	90			// count of ammo
+}
+
+ammo_vss
+{
+	model	"models/w_valammo.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"9x39"			// ammo type what will be added to player
+	count	20			// count of ammo
+}
+
+ammo_vssbox
+{
+	model	"models/w_valammobox.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"9x39"			// ammo type what will be added to player
+	count	80			// count of ammo
+}
+
+ammo_rpk
+{
+	model	"models/w_rpkammo.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"rpk"			// ammo type what will be added to player
+	count	100			// count of ammo
+}
+
+ammo_rpkbox
+{
+	model	"models/w_rpkammobox.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"rpk"			// ammo type what will be added to player
+	count	200			// count of ammo
+}
+
+ammo_groza
+{
+	model	"models/w_grammo.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"9x39"			// ammo type what will be added to player
+	count	30			// count of ammo
+}
+
+ammo_grozabox
+{
+	model	"models/w_grammobox.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"9x39"			// ammo type what will be added to player
+	count	80			// count of ammo
+}
+
+ammo_vog25
+{
+	model	"models/w_vog25ammo.mdl"	// FIXME: replace with real vog25 model
+	sound	"items/default.wav"	// sound when added
+	type	"vog25"			// ammo type what will be added to player
+	count	4			// count of ammo
+}
+
+ammo_tt33
+{
+	model	"models/w_tt33ammo.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"tt33"			// ammo type what will be added to player
+	count	8			// count of ammo
+}
+
+ammo_tt33box
+{
+	model	"models/w_tt33ammobox.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"tt33"			// ammo type what will be added to player
+	count	32			// count of ammo
+}
+
+
+ammo_buckshot
+{
+	model	"models/w_shotbox.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"buckshot"		// ammo type what will be added to player
+	count	12			// count of ammo
+}
+
+ammo_rpgclip
+{
+	model	"models/w_rpgammo.mdl"	// model in world
+	sound	"items/default.wav"	// sound when added
+	type	"rockets"			// ammo type what will be added to player
+	count	1			// count of ammo
+}
+
+
+ammo_painkillers
+{
+	model	"models/w_antidote.mdl"
+	sound	"items/smallmedkit1.wav"
+	type	"painkillers"
+	count	1
+}
