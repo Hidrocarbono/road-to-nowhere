@@ -94,16 +94,18 @@ weaponinfo_t *WeaponScript_FindWeaponByName( const char *scriptname )
 {
 	char want[64];
 	WS_StripTxt( want, scriptname, sizeof( want ) );
-	g_engfuncs.pfnServerPrint( va( "DEBUG FindWeaponByName: want=[%s], gNumWeaponInfo=%d\n", want, gNumWeaponInfo ) );
+	// This used to print one line PER ENTRY on every call - with 18 scripts and
+	// several calls per pickup that is 50+ lines that scroll the map-load
+	// diagnostics (where the parse results are reported) clean off the screen.
+	// Only the failure is worth a line.
 	for( int i = 0; i < gNumWeaponInfo; i++ )
 	{
 		char have[64];
 		WS_StripTxt( have, gWeaponInfo[i].scriptname, sizeof( have ) );
-		g_engfuncs.pfnServerPrint( va( "DEBUG FindWeaponByName: i=%d have=[%s] want=[%s] cmp=%d\n", i, have, want, WS_stricmp(have,want) ) );
 		if( !WS_stricmp( have, want ) )
 			return &gWeaponInfo[i];
 	}
-	g_engfuncs.pfnServerPrint( "DEBUG FindWeaponByName: NOT FOUND\n" );
+	WS_Printf( "WeaponScript: [%s] nao encontrado entre os %d scripts carregados\n", want, gNumWeaponInfo );
 	return NULL;
 }
 
@@ -518,9 +520,18 @@ int WeaponScript_ParseWeapon( const char *filename )
 		size_t sl = strlen( w.scriptname );
 		if( sl > 4 && !WS_stricmp( w.scriptname + sl - 4, ".txt" ) )
 			w.scriptname[sl-4] = 0;
-		WS_Printf( "WeaponScript: indexed [%s] from file [%s]\n", w.scriptname, baseName.c_str() );
 		gWeaponInfo[gNumWeaponInfo++] = w;
-		WS_Printf( "WeaponScript: loaded weapon (%d sprites)\n", w.num_sprites );
+		// Report what was actually READ from the file, not just that the file was
+		// found. These two are very different failures that look identical from
+		// the outside: the scriptname above comes from the FILENAME, so a weapon
+		// whose contents parsed to nothing still shows up "indexed" and findable
+		// by name, with every field silently zeroed.
+		WS_Printf( "WeaponScript: [%s] vm=[%s] bucket=%d pos=%d clip=%d ammo1=[%s] sprites=%d\n",
+			w.scriptname, w.viewmodel, w.bucket, w.bucket_position,
+			w.clip_size, w.primary_ammo, w.num_sprites );
+		if( !w.viewmodel[0] || !w.primary_ammo[0] || w.clip_size <= 0 )
+			WS_Printf( "WeaponScript: AVISO - [%s] tem campos vazios; o arquivo foi lido mas o conteudo nao foi interpretado\n",
+				w.scriptname );
 	}
 
 	free( text );
@@ -679,6 +690,25 @@ void WeaponScript_Give_f( void )
 		ctx->m_iId, reg.pszName ? reg.pszName : "NULL", reg.pszAmmo1 ? reg.pszAmmo1 : "NULL",
 		reg.iMaxClip, reg.iMaxAmmo1, reg.iId );
 
+	// The parsed script entry itself, read straight out of gWeaponInfo instead of
+	// inferred from ItemInfoArray. Everything above is a COPY made at Spawn time;
+	// if the two disagree the copy is stale, and if they agree that the fields are
+	// empty then the parser never filled them - which points at the script file,
+	// not at the weapon code.
+	const weaponinfo_t *src = WeaponScript_FindWeaponByName( name );
+	if( src )
+	{
+		WS_Printf( "ws_give: gWeaponInfo[%s] vm=[%s] pm=[%s] wm=[%s]\n",
+			src->scriptname, src->viewmodel, src->playermodel, src->worldmodel );
+		WS_Printf( "ws_give: gWeaponInfo[%s] bucket=%d pos=%d clip=%d defammo=%d ammo1=[%s] id=%d\n",
+			src->scriptname, src->bucket, src->bucket_position, src->clip_size,
+			src->defaultammo, src->primary_ammo, src->id );
+	}
+	else
+	{
+		WS_Printf( "ws_give: gWeaponInfo NAO tem entrada para [%s]\n", name );
+	}
+
 	// Last-resort equip. CanDeploy() gates SwitchWeapon() on "has any ammo at
 	// all", and a script weapon whose clip never got filled fails it silently -
 	// picked up, never equipped, no console word about it. Refill from the
@@ -709,6 +739,15 @@ void WeaponScript_Give_f( void )
 
 void WeaponScript_Init( void )
 {
+	// Stamp which server.dll is actually loaded. Two test rounds were spent on a
+	// log that looked unchanged, with no way to tell "the fix did not work" apart
+	// from "the new DLL was never loaded" - this removes that ambiguity for good.
+	// XASH_BUILD_COMMIT is the git describe, injected by the root CMakeLists.txt.
+#ifdef XASH_BUILD_COMMIT
+	WS_Printf( "WeaponScript: server.dll build [%s]\n", XASH_BUILD_COMMIT );
+#else
+	WS_Printf( "WeaponScript: server.dll build [desconhecido]\n" );
+#endif
 	g_engfuncs.pfnAddServerCommand( "weaponscript_reload", WeaponScript_Reload_f );
 	g_engfuncs.pfnAddServerCommand( "weaponscript_list", WeaponScript_List_f );
 	g_engfuncs.pfnAddServerCommand( "ws_give", WeaponScript_Give_f );
