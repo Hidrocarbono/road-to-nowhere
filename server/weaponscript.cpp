@@ -649,6 +649,50 @@ void WeaponScript_Give_f( void )
 	WS_Printf( "ws_give: active=[%s] viewmodel=[%s] modelindex=%d weaponmodel=[%s]\n",
 		activeName, viewModel, viewModel[0] ? MODEL_INDEX( viewModel ) : 0,
 		( plr && plr->pev->weaponmodel ) ? STRING( plr->pev->weaponmodel ) : "" );
+
+	CBasePlayerWeapon *wpn = dynamic_cast<CBasePlayerWeapon *>( pEnt );
+	if( !plr || !wpn || !wpn->m_pWeaponContext )
+		return;
+
+	CBaseWeaponContext *ctx = wpn->m_pWeaponContext.get();
+	// ItemInfoArray[] is the shared table W_Precache() fills; CanDeploy() and the
+	// ammo bookkeeping read the weapon's stats from it, NOT from the script - so
+	// an empty row here means the weapon was never registered and every one of
+	// those reads silently returns zero/NULL.
+	const ItemInfo &reg = CBaseWeaponContext::ItemInfoArray[ctx->m_iId];
+	WS_Printf( "ws_give: ctx id=%d clip=%d defaultammo=%d ammotype=%d slot=%d candeploy=%d inventory=%d\n",
+		ctx->m_iId, ctx->m_iClip, ctx->m_iDefaultAmmo, ctx->m_iPrimaryAmmoType,
+		wpn->iItemSlot(), wpn->CanDeploy() ? 1 : 0, plr->HasPlayerItem( wpn ) ? 1 : 0 );
+	WS_Printf( "ws_give: ItemInfoArray[%d] name=[%s] ammo1=[%s] maxclip=%d maxammo1=%d id=%d\n",
+		ctx->m_iId, reg.pszName ? reg.pszName : "NULL", reg.pszAmmo1 ? reg.pszAmmo1 : "NULL",
+		reg.iMaxClip, reg.iMaxAmmo1, reg.iId );
+
+	// Last-resort equip. CanDeploy() gates SwitchWeapon() on "has any ammo at
+	// all", and a script weapon whose clip never got filled fails it silently -
+	// picked up, never equipped, no console word about it. Refill from the
+	// script's own clip_size and equip directly, so the weapon reaches the
+	// screen even when the ammo path is still wrong. This is a diagnostic
+	// crutch on a debug-only console command (ws_give), not a fix for the
+	// underlying bookkeeping - the printout above is what tells us what to fix.
+	if( !plr->m_pActiveItem && plr->HasPlayerItem( wpn ) )
+	{
+		if( ctx->m_iClip <= 0 && wpn->iMaxClip() > 0 )
+		{
+			ctx->m_iClip = wpn->iMaxClip();
+			WS_Printf( "ws_give: clip estava vazio - preenchido com %d do script\n", ctx->m_iClip );
+		}
+		if( !plr->SwitchWeapon( wpn ) )
+		{
+			WS_Printf( "ws_give: SwitchWeapon recusou (CanDeploy=%d) - equipando na marra\n",
+				wpn->CanDeploy() ? 1 : 0 );
+			plr->m_pActiveItem = wpn;
+			wpn->Deploy();
+		}
+		const char *vm2 = plr->pev->viewmodel ? STRING( plr->pev->viewmodel ) : "";
+		WS_Printf( "ws_give: apos forcar -> active=[%s] viewmodel=[%s] modelindex=%d\n",
+			plr->m_pActiveItem ? STRING( plr->m_pActiveItem->pev->classname ) : "NONE",
+			vm2, vm2[0] ? MODEL_INDEX( vm2 ) : 0 );
+	}
 }
 
 void WeaponScript_Init( void )

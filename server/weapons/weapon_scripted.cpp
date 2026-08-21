@@ -45,6 +45,25 @@ void CWeaponScripted::Spawn( void )
 	// SwitchWeapon() refuse it without a word: picked up, never equipped.
 	if( m_pInfo && m_pInfo->defaultammo > 0 )
 		m_pWeaponContext->m_iDefaultAmmo = m_pInfo->defaultammo;
+
+	// Self-register into the shared ItemInfoArray when W_Precache() has not
+	// already done it. That table - not the script - is what CanDeploy(),
+	// pszAmmo1()/pszAmmo2() and iMaxClip() read on the CONTEXT
+	// (CBaseWeaponContext reads ItemInfoArray[m_iId] directly), so an
+	// unregistered row makes all of them return zero/NULL: the weapon then
+	// fails CanDeploy() and SwitchWeapon() drops it without a word - picked
+	// up, never equipped. W_Precache() can miss it whenever the scripts are
+	// (re)loaded after the map precached, e.g. weaponscript_reload.
+	ItemInfo selfInfo;
+	memset( &selfInfo, 0, sizeof( selfInfo ) );
+	if( GetItemInfo( &selfInfo ) && selfInfo.iId > 0 && selfInfo.iId < MAX_WEAPONS
+		&& !CBaseWeaponContext::ItemInfoArray[selfInfo.iId].iId )
+	{
+		CBaseWeaponContext::ItemInfoArray[selfInfo.iId] = selfInfo;
+		ALERT( at_console, "WeaponScript: [%s] nao estava no ItemInfoArray[%d] - auto-registrado no Spawn\n",
+			m_pInfo ? m_pInfo->scriptname : "?", selfInfo.iId );
+	}
+
 	Precache();
 	if( m_pInfo && m_pInfo->worldmodel[0] )
 		SET_MODEL( ENT( pev ), m_pInfo->worldmodel );
