@@ -126,7 +126,28 @@ static char *WS_LoadText( const char *filename )
 	return text;
 }
 
-// Advance *pp past whitespace and comments; return next token (in place) or NULL.
+// A token has to be NUL-terminated to be comparable with WS_stricmp(). A quoted
+// token is terminated in place (the closing quote becomes the NUL), but an
+// unquoted one is followed by a delimiter we cannot always overwrite: it may be a
+// '{' or '}' that still has to come back as the NEXT token. So those get copied
+// out instead. One shared buffer would not do - WS_ParseKVBlock() holds a key and
+// a value at the same time - hence a small rotating set.
+#define WS_TOKEN_RING	4
+static char ws_tokenRing[WS_TOKEN_RING][256];
+static int  ws_tokenRingPos = 0;
+
+static char *WS_CopyToken( const char *src, size_t len )
+{
+	char *dst = ws_tokenRing[ws_tokenRingPos];
+	ws_tokenRingPos = ( ws_tokenRingPos + 1 ) % WS_TOKEN_RING;
+	if( len >= sizeof( ws_tokenRing[0] ) )
+		len = sizeof( ws_tokenRing[0] ) - 1;
+	memcpy( dst, src, len );
+	dst[len] = '\0';
+	return dst;
+}
+
+// Advance *pp past whitespace and comments; return next token or NULL.
 static char *WS_NextToken( char **pp )
 {
 	char *p = *pp;
@@ -181,15 +202,23 @@ static char *WS_NextToken( char **pp )
 
 		if( *p != '{' && *p != '}' )
 		{
+			// This used to "return start" straight into the text, with no NUL:
+			// the caller then compared a string that ran on past the token
+			// ("WeaponData\n{\n\t\"viewmodel\"..."), so WS_stricmp() came back
+			// with the delimiter's value instead of 0 and NO unquoted block name
+			// ever matched - WeaponData, PrimaryAttack, SecondaryAttack,
+			// SoundData and ammoinfo alike. That is why every weapon parsed to
+			// empty fields while the QUOTED "hudsprite" blocks were counted
+			// correctly, and why ammodesc.txt reported "parsed 0 ammo definitions".
 			char *start = p;
 			while( *p && *p != ' ' && *p != '\t' && *p != '\r'
 				&& *p != '\n' && *p != '{' && *p != '}' )
 				p++;
 			*pp = p;
-			return start;
+			return WS_CopyToken( start, (size_t)( p - start ) );
 		}
 
-		{ char *start = p; p++; *pp = p; return start; }
+		{ char *start = p; p++; *pp = p; return WS_CopyToken( start, 1 ); }
 	}
 	*pp = p;
 	return NULL;
