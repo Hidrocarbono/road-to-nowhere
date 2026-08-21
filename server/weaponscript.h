@@ -165,7 +165,16 @@ void WeaponScript_RegisterAmmoTypes( void );
 // both definitions in sync if this ever changes.
 #ifndef WEAPON_SCRIPT_ID_BASE
 #define WEAPON_SCRIPT_ID_BASE	31
-#define WEAPON_SCRIPT_ID_MAX	62
+// The ceiling is the PROTOCOL's, not the engine's: game_dir/delta.lst encodes
+// both clientdata_t.m_iId and weapon_data_t.m_iId with 5 bits, so 31 is the
+// highest id that survives the wire. An id of 32+ wraps around silently and the
+// client predicts a different weapon (or none) - which is far worse than
+// refusing it. The engine itself is wider (MAX_WEAPON_BITS 6 -> 64 weapons, see
+// engine/common/protocol.h in the Xash fork), so raising this means widening
+// those two DEFINE_DELTA entries to 6 bits FIRST - that is a protocol change and
+// deserves its own test round. Until then exactly one script weapon can exist;
+// asking for a second one logs an error instead of corrupting state.
+#define WEAPON_SCRIPT_ID_MAX	31
 #endif
 int WeaponScript_GetWeaponID( weaponinfo_t *info );
 

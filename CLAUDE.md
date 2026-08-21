@@ -60,11 +60,13 @@ Limites atuais e o que eles significam:
 do slot com 6 bits), e `MAX_MODEL_BITS 12` → 4096 modelos. Quem estrangula é o
 `delta.lst` do mod, não o engine.
 
-**Armadilha ativa:** o sistema de armas por script atribui ids dinâmicos a partir de
-31 (`WEAPON_SCRIPT_ID_BASE`). O id 31 é o **último** que cabe em 5 bits — funciona por
-sorte. A segunda arma de script (id 32) daria a volta para 0 silenciosamente. Antes
-de ter mais de uma arma de script: subir `m_iId` para 6 bits no `delta.lst`, ou
-reduzir `WEAPON_SCRIPT_ID_MAX` para 31.
+**Consequência:** o sistema de armas por script atribui ids dinâmicos a partir de 31
+(`WEAPON_SCRIPT_ID_BASE`), e 31 é o **último** que cabe em 5 bits. Por isso
+`WEAPON_SCRIPT_ID_MAX` está fixado em **31** — ou seja, **uma arma de script por vez**;
+pedir uma segunda gera erro no log em vez de corromper estado em silêncio. Para ter
+mais: **primeiro** subir os dois `m_iId` para 6 bits no `delta.lst` (mudança de
+protocolo, merece rodada de teste própria), **depois** aumentar o `MAX` nos dois
+headers que o definem (`server/weaponscript.h` e `game_shared/weapons/mp5.h`).
 
 # Sistema de armas por script — estado e armadilhas
 

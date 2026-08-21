@@ -154,7 +154,19 @@ static char *WS_NextToken( char **pp )
 
 		if( *p == '"' )
 		{
-			char *start = p + 1;
+			// The loop below shifts the quoted content one byte left, over the
+			// opening quote, so it can be NUL-terminated in place without eating
+			// the character that follows the closing quote. The token therefore
+			// begins where the opening quote was - NOT one byte after it.
+			// This used to be "p + 1", which returned the token minus its first
+			// character: every quoted key came out as "iewmodel", "ucket",
+			// "lip_size"..., so no key ever matched in WS_ApplyWeaponData() and
+			// every quoted field stayed at its zeroed default. Only unquoted
+			// tokens (the block names WeaponData/PrimaryAttack/..., and the
+			// scriptname, which comes from the FILENAME) ever survived - which is
+			// exactly why a weapon could be found by name while every one of its
+			// fields read back empty.
+			char *start = p;
 			char *dst = p;
 			p++;
 			while( *p && *p != '"' )
