@@ -23,6 +23,8 @@ Scripts are line-oriented key/value pairs inside { } blocks.
 #include "weaponscript.h"
 #include "cbase.h"
 #include "player.h"	// CBasePlayer::m_pActiveItem - ws_give diagnostics
+#include "weapons.h"	// CBasePlayerItem definition - player.h only forward-declares it,
+			// and the diagnostics below dereference m_pActiveItem
 
 static void WS_Printf( const char *fmt, ... )
 {
