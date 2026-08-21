@@ -64,11 +64,11 @@ static void WS_strncpy( char *dst, const char *src, int n )
 }
 
 
-ammoinfo_t	gAmmoInfo[MAX_AMMO_TYPES];
+ammoinfo_t	gAmmoInfo[WS_MAX_ENTRIES];
 int		gNumAmmoInfo = 0;
-ammopickup_t	gAmmoPickups[MAX_AMMO_TYPES];
+ammopickup_t	gAmmoPickups[WS_MAX_ENTRIES];
 int		gNumAmmoPickups = 0;
-weaponinfo_t	gWeaponInfo[MAX_AMMO_TYPES];
+weaponinfo_t	gWeaponInfo[WS_MAX_ENTRIES];
 int		gNumWeaponInfo = 0;
 
 ammoinfo_t *WeaponScript_FindAmmo( const char *name )
@@ -381,7 +381,7 @@ int WeaponScript_ParseAmmoDesc( const char *filename )
 
 		if( !WS_stricmp( t, "ammoinfo" ) )
 		{
-			if( gNumAmmoInfo >= MAX_AMMO_TYPES )
+			if( gNumAmmoInfo >= WS_MAX_ENTRIES )
 			{
 				WS_Printf( "WeaponScript: ammo type limit reached\n" );
 				break;
@@ -395,7 +395,7 @@ int WeaponScript_ParseAmmoDesc( const char *filename )
 			ammopickup_t pk;
 			memset( &pk, 0, sizeof( pk ) );
 			WS_strncpy( pk.classname, t, sizeof( pk.classname ) );
-			if( gNumAmmoPickups < MAX_AMMO_TYPES )
+			if( gNumAmmoPickups < WS_MAX_ENTRIES )
 			{
 				if( WS_ParseKVBlock( &p, &pk, WS_ApplyAmmoPickup ) )
 					gAmmoPickups[gNumAmmoPickups++] = pk;
@@ -497,7 +497,7 @@ int WeaponScript_ParseWeapon( const char *filename )
 		w.bucket_position = ( w.bucket_position < 0 ) ? 0 : MAX_WEAPON_SLOTS - 1;
 	}
 
-	if( gNumWeaponInfo < MAX_AMMO_TYPES )
+	if( gNumWeaponInfo < WS_MAX_ENTRIES )
 	{
 		// store the script file basename (e.g. "weapon_mp5") for lookup by name
 		// use std::filesystem::path to strip directory regardless of / or \ separator

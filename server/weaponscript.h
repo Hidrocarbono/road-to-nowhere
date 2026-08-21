@@ -17,9 +17,14 @@ changing their script files.
 
 #include "const.h"
 
-#ifndef MAX_AMMO_TYPES
-#define MAX_AMMO_TYPES		64
-#endif
+// Deliberately NOT called MAX_AMMO_TYPES: game_shared/cdll_dll.h already defines
+// that name as 32, so the old "#ifndef MAX_AMMO_TYPES / #define 64" here resolved
+// to 32 or 64 depending purely on whether extdll.h happened to be included before
+// this header in a given translation unit - i.e. the same global arrays were
+// declared with different extents across the build (an ODR violation).
+// game_shared/weapons/mp5.cpp really does include this header first, so both
+// values were live in the same binary.
+#define WS_MAX_ENTRIES		64
 #ifndef MAX_WEAPON_SPRITES
 #define MAX_WEAPON_SPRITES	8
 #endif
@@ -116,11 +121,11 @@ typedef struct weaponinfo_s
 	int	id;
 } weaponinfo_t;
 
-extern ammoinfo_t		gAmmoInfo[MAX_AMMO_TYPES];
+extern ammoinfo_t		gAmmoInfo[WS_MAX_ENTRIES];
 extern int			gNumAmmoInfo;
-extern ammopickup_t		gAmmoPickups[MAX_AMMO_TYPES];
+extern ammopickup_t		gAmmoPickups[WS_MAX_ENTRIES];
 extern int			gNumAmmoPickups;
-extern weaponinfo_t		gWeaponInfo[MAX_AMMO_TYPES];
+extern weaponinfo_t		gWeaponInfo[WS_MAX_ENTRIES];
 extern int			gNumWeaponInfo;
 
 ammoinfo_t *WeaponScript_FindAmmo( const char *name );

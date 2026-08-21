@@ -257,6 +257,53 @@ void AddAmmoNameToAmmoRegistry( const char *szAmmoname )
 }
 
 
+// Same job as UTIL_PrecacheOtherWeapon() below, but safe to call with a
+// classname that may not exist as an entity at all.
+//
+// The scripts in scripts/weapons/ are imported wholesale from Paranoia 2, and
+// most of them have no LINK_ENTITY_TO_CLASS on this side yet - only the ones
+// wired up in server/weapons/weapon_scripted.cpp do. UTIL_PrecacheOtherWeapon()
+// cannot be used for the rest: it C-style-casts whatever CreateEntityByName()
+// returns to CBasePlayerItem* and calls a virtual on it, then writes
+// ItemInfoArray[II.iId] with no bounds check. Fed a non-weapon entity that is a
+// call through a mismatched vtable and a write at an arbitrary index - it
+// corrupts neighbouring globals (gWeaponInfo included, which is exactly how a
+// script weapon ended up with a valid scriptname but bucket/clip_size/
+// primary_ammo garbage).
+//
+// So: dynamic_cast instead of a C-style cast, and bounds-check the id.
+void UTIL_PrecacheScriptWeapon( const char *szClassname )
+{
+	CBaseEntity *pEntity = CreateEntityByName( szClassname );
+	if( !pEntity )
+		return;	// no entity for this script yet - expected, not an error
+
+	CBasePlayerWeapon *pWeapon = dynamic_cast<CBasePlayerWeapon *>( pEntity );
+	if( !pWeapon )
+	{
+		ALERT( at_console, "UTIL_PrecacheScriptWeapon: [%s] existe mas nao e uma arma - ignorado\n", szClassname );
+		REMOVE_ENTITY( pEntity->edict() );
+		return;
+	}
+
+	ItemInfo II;
+	pWeapon->Precache();
+	memset( &II, 0, sizeof( II ) );
+
+	if( pWeapon->GetItemInfo( &II ) && II.iId > 0 && II.iId < MAX_WEAPONS )
+	{
+		CBaseWeaponContext::ItemInfoArray[II.iId] = II;
+
+		if( II.pszAmmo1 && *II.pszAmmo1 )
+			AddAmmoNameToAmmoRegistry( II.pszAmmo1 );
+
+		if( II.pszAmmo2 && *II.pszAmmo2 )
+			AddAmmoNameToAmmoRegistry( II.pszAmmo2 );
+	}
+
+	REMOVE_ENTITY( pEntity->edict() );
+}
+
 // Precaches the weapon and queues the weapon info for sending to clients
 void UTIL_PrecacheOtherWeapon( const char *szClassname )
 {
@@ -376,7 +423,7 @@ void W_Precache(void)
 	for( int i = 0; i < gNumWeaponInfo; i++ )
 	{
 		if( gWeaponInfo[i].scriptname[0] )
-			UTIL_PrecacheOtherWeapon( gWeaponInfo[i].scriptname );
+			UTIL_PrecacheScriptWeapon( gWeaponInfo[i].scriptname );
 	}
 
 	if ( g_pGameRules->IsDeathmatch() )

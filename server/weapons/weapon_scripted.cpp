@@ -56,12 +56,14 @@ void CWeaponScripted::Spawn( void )
 	// (re)loaded after the map precached, e.g. weaponscript_reload.
 	ItemInfo selfInfo;
 	memset( &selfInfo, 0, sizeof( selfInfo ) );
-	if( GetItemInfo( &selfInfo ) && selfInfo.iId > 0 && selfInfo.iId < MAX_WEAPONS
-		&& !CBaseWeaponContext::ItemInfoArray[selfInfo.iId].iId )
+	if( GetItemInfo( &selfInfo ) && selfInfo.iId > 0 && selfInfo.iId < MAX_WEAPONS )
 	{
+		// Overwrite unconditionally rather than only filling an empty row: the
+		// row can also hold STALE data (a previous map's load, or a row written
+		// before the script data was correct), and stale is just as fatal as
+		// missing - CanDeploy() reads it and refuses the weapon either way.
+		// GetItemInfo() above is authoritative: it comes straight from the script.
 		CBaseWeaponContext::ItemInfoArray[selfInfo.iId] = selfInfo;
-		ALERT( at_console, "WeaponScript: [%s] nao estava no ItemInfoArray[%d] - auto-registrado no Spawn\n",
-			m_pInfo ? m_pInfo->scriptname : "?", selfInfo.iId );
 	}
 
 	Precache();
