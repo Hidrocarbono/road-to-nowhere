@@ -237,6 +237,33 @@ int CServerWeaponLayerImpl::GetPlayerViewmodel()
 	return m_pWeapon->m_pPlayer->pev->viewmodel;
 }
 
+void *CServerWeaponLayerImpl::GetViewmodelStudioHeader()
+{
+	// Mesmo caminho de CBaseAnimating::GetModelPtr(int) (server/animating.cpp):
+	// modelindex -> model_t -> cache.data. Nao da para usar GET_MODEL_PTR() aqui
+	// porque o viewmodel NAO e uma entidade no servidor - vive como string em
+	// pev->viewmodel do jogador, entao precisamos resolver o indice na mao.
+	CBasePlayer *player = m_pWeapon ? m_pWeapon->m_pPlayer : NULL;
+
+	if( !player || FStringNull( player->pev->viewmodel ))
+		return NULL;
+
+	// mesma guarda de GetModelPtr(): antes da fisica subir, MODEL_HANDLE ainda
+	// nao tem a tabela de modelos montada. Indice <= 1 e "sem modelo"/mundo.
+	if( !g_fPhysicInitialized )
+		return NULL;
+
+	int modelindex = MODEL_INDEX( STRING( player->pev->viewmodel ));
+	if( modelindex <= 1 )
+		return NULL;
+
+	model_t *mod = (model_t *)MODEL_HANDLE( modelindex );
+	if( mod && mod->type == mod_studio )
+		return mod->cache.data;
+
+	return NULL;
+}
+
 int CServerWeaponLayerImpl::GetPlayerWaterlevel()
 {
 	return m_pWeapon->m_pPlayer->pev->waterlevel;

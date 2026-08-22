@@ -1,4 +1,5 @@
 #include "mp5.h"
+#include "weapon_activity.h"
 
 #ifdef CLIENT_DLL
 #else
@@ -97,6 +98,23 @@ bool CMP5WeaponContext::Deploy()
 		ALERT( at_console, "WeaponScript Deploy [%s]: deployed=%d clip=%d viewmodel=[%s] modelindex=%d\n",
 			m_pScriptInfo->scriptname, deployed ? 1 : 0, m_iClip,
 			m_pScriptInfo->viewmodel, MODEL_INDEX( m_pScriptInfo->viewmodel ) );
+
+		// Diagnostico da resolucao por activity: diz de uma vez se o servidor
+		// enxergou o studiohdr do viewmodel e quais sequencias REAIS ele achou.
+		// Tudo -1 (ou igual aos indices da MP5) significa que caiu no fallback -
+		// ou o modelo nao tem activity marcada, ou o header veio nulo. Sem isto a
+		// unica pista seria a animacao errada na tela, que foi exatamente o que
+		// nos custou varias builds para diagnosticar.
+		ALERT( at_console, "WeaponScript Anim [%s]: hdr=%s draw=%d idle=%d reload=%d shoot=%d(x%d) aim_in=%d aim_out=%d\n",
+			m_pScriptInfo->scriptname,
+			m_pLayer->GetViewmodelStudioHeader() ? "ok" : "NULL",
+			WeaponActivity_Lookup( m_pLayer->GetViewmodelStudioHeader(), WACT_DRAW ),
+			WeaponActivity_Lookup( m_pLayer->GetViewmodelStudioHeader(), WACT_IDLE ),
+			WeaponActivity_Lookup( m_pLayer->GetViewmodelStudioHeader(), WACT_RELOAD ),
+			WeaponActivity_Lookup( m_pLayer->GetViewmodelStudioHeader(), WACT_SHOOT ),
+			WeaponActivity_Count( m_pLayer->GetViewmodelStudioHeader(), WACT_SHOOT ),
+			WeaponActivity_Lookup( m_pLayer->GetViewmodelStudioHeader(), WACT_AIM_IN ),
+			WeaponActivity_Lookup( m_pLayer->GetViewmodelStudioHeader(), WACT_AIM_OUT ) );
 		return deployed;
 	}
 #endif
@@ -117,7 +135,10 @@ bool CMP5WeaponContext::Deploy()
 	{
 		if( !CanDeploy() )
 			return false;
-		SendWeaponAnim( MP5_ANIM_DEPLOY );
+		// Aqui o viewmodel NAO e trocado de proposito (ver comentario acima), entao
+		// o modelo que ResolveWeaponAnim() consulta ja e o que o servidor mandou -
+		// nao ha o problema de ordem que existe dentro de DefaultDeploy().
+		SendWeaponAnimAct( WACT_DRAW, MP5_ANIM_DEPLOY );
 		m_pLayer->SetPlayerNextAttackTime( m_pLayer->GetWeaponTimeBase( UsePredicting() ) + 0.5 );
 		m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase( UsePredicting() ) + 1.0;
 		m_flLastFireTime = 0.0f;
@@ -225,10 +246,12 @@ void CMP5WeaponContext::SecondaryAttack()
 	// Por que resolve: o engine compensa o viewmodel com flFOVOffset = 90 - fov_camera.
 	// Com camera 90, offset = 0 -> viewmodel FOV puro -> o attachment (fumaca) e o
 	// tracante usam a MESMA projecao -> alinhados por construcao (sem desvio esq/cima).
+	// idle_ins(109) / idle_out(110): a transicao de mira ja vem animada no modelo
+	// no padrao Paranoia 2 (v_parafal.mdl tem as duas, sequencias 14 e 13).
 	if( m_bInIronSight )
-		SendWeaponAnim( MP5_ANIM_AIM_IN );
+		SendWeaponAnimAct( WACT_AIM_IN, MP5_ANIM_AIM_IN );
 	else
-		SendWeaponAnim( MP5_ANIM_AIM_OUT );
+		SendWeaponAnimAct( WACT_AIM_OUT, MP5_ANIM_AIM_OUT );
 
 #ifndef CLIENT_DLL
 	extern int gmsgIronSight;	// RTN F10 (server/user_messages.h)
@@ -267,10 +290,16 @@ void CMP5WeaponContext::SecondaryAttack()
 
 void CMP5WeaponContext::Reload()
 {
+	// iMaxClip() le ItemInfoArray[m_iId].iMaxClip, que para uma arma de script vem
+	// do "clip_size" do .txt (30 na FAL). Era MP5_MAX_CLIP fixo (50): a recarga
+	// enchia o pente ate 50 numa arma de 30, e o HUD passava a mentir.
+	// Para a MP5 de verdade o valor da tabela e MP5_MAX_CLIP, entao nada muda la.
+	int iClipSize = iMaxClip() > 0 ? iMaxClip() : MP5_MAX_CLIP;
+
 	if( m_bInIronSight )
-		DefaultReload( MP5_MAX_CLIP, MP5_ANIM_RELOAD_AIM, 1.5 );
+		DefaultReload( iClipSize, ResolveWeaponAnim( WACT_RELOAD_AIM, MP5_ANIM_RELOAD_AIM ), 1.5 );
 	else
-		DefaultReload( MP5_MAX_CLIP, MP5_ANIM_RELOAD, 1.5 );
+		DefaultReload( iClipSize, ResolveWeaponAnim( WACT_RELOAD, MP5_ANIM_RELOAD ), 1.5 );
 }
 
 void CMP5WeaponContext::WeaponIdle()
@@ -284,9 +313,9 @@ void CMP5WeaponContext::WeaponIdle()
 		return;
 
 	if( m_bInIronSight )
-		SendWeaponAnim( MP5_ANIM_IDLE_AIM );
+		SendWeaponAnimAct( WACT_IDLE_AIM, MP5_ANIM_IDLE_AIM );
 	else
-		SendWeaponAnim( MP5_ANIM_IDLE );
+		SendWeaponAnimAct( WACT_IDLE, MP5_ANIM_IDLE );
 
 	m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase(UsePredicting()) + m_pLayer->GetRandomFloat(m_pLayer->GetRandomSeed(), 10.f, 15.f);
 }

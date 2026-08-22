@@ -14,6 +14,7 @@ GNU General Public License for more details.
 */
 
 #include "weapon_context.h"
+#include "weapons/weapon_activity.h"
 #include <cmath>
 #include <utility>
 
@@ -223,7 +224,11 @@ bool CBaseWeaponContext :: DefaultDeploy( char *szViewModel, char *szWeaponModel
 	strcpy( player->m_szAnimExtention, szAnimExt );
 #endif
 	m_pLayer->SetPlayerViewmodel(szViewModel);
-	SendWeaponAnim( iAnim, body );
+	// A resolucao por activity tem que vir DEPOIS do SetPlayerViewmodel acima:
+	// ResolveWeaponAnim() consulta o viewmodel que esta equipado AGORA, e ate a
+	// linha anterior esse ainda era o da arma que estamos largando - resolver antes
+	// procuraria a sequencia de saque no .mdl errado.
+	SendWeaponAnim( ResolveWeaponAnim( WACT_DRAW, iAnim ), body );
 
 	m_pLayer->SetPlayerNextAttackTime(m_pLayer->GetWeaponTimeBase(UsePredicting()) + 0.5);
 	m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase(UsePredicting()) + 1.0;
@@ -250,6 +255,29 @@ BOOL CBaseWeaponContext :: DefaultReload( int iClipSize, int iAnim, float fDelay
 
 	m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase(UsePredicting()) + 3;
 	return TRUE;
+}
+
+int CBaseWeaponContext::ResolveWeaponAnim( int activity, int fallbackSeq, int variant )
+{
+	int seq = WeaponActivity_Lookup( m_pLayer->GetViewmodelStudioHeader(), activity, variant );
+
+	// Sem activity marcada no modelo (todo v_*.mdl classico do Half-Life) ou
+	// viewmodel ainda nao carregado: usa o indice literal de sempre. E por isso
+	// que ligar este sistema nao mexe em nenhuma arma hardcoded existente.
+	if( seq == WACT_NOT_AVAILABLE )
+		return fallbackSeq;
+
+	return seq;
+}
+
+int CBaseWeaponContext::CountWeaponAnimVariants( int activity )
+{
+	return WeaponActivity_Count( m_pLayer->GetViewmodelStudioHeader(), activity );
+}
+
+void CBaseWeaponContext::SendWeaponAnimAct( int activity, int fallbackSeq, int variant, int body )
+{
+	SendWeaponAnim( ResolveWeaponAnim( activity, fallbackSeq, variant ), body );
 }
 
 void CBaseWeaponContext::SendWeaponAnim( int iAnim, int body )

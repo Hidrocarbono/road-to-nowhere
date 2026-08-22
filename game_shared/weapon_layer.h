@@ -102,6 +102,17 @@ public:
 	virtual void SetPlayerViewmodel(std::string_view model) = 0;
 	virtual void DisablePlayerViewmodel() = 0;
 	virtual int GetPlayerViewmodel() = 0;
+
+	// RTN weapon-script: studiohdr_t* do viewmodel ATUAL, ou NULL quando ele ainda
+	// nao esta carregado / nao e um modelo studio. Devolvido como void* de proposito:
+	// este header e compartilhado e nao deve arrastar studio.h junto. Serve para
+	// resolver animacao por activity em vez de indice fixo - ver
+	// CBaseWeaponContext::ResolveWeaponAnim() e game_shared/weapons/weapon_activity.h.
+	// Servidor e cliente chegam ao mesmo ponteiro por caminhos diferentes
+	// (MODEL_HANDLE vs IEngineStudio), mas ao mesmo MODELO: o cliente le o
+	// viewmodel da clientdata predita, que o servidor acabou de mandar.
+	virtual void *GetViewmodelStudioHeader() = 0;
+
 	virtual int GetPlayerWaterlevel() = 0;
 	virtual bool CheckPlayerButtonFlag(int buttonMask) = 0;
 	virtual void ClearPlayerButtonFlag(int buttonMask) = 0;

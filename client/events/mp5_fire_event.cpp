@@ -21,6 +21,7 @@ GNU General Public License for more details.
 #include "event_api.h"
 #include "event_args.h"
 #include "weapons/mp5.h"
+#include "weapons/weapon_activity.h"
 #include "const.h"
 
 CMP5FireEvent::CMP5FireEvent(event_args_t *args) :
@@ -50,10 +51,36 @@ void CMP5FireEvent::HandleShot()
 		// igual ao Paranoia 2. SpawnMuzzleflash() = flash de sprite 2D complementar.
 		GameEventUtils::SpawnMuzzleflash();
 
-		if( m_arguments->bparam1 )
-			gEngfuncs.pEventAPI->EV_WeaponAnimation( MP5_ANIM_SHOOT1_AIM + gEngfuncs.pfnRandomLong(0,2), 2 );
+		// RTN weapon-script: a animacao de disparo e resolvida por ACTIVITY no
+		// modelo que esta na tela, nao mais por indice fixo do v_mp5.mdl.
+		//
+		// Isto e o que faz o muzzle flash e a fumaca voltarem: o evento 5001 esta
+		// gravado nas sequencias de shoot do .mdl (HUD_StudioEvent -> HUD_MuzzleFlash
+		// + DlightFlash + GunSmoke, client/entity.cpp). Com o indice fixo,
+		// MP5_FIRE1(=1) caia no RELOAD do v_parafal.mdl e o 5001 nunca disparava -
+		// so o som saia, porque o som e um EV_PlaySound direto, fora da animacao.
+		//
+		// O sorteio usa a quantidade REAL de variantes daquela activity no modelo
+		// (a FAL tem 3 shoot e 3 shoot_aim, mas outra arma pode ter 1 ou 5) em vez
+		// do random(0,2) fixo, que so estava certo por coincidencia na MP5.
+		const int shootActivity = m_arguments->bparam1 ? WACT_SHOOT_AIM : WACT_SHOOT;
+		const int fallbackSeq = m_arguments->bparam1 ? MP5_ANIM_SHOOT1_AIM : MP5_FIRE1;
+
+		// IEngineStudio ja chega aqui por mp5_fire_event.h -> base_game_event.h -> gl_local.h
+		const void *vmHeader = NULL;
+		cl_entity_t *vm = gEngfuncs.GetViewModel();
+		if( vm && vm->model && IEngineStudio.Mod_Extradata )
+			vmHeader = IEngineStudio.Mod_Extradata( vm->model );
+
+		const int variants = WeaponActivity_Count( vmHeader, shootActivity );
+		int shootSeq;
+
+		if( variants > 0 )
+			shootSeq = WeaponActivity_Lookup( vmHeader, shootActivity, gEngfuncs.pfnRandomLong( 0, variants - 1 ));
 		else
-			gEngfuncs.pEventAPI->EV_WeaponAnimation( MP5_FIRE1 + gEngfuncs.pfnRandomLong(0,2), 2 );
+			shootSeq = fallbackSeq + gEngfuncs.pfnRandomLong( 0, 2 );	// modelo classico sem activity (v_mp5.mdl)
+
+		gEngfuncs.pEventAPI->EV_WeaponAnimation( shootSeq, 2 );
 	}
 
 	int brassModelIndex = gEngfuncs.pEventAPI->EV_FindModelIndex("models/shell.mdl");
