@@ -77,14 +77,55 @@ def main():
                 a = (1.0 - d) ** falloff * intensity
                 add(int(cx) + dx, yy, a * tint[0], a * tint[1], a * tint[2])
 
+    def bokeh(cx, cy, radius, intensity, tint, rim=0.55, fringe=0.25):
+        """Disco de bokeh: ponto de luz FORA DE FOCO.
+
+        E a forma dominante numa textura de lens dirt de verdade, e o que a
+        primeira versao deste script errou - ela so tinha borroes gaussianos, que
+        parecem fumaca, nao lente suja.
+
+        Um ponto desfocado nao vira um borrao com centro brilhante: vira um DISCO
+        de brilho quase uniforme, com a BORDA mais clara que o meio (a luz se
+        acumula no anel de confusao) e franja cromatica na beirada (aberracao
+        da lente). `rim` controla o realce do anel, `fringe` o quanto R e B se
+        separam nele.
+        """
+        r0 = int(radius) + 2
+        for dy in range(-r0, r0 + 1):
+            yy = int(cy) + dy
+            if yy < 0 or yy >= HEIGHT:
+                continue
+            for dx in range(-r0, r0 + 1):
+                d = math.hypot(dx, dy) / radius
+                if d >= 1.12:
+                    continue
+
+                # interior quase chapado; cai rapido logo depois de d = 1
+                if d <= 1.0:
+                    a = 1.0
+                else:
+                    a = max(0.0, 1.0 - (d - 1.0) / 0.12)
+
+                # anel de confusao: pico de brilho colado na borda
+                a *= 1.0 + rim * math.exp(-((d - 0.93) ** 2) / 0.006)
+                a *= intensity
+
+                # franja cromatica: vermelho puxa para fora, azul para dentro
+                fr = 1.0 + fringe * (d - 0.6)
+                fb = 1.0 - fringe * (d - 0.6)
+                add(int(cx) + dx, yy,
+                    a * tint[0] * fr,
+                    a * tint[1],
+                    a * tint[2] * fb)
+
     # Densidade nao uniforme: a sujeira se concentra numa faixa diagonal, como
     # numa lente real (e como na referencia do ReShade). Uniforme demais parece
     # ruido de tela, nao sujeira.
     def density(x, y):
         u = x / WIDTH
         v = y / HEIGHT
-        band = math.exp(-((u * 0.8 + v * 0.6 - 0.7) ** 2) / 0.12)
-        return 0.25 + 0.75 * band
+        band = math.exp(-((u * 0.8 + v * 0.6 - 0.7) ** 2) / 0.09)
+        return 0.12 + 0.88 * band
 
     def place():
         """Sorteia uma posicao respeitando a densidade da faixa."""
@@ -95,30 +136,55 @@ def main():
                 return x, y
         return random.uniform(0, WIDTH), random.uniform(0, HEIGHT)
 
+    # Paleta fria com desvios roxo/rosa/ambar, como na referencia do ReShade.
+    # A primeira versao usava um cinza levemente ruidoso, e o resultado parecia
+    # sobreposicao digital em vez de vidro sujo - a cor e o que vende o efeito.
+    TINTS = (
+        (0.82, 0.88, 1.00),   # azul frio (o dominante)
+        (0.90, 0.86, 1.00),   # lilas
+        (1.00, 0.86, 0.96),   # rosa
+        (1.00, 0.95, 0.82),   # ambar
+        (0.86, 1.00, 0.95),   # verde-agua
+        (0.95, 0.95, 0.95),   # neutro
+    )
+    TINT_WEIGHTS = (34, 20, 14, 10, 8, 14)
+
     def tint():
-        """Leve variacao cromatica - sujeira real difrata a luz, e um cinza puro
-        parece sobreposicao digital."""
-        base = random.uniform(0.80, 1.0)
-        return (
-            base * random.uniform(0.88, 1.0),
-            base * random.uniform(0.90, 1.0),
-            base * random.uniform(0.88, 1.05),
-        )
+        base = random.uniform(0.78, 1.0)
+        c = random.choices(TINTS, weights=TINT_WEIGHTS, k=1)[0]
+        j = lambda v: base * v * random.uniform(0.94, 1.06)
+        return (j(c[0]), j(c[1]), j(c[2]))
 
-    # --- bokehs grandes e difusos: as manchas de gordura/agua na lente -------
-    for _ in range(90):
+    # --- halos difusos de fundo: gordura/umidade espalhada na lente ----------
+    # Ficam por baixo de tudo e dao a "sujeira geral"; sozinhos parecem fumaca,
+    # por isso sao poucos e fracos.
+    for _ in range(55):
         x, y = place()
-        blob(x, y, random.uniform(14, 46), random.uniform(0.10, 0.34), tint(), 2.2)
+        blob(x, y, random.uniform(18, 52), random.uniform(0.03, 0.09), tint(), 2.4)
 
-    # --- bokehs medios, mais definidos --------------------------------------
-    for _ in range(260):
+    # --- BOKEHS: a forma dominante da textura --------------------------------
+    # Grandes e translucidos ao fundo...
+    for _ in range(75):
         x, y = place()
-        blob(x, y, random.uniform(5, 16), random.uniform(0.22, 0.62), tint(), 1.6)
+        bokeh(x, y, random.uniform(16, 44), random.uniform(0.04, 0.11), tint(),
+              rim=random.uniform(0.4, 0.9), fringe=random.uniform(0.15, 0.4))
 
-    # --- poeira fina: os pontos que realmente "acendem" contra a luz ---------
-    for _ in range(1400):
+    # ...medios, o corpo do efeito...
+    for _ in range(150):
         x, y = place()
-        blob(x, y, random.uniform(1.2, 3.6), random.uniform(0.45, 1.0), tint(), 1.1)
+        bokeh(x, y, random.uniform(6, 18), random.uniform(0.08, 0.26), tint(),
+              rim=random.uniform(0.3, 0.8), fringe=random.uniform(0.1, 0.35))
+
+    # ...e pequenos e brilhantes, que sao os que de fato acendem contra a luz.
+    for _ in range(300):
+        x, y = place()
+        bokeh(x, y, random.uniform(2.5, 7), random.uniform(0.22, 0.75), tint(),
+              rim=random.uniform(0.2, 0.6), fringe=0.12)
+
+    # --- poeira fina: pontos duros, quebram a regularidade dos discos --------
+    for _ in range(900):
+        x, y = place()
+        blob(x, y, random.uniform(1.0, 2.6), random.uniform(0.4, 1.0), tint(), 1.1)
 
     # --- riscos: arcos finos, o que mais denuncia "lente" e nao "tela" -------
     for _ in range(14):

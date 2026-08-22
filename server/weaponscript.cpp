@@ -830,6 +830,10 @@ void WeaponScript_Init( void )
 	g_engfuncs.pfnAddServerCommand( "weaponscript_list", WeaponScript_List_f );
 	g_engfuncs.pfnAddServerCommand( "ws_give", WeaponScript_Give_f );
 	WeaponScript_LoadAll();
+	// Precisa vir DEPOIS do LoadAll: registra uma classe de entidade por arma
+	// parseada, o que e o que faz CreateEntityByName("weapon_m4") parar de
+	// responder "unknown entity type" sem um LINK_ENTITY_TO_CLASS por arma.
+	WeaponScript_RegisterEntities();
 	WS_Printf( "WeaponScript: auto-loaded %d weapons at startup\n", gNumWeaponInfo );
 }
 

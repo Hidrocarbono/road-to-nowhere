@@ -53,6 +53,7 @@ cvar_t *gl_lensdirt_scale;	// RTN F10
 cvar_t *gl_lensdirt_threshold;	// RTN F10
 cvar_t *gl_lensdirt_debug;	// RTN F10
 cvar_t *gl_fog_density_scale;	// RTN: calibragem do fog do mod
+cvar_t *gl_fog_sky_blend;	// RTN: quanto o fog cobre o skybox
 cvar_t *r_dof_fstop;
 cvar_t *r_dof_debug;
 cvar_t *r_pvs_radius;
@@ -217,5 +218,17 @@ void R_InitializeConVars()
 	//     5.0  =                    50% a  400u (10 m)
 	//    10.0  = o que estava aqui  50% a  200u (5 m)   - sufocante
 	gl_fog_density_scale = CVAR_REGISTER("gl_fog_density_scale", "2.5", FCVAR_ARCHIVE);
+
+	// RTN: teto de quanto o fog cobre o SKYBOX (0..1). O ceu esta no infinito,
+	// entao nao existe distancia com que calcular a nevoa nele - o unico
+	// controle possivel e o peso da mistura. O shader antes SUBSTITUIA o ceu
+	// pela cor do fog sempre que houvesse fog, o que fazia o skybox sumir por
+	// completo em qualquer densidade.
+	//     1.0  = comportamento antigo, ceu totalmente coberto
+	//     0.85 = padrao: o fog domina, mas o ceu ainda se insinua
+	//     0.0  = ceu limpo, sem fog nenhum
+	// O valor efetivo acompanha gl_fog_density_scale: com o fog no minimo o ceu
+	// quase nao e tocado.
+	gl_fog_sky_blend = CVAR_REGISTER("gl_fog_sky_blend", "0.85", FCVAR_ARCHIVE);
 }
 

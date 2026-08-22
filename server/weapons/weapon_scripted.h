@@ -27,5 +27,8 @@ public:
 	// meanings. Kept in sync with what GetItemInfo() reports.
 	virtual int iFlags( void ) override { return ITEM_FLAG_SELECTONEMPTY; }
 private:
+	// Precacha um modelo do script so se o arquivo existir - ver o .cpp.
+	bool PrecacheScriptModel( const char *path );
+
 	weaponinfo_t *m_pInfo;
 };

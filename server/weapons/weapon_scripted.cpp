@@ -7,12 +7,68 @@
 #include "user_messages.h"
 #include "weapon_layer.h"
 #include "weapons/mp5.h"
+#include "filesystem_utils.h"	// fs::FileExists - precache condicional dos modelos
 
 LINK_ENTITY_TO_CLASS( weapon_scripted, CWeaponScripted );
-// RTN weapon-script test target (see game_dir/scripts/weapons/weapon_parafal.txt).
-// Any future "weapon_<name>" script just needs a matching LINK_ENTITY_TO_CLASS
-// line here - the lookup below is generic, driven by the entity's own classname.
-LINK_ENTITY_TO_CLASS( weapon_parafal, CWeaponScripted );
+
+//
+// Registro DINAMICO das armas de script como entidades.
+//
+// Antes era preciso um LINK_ENTITY_TO_CLASS por arma aqui dentro - havia um para
+// weapon_parafal e mais nenhum. Qualquer outro script da pasta batia em
+// "Attempted to create unknown entity type weapon_m4!" no CreateEntityByName,
+// mesmo com o .txt e os modelos no lugar certo. Um sistema de armas por SCRIPT
+// que exige recompilar a dll para cada arma nova nao e um sistema por script.
+//
+// O PrimeXT resolve classname por um dicionario de fabricas
+// (CEntityFactoryDictionary, server/util.cpp) cujo InstallFactory e publico na
+// interface. LINK_ENTITY_TO_CLASS nada mais e que uma instancia estatica de
+// CEntityFactory<T> que se registra sozinha no construtor. Nada impede registrar
+// mais nomes depois, em runtime - e o que WeaponScript_RegisterEntities() faz,
+// logo apos o parse dos scripts.
+//
+// Fabrica propria (em vez de CEntityFactory<CWeaponScripted>) porque aquela se
+// instala sozinha no construtor, com UM nome fixo. Esta e uma so instancia
+// compartilhada por todos os nomes: o Create() recebe o classname e o
+// CWeaponScripted resolve o script por pev->classname, entao uma instancia
+// atende qualquer quantidade de armas.
+//
+class CScriptedWeaponFactory : public IEntityFactory
+{
+public:
+	CBaseEntity *Create( const char *pClassName, entvars_t *pev = NULL ) override
+	{
+		return GetClassPtr( (CWeaponScripted *)pev, pClassName );
+	}
+	void Destroy( CBaseEntity *pEntity ) override { UTIL_Remove( pEntity ); }
+	size_t GetEntitySize() override { return sizeof( CWeaponScripted ); }
+};
+
+static CScriptedWeaponFactory g_ScriptedWeaponFactory;
+
+void WeaponScript_RegisterEntities( void )
+{
+	int registered = 0;
+
+	for( int i = 0; i < gNumWeaponInfo; i++ )
+	{
+		const char *name = gWeaponInfo[i].scriptname;
+		if( !name || !name[0] )
+			continue;
+
+		// Nunca sobrescrever uma classe que ja existe: pode ser uma arma
+		// hardcoded de verdade (weapon_mp5) que por acaso tambem tem .txt, e
+		// nesse caso quem manda e a classe C++. InstallFactory tem assert de
+		// nome duplicado, entao registrar por cima seria erro em debug.
+		if( EntityFactoryDictionary()->FindFactory( name ))
+			continue;
+
+		EntityFactoryDictionary()->InstallFactory( &g_ScriptedWeaponFactory, name );
+		registered++;
+	}
+
+	ALERT( at_console, "WeaponScript: %d arma(s) de script registradas como entidade\n", registered );
+}
 
 CWeaponScripted::CWeaponScripted()
 {
@@ -67,11 +123,34 @@ void CWeaponScripted::Spawn( void )
 	}
 
 	Precache();
-	if( m_pInfo && m_pInfo->worldmodel[0] )
+	// Mesma checagem de existencia do Precache: SET_MODEL com um caminho que nao
+	// foi precacheado (porque o arquivo nao existe) derruba o servidor. Com o
+	// registro dinamico de entidades, scripts sem modelo passaram a ser
+	// spawnaveis, entao este caminho agora e alcancavel de verdade.
+	if( m_pInfo && m_pInfo->worldmodel[0] && fs::FileExists( m_pInfo->worldmodel ))
 		SET_MODEL( ENT( pev ), m_pInfo->worldmodel );
 	else
 		SET_MODEL( ENT( pev ), "models/w_9mmAR.mdl" );
 	FallInit();
+}
+
+// Precacha um modelo do script apenas se ele existir de fato no disco. Devolve
+// true quando o modelo foi registrado. Sem a checagem, um script sem os .mdl
+// correspondentes derruba o carregamento do mapa inteiro.
+bool CWeaponScripted::PrecacheScriptModel( const char *path )
+{
+	if( !path || !path[0] )
+		return false;
+
+	if( !fs::FileExists( path ))
+	{
+		ALERT( at_console, "WeaponScript [%s]: modelo [%s] nao existe - ignorado\n",
+			STRING( pev->classname ), path );
+		return false;
+	}
+
+	PRECACHE_MODEL( path );
+	return true;
 }
 
 void CWeaponScripted::Precache( void )
@@ -86,9 +165,14 @@ void CWeaponScripted::Precache( void )
 	}
 	if( m_pInfo )
 	{
-		if( m_pInfo->viewmodel[0] ) PRECACHE_MODEL( m_pInfo->viewmodel );
-		if( m_pInfo->worldmodel[0] ) PRECACHE_MODEL( m_pInfo->worldmodel );
-		if( m_pInfo->playermodel[0] ) PRECACHE_MODEL( m_pInfo->playermodel );
+		// Precache CONDICIONAL a existencia do arquivo. Agora que TODA arma da
+		// pasta de scripts vira uma entidade (WeaponScript_RegisterEntities),
+		// varias delas vem do Paranoia 2 sem os modelos correspondentes - e
+		// precachear modelo ausente aborta o carregamento do mapa. Preferimos
+		// uma arma que nao aparece e uma linha no log a um mapa que nao abre.
+		PrecacheScriptModel( m_pInfo->viewmodel );
+		PrecacheScriptModel( m_pInfo->worldmodel );
+		PrecacheScriptModel( m_pInfo->playermodel );
 
 		// Sons do SoundData - ver CMP5WeaponContext::PrecacheScriptSounds() para
 		// por que o precache e condicional a existencia do arquivo.

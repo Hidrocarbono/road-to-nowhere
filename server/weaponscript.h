@@ -185,4 +185,10 @@ void WeaponScript_RegisterAmmoTypes( void );
 #endif
 int WeaponScript_GetWeaponID( weaponinfo_t *info );
 
+// Registra cada arma parseada como uma CLASSE DE ENTIDADE, para
+// CreateEntityByName("weapon_<nome>") funcionar sem um LINK_ENTITY_TO_CLASS
+// escrito a mao para cada uma - ver o comentario grande em
+// server/weapons/weapon_scripted.cpp. Chamada uma vez, logo apos o parse.
+void WeaponScript_RegisterEntities( void );
+
 #endif // WEAPONSCRIPT_H
