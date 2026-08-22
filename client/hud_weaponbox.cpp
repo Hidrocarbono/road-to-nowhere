@@ -5,7 +5,12 @@
 #include "ammohistory.h"  // WeaponsResource gWR (reserva de municao)
 #include "enginecallback.h"
 #include "filesystem_utils.h"  // fs::FileExists - sprite de arma e opcional
-#include "gl_local.h"          // TextureHandle / GL_Bind (icone .tga do VGUI)
+// mesma tripa de includes que hud_textwindow.cpp/hud_radio.cpp usam para
+// desenhar textura crua em 2D. gl_local.h sozinho nao basta: ele declara
+// GL_Bind, mas o tipo de gEngfuncs.pTriAPI so fica completo com triangleapi.h.
+#include "triangleapi.h"       // triangleapi_s completo (pTriAPI->RenderMode/Color4f)
+#include "texture_handle.h"
+#include "gl_local.h"          // GL_Bind
 #include <ctype.h>        // toupper()
 
 // definido em client/hud_textwindow.cpp - desenha uma textura crua em 2D
