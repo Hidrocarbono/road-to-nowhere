@@ -55,6 +55,8 @@ extern cvar_t *r_dof_change_time;
 extern cvar_t *r_dof_focal_length;
 extern cvar_t *gl_lensdirt;			// RTN F10: lens dirt on/off
 extern cvar_t *gl_lensdirt_scale;	// RTN F10: lens dirt intensidade
+extern cvar_t *gl_lensdirt_threshold;	// RTN F10: lens dirt - brilho minimo p/ acender
+extern cvar_t *gl_lensdirt_debug;	// RTN F10: lens dirt - mostra a textura sem mascara
 extern cvar_t *r_dof_fstop;
 extern cvar_t *r_dof_debug;
 extern cvar_t *r_allow_mirrors;

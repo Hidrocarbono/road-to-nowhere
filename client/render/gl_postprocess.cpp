@@ -478,7 +478,15 @@ void InitPostEffects()
 	v_posteffects = CVAR_REGISTER( "gl_posteffects", "1", FCVAR_ARCHIVE );
 	v_sunshafts = CVAR_REGISTER( "gl_sunshafts", "1", FCVAR_ARCHIVE );
 	gl_lensdirt = CVAR_REGISTER( "gl_lensdirt", "1", FCVAR_ARCHIVE );			// RTN F10
-	gl_lensdirt_scale = CVAR_REGISTER( "gl_lensdirt_scale", "0.5", FCVAR_ARCHIVE );	// RTN F10
+	// 1.2 (era 0.5): com a mascara antiga o valor nao importava - o teto do efeito
+	// era 1.4% de um pixel ja estourado. Agora a escala e o controle de verdade.
+	gl_lensdirt_scale = CVAR_REGISTER( "gl_lensdirt_scale", "1.2", FCVAR_ARCHIVE );	// RTN F10
+	// 0.35 em vez do 0.7 fixo de antes: a cena chega tonemapeada 0..1 e num jogo
+	// escuro quase nada passa de 0.7, entao a mascara vivia zerada.
+	gl_lensdirt_threshold = CVAR_REGISTER( "gl_lensdirt_threshold", "0.35", FCVAR_ARCHIVE );	// RTN F10
+	// gl_lensdirt_debug 1 = sujeira sem mascara, para conferir se a textura
+	// carregou e como ela e. Nao e ARCHIVE: nao deve sobreviver ao restart.
+	gl_lensdirt_debug = CVAR_REGISTER( "gl_lensdirt_debug", "0", 0 );	// RTN F10
 	r_postfx_enable = CVAR_REGISTER("r_postfx_enable", "1.0", 0);
 	r_tonemap = CVAR_REGISTER("r_tonemap", "1", FCVAR_ARCHIVE);
 	r_bloom = CVAR_REGISTER("r_bloom", "1", FCVAR_ARCHIVE);
@@ -608,6 +616,9 @@ void V_RenderPostEffect( word hProgram )
 			break;
 		case UT_DIRTSCALE:		// RTN F10: lens dirt (intensidade)
 			u->SetValue( gl_lensdirt_scale->value );
+			break;
+		case UT_DIRTPARAMS:		// RTN F10: lens dirt (limiar, debug)
+			u->SetValue( gl_lensdirt_threshold->value, CVAR_TO_BOOL( gl_lensdirt_debug ) ? 1.0f : 0.0f );
 			break;
 		case UT_FILMGRAINSCALE:
 			u->SetValue(post.fxParameters.GetFilmGrainScale());
@@ -974,8 +985,18 @@ void RTN_SetIronSightDOF( bool bActive )
 
 // RTN F10: lens dirt - sujeira de lente mascarada pelo brilho da cena
 // (sol, luzes acesas, explosoes). Roda DEPOIS do tonemap (cena 0..1) e
-// ANTES do postprocessing final (vignette/grain). Cvar: gl_lensdirt 0/1,
-// gl_lensdirt_scale (intensidade).
+// ANTES do postprocessing final (vignette/grain).
+//
+// Cvars:
+//   gl_lensdirt            0/1   liga/desliga
+//   gl_lensdirt_scale      1.2   intensidade
+//   gl_lensdirt_threshold  0.35  brilho minimo (0..1) para a sujeira acender
+//   gl_lensdirt_debug      0/1   mostra a sujeira SEM mascara - use para
+//                                conferir de imediato se a textura carregou
+//
+// Para trocar a textura: game_dir/textures/lensdirt.tga (TGA 32 bits sem RLE).
+// A atual e gerada por utils/gen_lensdirt.py - o cabecalho daquele script
+// explica por que a textura anterior deixava o efeito invisivel.
 void RenderLensDirt( void )
 {
 	if( !CVAR_TO_BOOL( gl_lensdirt ))

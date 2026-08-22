@@ -50,6 +50,8 @@ cvar_t *r_dof_change_time;
 cvar_t *r_dof_focal_length;
 cvar_t *gl_lensdirt;		// RTN F10
 cvar_t *gl_lensdirt_scale;	// RTN F10
+cvar_t *gl_lensdirt_threshold;	// RTN F10
+cvar_t *gl_lensdirt_debug;	// RTN F10
 cvar_t *r_dof_fstop;
 cvar_t *r_dof_debug;
 cvar_t *r_pvs_radius;
