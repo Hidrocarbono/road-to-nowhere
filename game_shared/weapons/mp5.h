@@ -201,6 +201,26 @@ public:
 	char m_szShootSound1[64] = { 0 };
 	char m_szShootSound2[64] = { 0 };
 
+	// Modelos do script que foram REALMENTE precacheados. Vazio = o arquivo nao
+	// existe e o modelo nao pode ser usado.
+	//
+	// Existem porque o Deploy nao pode passar direto o caminho do script para o
+	// DefaultDeploy: ele grava pev->weaponmodel SEM verificar nada, e um modelo
+	// nao precacheado gera "Cannot get index for model X: not precached" a cada
+	// frame em que o jogador e desenhado. Era o que acontecia com um script
+	// cujo playermodel apontava para um .mdl ausente - o precache ja pulava o
+	// arquivo corretamente, mas o Deploy setava o modelo assim mesmo.
+	char m_szViewModel[64] = { 0 };
+	char m_szPlayerModel[64] = { 0 };
+
+	void SetPrecachedModels( const char *viewmodel, const char *playermodel )
+	{
+		strncpy( m_szViewModel, viewmodel ? viewmodel : "", sizeof( m_szViewModel ) - 1 );
+		m_szViewModel[sizeof( m_szViewModel ) - 1] = '\0';
+		strncpy( m_szPlayerModel, playermodel ? playermodel : "", sizeof( m_szPlayerModel ) - 1 );
+		m_szPlayerModel[sizeof( m_szPlayerModel ) - 1] = '\0';
+	}
+
 	// Precacha os .wav do SoundData, mas SO os que existem.
 	//
 	// Os scripts importados do Paranoia 2 referenciam sons que nao vieram junto:

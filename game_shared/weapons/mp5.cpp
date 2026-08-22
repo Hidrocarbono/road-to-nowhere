@@ -129,10 +129,20 @@ bool CMP5WeaponContext::Deploy()
 	// "worldmodel" is the w_ model of the pickup lying on the ground, set by the
 	// entity itself (weapon_scripted.cpp). weapon_parafal.txt had the two swapped
 	// until now - fixed there, not worked around here.
-	if( m_pScriptInfo && m_pScriptInfo->viewmodel[0] && m_pScriptInfo->playermodel[0] )
+	// m_szViewModel/m_szPlayerModel, NAO os caminhos crus do script: so contem os
+	// modelos que existem e foram precacheados (ver mp5.h). Um playermodel
+	// ausente passado ao DefaultDeploy vira pev->weaponmodel invalido e o engine
+	// reclama "not precached" a cada frame. Com o campo vazio o jogador
+	// simplesmente nao mostra arma na mao - feio, mas silencioso e sem erro.
+	if( m_pScriptInfo && m_szViewModel[0] )
 	{
-		bool deployed = DefaultDeploy( const_cast<char *>( m_pScriptInfo->viewmodel ),
-			const_cast<char *>( m_pScriptInfo->playermodel ), MP5_ANIM_DEPLOY, "mp5" );
+		bool deployed = DefaultDeploy( m_szViewModel, m_szPlayerModel, MP5_ANIM_DEPLOY, "mp5" );
+
+		if( !m_szPlayerModel[0] && m_pScriptInfo->playermodel[0] )
+		{
+			ALERT( at_console, "WeaponScript Deploy [%s]: playermodel [%s] ausente - jogador fica sem arma na mao\n",
+				m_pScriptInfo->scriptname, m_pScriptInfo->playermodel );
+		}
 		// A viewmodel that was never precached resolves to model index 0 and the
 		// client draws nothing - which looks identical to "the weapon never
 		// deployed". Print both facts so the console tells them apart instead of

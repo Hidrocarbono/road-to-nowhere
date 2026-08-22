@@ -170,9 +170,15 @@ void CWeaponScripted::Precache( void )
 		// varias delas vem do Paranoia 2 sem os modelos correspondentes - e
 		// precachear modelo ausente aborta o carregamento do mapa. Preferimos
 		// uma arma que nao aparece e uma linha no log a um mapa que nao abre.
-		PrecacheScriptModel( m_pInfo->viewmodel );
+		const bool haveView = PrecacheScriptModel( m_pInfo->viewmodel );
+		const bool havePlayer = PrecacheScriptModel( m_pInfo->playermodel );
 		PrecacheScriptModel( m_pInfo->worldmodel );
-		PrecacheScriptModel( m_pInfo->playermodel );
+
+		// O contexto so pode usar o que foi de fato precacheado - ver
+		// CMP5WeaponContext::m_szViewModel/m_szPlayerModel.
+		static_cast<CMP5WeaponContext *>( m_pWeaponContext.get() )->SetPrecachedModels(
+			haveView ? m_pInfo->viewmodel : "",
+			havePlayer ? m_pInfo->playermodel : "" );
 
 		// Sons do SoundData - ver CMP5WeaponContext::PrecacheScriptSounds() para
 		// por que o precache e condicional a existencia do arquivo.

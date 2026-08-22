@@ -4,6 +4,7 @@
 #include "ammo.h"         // struct WEAPON
 #include "ammohistory.h"  // WeaponsResource gWR (reserva de municao)
 #include "enginecallback.h"
+#include "filesystem_utils.h"  // fs::FileExists - sprite de arma e opcional
 #include <ctype.h>        // toupper()
 
 // RTN F10: HUD de armas (canto inferior direito) estilo Paranoia 2.
@@ -81,7 +82,12 @@ int CHudWeaponBox::Draw( float flTime )
 		m_iLastWeaponId = pw->iId;
 		char szSpr[ 64 ];
 		Q_snprintf( szSpr, sizeof( szSpr ), "sprites/rtn_hud_ammo_%s.spr", pw->szName );
-		m_hWeaponSpr = LoadSprite( szSpr );
+		// Checar antes de carregar: SPR_Load imprime "Could not load HUD sprite"
+		// em VERMELHO para todo sprite ausente, e agora que qualquer arma da
+		// pasta de scripts pode ser equipada, cada uma sem esse sprite proprio
+		// enchia o console de erro. O icone e opcional - o resto da caixa (nome,
+		// municao) desenha sem ele.
+		m_hWeaponSpr = fs::FileExists( szSpr ) ? LoadSprite( szSpr ) : 0;
 
 		// nome: mapa de exibicao (weapon_mp5 -> "FN FAL") ou fallback
 		// classname limpo ("weapon_shotgun" -> "SHOTGUN")
