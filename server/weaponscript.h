@@ -172,16 +172,24 @@ void WeaponScript_RegisterAmmoTypes( void );
 // both definitions in sync if this ever changes.
 #ifndef WEAPON_SCRIPT_ID_BASE
 #define WEAPON_SCRIPT_ID_BASE	31
-// The ceiling is the PROTOCOL's, not the engine's: game_dir/delta.lst encodes
-// both clientdata_t.m_iId and weapon_data_t.m_iId with 5 bits, so 31 is the
-// highest id that survives the wire. An id of 32+ wraps around silently and the
-// client predicts a different weapon (or none) - which is far worse than
-// refusing it. The engine itself is wider (MAX_WEAPON_BITS 6 -> 64 weapons, see
-// engine/common/protocol.h in the Xash fork), so raising this means widening
-// those two DEFINE_DELTA entries to 6 bits FIRST - that is a protocol change and
-// deserves its own test round. Until then exactly one script weapon can exist;
-// asking for a second one logs an error instead of corrupting state.
-#define WEAPON_SCRIPT_ID_MAX	31
+// O teto vinha do PROTOCOLO, nao do engine: game_dir/delta.lst codificava
+// clientdata_t.m_iId e weapon_data_t.m_iId com 5 bits, entao 31 era o maior id
+// que sobrevivia na rede - e como a BASE tambem e 31, so cabia UMA arma de
+// script. Todas as demais caiam no ramo "out of script weapon IDs, reusing 31" e
+// dividiam a mesma linha de ItemInfoArray: quem fosse precacheado por ultimo
+// vencia, e as outras liam clip/municao/slot da arma errada.
+//
+// Os dois DEFINE_DELTA foram ampliados para 6 bits, o que casa com o engine
+// (MAX_WEAPON_BITS 6 -> 64 armas previsiveis, verificado em
+// engine/common/protocol.h do fork). Agora cabem 32 armas de script (31..62);
+// 63 e WEAPON_SUIT e fica reservado.
+//
+// ATENCAO: delta.lst e DADO DO MOD, nao do engine. Cliente e servidor precisam
+// carregar a MESMA versao do arquivo - se divergirem, todo campo depois do
+// m_iId desliza um bit e o sintoma nao parece "id errado", e sim vida, camera,
+// FOV e inclinacao errados ao mesmo tempo. Ao distribuir, mandar game_dir e
+// dlls juntos.
+#define WEAPON_SCRIPT_ID_MAX	62
 #endif
 int WeaponScript_GetWeaponID( weaponinfo_t *info );
 

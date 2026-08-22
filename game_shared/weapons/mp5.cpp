@@ -399,7 +399,13 @@ void CMP5WeaponContext::SecondaryAttack()
 	if( m_fFOVFrom <= 0.0f )
 		m_fFOVFrom = 90.0f;	// 0 = "padrao" na convencao do engine
 	m_fFOVTo = m_bInIronSight ? IronSightFOV() : 90.0f;
-	m_fFOVLerpStart = m_pLayer->GetWeaponTimeBase(UsePredicting());
+	// GetTime(), NAO GetWeaponTimeBase(): com predicao ligada o time base vale
+	// 0.0f (server_weapon_layer_impl.cpp:330), porque os temporizadores de arma
+	// sao contagens REGRESSIVAS relativas, nao relogio. Usando o time base, o
+	// "instante inicial" e o "agora" valiam os dois zero, o tempo decorrido dava
+	// sempre 0 e o lerp ficava eternamente parado no FOV de partida - ou seja, o
+	// zoom da mira nunca acontecia. GetTime() e absoluto nos dois lados.
+	m_fFOVLerpStart = m_pLayer->GetTime();
 	m_bFOVLerpActive = true;
 
 	// RTN F10 IRONSIGHT (plano do user: "enganacao do modelo" em vez de zoom da camera):
@@ -484,7 +490,8 @@ void CMP5WeaponContext::WeaponIdle()
 	if( m_bFOVLerpActive )
 	{
 		const float flDuration = 0.15f;	// mesma ordem do tempo de troca de arma
-		float flElapsed = m_pLayer->GetWeaponTimeBase(UsePredicting()) - m_fFOVLerpStart;
+		// GetTime() pelo mesmo motivo do SecondaryAttack - ver comentario la.
+		float flElapsed = m_pLayer->GetTime() - m_fFOVLerpStart;
 		float t = ( flDuration > 0.0f ) ? ( flElapsed / flDuration ) : 1.0f;
 
 		if( t >= 1.0f )
@@ -494,7 +501,7 @@ void CMP5WeaponContext::WeaponIdle()
 		}
 		else if( t < 0.0f )
 		{
-			t = 0.0f;	// GetWeaponTimeBase pode recuar num rollback de predicao
+			t = 0.0f;	// o relogio pode recuar num rollback de predicao
 		}
 
 		// suavizacao nas pontas (smoothstep): sem ela o movimento comeca e para

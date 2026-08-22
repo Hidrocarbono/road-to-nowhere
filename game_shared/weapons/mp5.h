@@ -22,12 +22,12 @@
 // in weaponscript.h) because client/weapon_predicting_context.cpp needs the
 // range too, to build a predicted context for these ids instead of returning
 // null - see GetWeaponContext()'s default case. Keep both copies in sync.
-// The ceiling is imposed by game_dir/delta.lst (m_iId encoded with 5 bits), not
-// by the engine - see the long comment on the same pair in server/weaponscript.h
-// before changing either copy.
+// O teto vem de game_dir/delta.lst (m_iId agora com 6 bits, era 5) - ver o
+// comentario longo sobre este par em server/weaponscript.h antes de mexer em
+// qualquer uma das duas copias.
 #ifndef WEAPON_SCRIPT_ID_BASE
 #define WEAPON_SCRIPT_ID_BASE	31
-#define WEAPON_SCRIPT_ID_MAX	31
+#define WEAPON_SCRIPT_ID_MAX	62
 #endif
 
 // item_flags do script. Definidos tambem em server/weaponscript.h (o parser),
