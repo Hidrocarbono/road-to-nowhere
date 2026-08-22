@@ -32,6 +32,7 @@
 #include "gamerules.h"
 #include "sv_materials.h"
 #include "user_messages.h"
+#include "weaponscript.h"
 
 extern int gEvilImpulse101;
 
@@ -256,6 +257,53 @@ void AddAmmoNameToAmmoRegistry( const char *szAmmoname )
 }
 
 
+// Same job as UTIL_PrecacheOtherWeapon() below, but safe to call with a
+// classname that may not exist as an entity at all.
+//
+// The scripts in scripts/weapons/ are imported wholesale from Paranoia 2, and
+// most of them have no LINK_ENTITY_TO_CLASS on this side yet - only the ones
+// wired up in server/weapons/weapon_scripted.cpp do. UTIL_PrecacheOtherWeapon()
+// cannot be used for the rest: it C-style-casts whatever CreateEntityByName()
+// returns to CBasePlayerItem* and calls a virtual on it, then writes
+// ItemInfoArray[II.iId] with no bounds check. Fed a non-weapon entity that is a
+// call through a mismatched vtable and a write at an arbitrary index - it
+// corrupts neighbouring globals (gWeaponInfo included, which is exactly how a
+// script weapon ended up with a valid scriptname but bucket/clip_size/
+// primary_ammo garbage).
+//
+// So: dynamic_cast instead of a C-style cast, and bounds-check the id.
+void UTIL_PrecacheScriptWeapon( const char *szClassname )
+{
+	CBaseEntity *pEntity = CreateEntityByName( szClassname );
+	if( !pEntity )
+		return;	// no entity for this script yet - expected, not an error
+
+	CBasePlayerWeapon *pWeapon = dynamic_cast<CBasePlayerWeapon *>( pEntity );
+	if( !pWeapon )
+	{
+		ALERT( at_console, "UTIL_PrecacheScriptWeapon: [%s] existe mas nao e uma arma - ignorado\n", szClassname );
+		REMOVE_ENTITY( pEntity->edict() );
+		return;
+	}
+
+	ItemInfo II;
+	pWeapon->Precache();
+	memset( &II, 0, sizeof( II ) );
+
+	if( pWeapon->GetItemInfo( &II ) && II.iId > 0 && II.iId < MAX_WEAPONS )
+	{
+		CBaseWeaponContext::ItemInfoArray[II.iId] = II;
+
+		if( II.pszAmmo1 && *II.pszAmmo1 )
+			AddAmmoNameToAmmoRegistry( II.pszAmmo1 );
+
+		if( II.pszAmmo2 && *II.pszAmmo2 )
+			AddAmmoNameToAmmoRegistry( II.pszAmmo2 );
+	}
+
+	REMOVE_ENTITY( pEntity->edict() );
+}
+
 // Precaches the weapon and queues the weapon info for sending to clients
 void UTIL_PrecacheOtherWeapon( const char *szClassname )
 {
@@ -362,6 +410,21 @@ void W_Precache(void)
 	// RTN custom weapons (registrados na ItemInfoArray -> HUD/scroll do mouse)
 	UTIL_PrecacheOtherWeapon( "weapon_mp5" );       // MP5 hardcoded (tambem linkada a weapon_9mmAR)
 	UTIL_PrecacheOtherWeapon( "item_stimulant" );   // estimulante (slot 1 pos 5)
+
+	// RTN weapon-script: registra cada arma carregada de scripts/weapons/*.txt
+	// exatamente como as classicas acima - sem isso, CWeaponScripted nunca
+	// escrevia em ItemInfoArray/AmmoInfoArray por conta propria (so quando
+	// pega pelo jogador), entao CanDeploy()/pszAmmo1()/pszAmmo2()/iItemPosition()
+	// (que nao sao sobrescritos por CMP5WeaponContext, caem no ItemInfoArray
+	// estatico) liam o slot de qualquer arma classica que tivesse registrado
+	// por ultimo naquele id. Precisa de um LINK_ENTITY_TO_CLASS(weapon_<nome>, ...)
+	// correspondente (ver server/weapons/weapon_scripted.cpp) - sem ele
+	// CreateEntityByName falha e UTIL_PrecacheOtherWeapon so loga e ignora.
+	for( int i = 0; i < gNumWeaponInfo; i++ )
+	{
+		if( gWeaponInfo[i].scriptname[0] )
+			UTIL_PrecacheScriptWeapon( gWeaponInfo[i].scriptname );
+	}
 
 	if ( g_pGameRules->IsDeathmatch() )
 	{

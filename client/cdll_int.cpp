@@ -337,14 +337,16 @@ extern "C" void DLLEXPORT HUD_Frame( double time )
 
 extern "C" int DLLEXPORT HUD_Key_Event( int down, int keynum, const char *pszCurrentBinding )
 {
-	// RTN F10: janela de documento aberta - ESC/ENTER fecha (e bloqueia o menu)
+	// RTN: janela de documento aberta - QUALQUER tecla fecha, e o evento e
+	// consumido (return 1) para nao vazar para o jogo nem abrir o menu.
+	//
+	// Antes so ESC e ENTER fechavam. O jogo fica PAUSADO com a janela aberta,
+	// entao quem nao adivinhasse a tecla certa ficava presa nela - qualquer
+	// outra tecla parecia nao fazer nada, porque de fato nao fazia.
 	if( down && gHUD.m_TextWindow.IsOpen( ))
 	{
-		if( keynum == 27 || keynum == 13 )  // K_ESCAPE / K_ENTER
-		{
-			gHUD.m_TextWindow.Close();
-			return 1;
-		}
+		gHUD.m_TextWindow.Close();
+		return 1;
 	}
 	return g_ImGuiManager.KeyInput(down != 0, keynum, pszCurrentBinding) ? 1 : 0;
 }

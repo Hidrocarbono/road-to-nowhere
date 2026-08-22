@@ -74,6 +74,22 @@ public:
 	bool DefaultDeploy( char *szViewModel, char *szWeaponModel, int iAnim, char *szAnimExt, int body = 0 );
 	int DefaultReload( int iClipSize, int iAnim, float fDelay, int body = 0 );
 	void SendWeaponAnim( int iAnim, int body = 0 );  // skiplocal is 1 if client is predicting weapon animations
+
+	// RTN weapon-script: traduz uma activity (WACT_*, ver
+	// game_shared/weapons/weapon_activity.h) no indice de sequencia REAL do
+	// viewmodel que esta equipado agora. Cai em `fallbackSeq` quando o modelo nao
+	// marca aquela activity - que e o caso de todo modelo classico do Half-Life,
+	// entao as armas hardcoded continuam se comportando exatamente como antes.
+	// `variant` escolhe entre multiplas sequencias com a mesma activity (shoot_1/2/3).
+	int ResolveWeaponAnim( int activity, int fallbackSeq, int variant = 0 );
+
+	// ResolveWeaponAnim() + SendWeaponAnim() numa chamada so.
+	void SendWeaponAnimAct( int activity, int fallbackSeq, int variant = 0, int body = 0 );
+
+	// Quantas variantes de disparo o viewmodel atual tem para essa activity
+	// (0 = o modelo nao usa activity). Serve para sortear dentro do numero real de
+	// animacoes em vez do "random(0,2)" fixo herdado da MP5.
+	int CountWeaponAnimVariants( int activity );
 	float GetNextPrimaryAttackDelay(float delay);
 	bool CanAttack(float attack_time);
 	bool PlayEmptySound();

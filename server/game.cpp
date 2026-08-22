@@ -60,6 +60,9 @@ cvar_t	*g_physdebug = NULL;
 cvar_t	*p_speeds = NULL;
 cvar_t	*g_allow_physx = NULL;
 cvar_t	g_sync_physic = { "sv_sync_physic", "0", FCVAR_ARCHIVE };
+// RTN: diagnostico da maozinha de interacao - imprime o que o trace a frente do
+// jogador encontrou (classname + ObjectCaps). Ver CBasePlayer::PreThink.
+cvar_t	rtn_debug_canuse = { "rtn_debug_canuse", "0", 0 };
 
 //CVARS FOR SKILL LEVEL SETTINGS
 // Agrunt
@@ -503,6 +506,7 @@ void GameDLLInit( void )
 	g_footsteps = CVAR_GET_POINTER( "mp_footsteps" );
 	g_psv_stepsize = CVAR_GET_POINTER( "sv_stepsize" );
 	CVAR_REGISTER( &g_sync_physic );
+	CVAR_REGISTER( &rtn_debug_canuse );
 
 	g_engfuncs.pfnAddServerCommand( "showtriggers_toggle", Cmd_ShowTriggers_f );
 

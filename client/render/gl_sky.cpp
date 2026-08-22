@@ -306,8 +306,26 @@ static void GL_DrawSkySide( word hProgram, int skyside )
 			u->SetValue( GetVieworg().x, GetVieworg().y, GetVieworg().z );
 			break;
 		case UT_FOGPARAMS:
-			u->SetValue( tr.fogColor[0], tr.fogColor[1], tr.fogColor[2], tr.fogDensity * 0.5f );
+		{
+			// ATENCAO: aqui .w NAO e densidade, e o PESO DE MISTURA do fog sobre
+			// o ceu (0..1) - o skybox_fp.glsl le assim. O ceu esta no infinito,
+			// entao nao ha distancia com que calcular exp2(-density*dist): o
+			// unico controle possivel e "quanto do fog cobre o ceu".
+			//
+			// Era 'tr.fogDensity * 0.5f', mas o shader so testava != 0 e
+			// substituia o ceu inteiro pela cor do fog - por isso o skybox sumia
+			// mesmo na densidade minima.
+			//
+			// Escala com a densidade para o ceu acompanhar a calibragem: com o
+			// fog no minimo o ceu quase nao e tocado, com o fog pesado ele fecha.
+			// gl_fog_sky_blend e o teto dessa cobertura.
+			const float skyBlendMax = gl_fog_sky_blend ? gl_fog_sky_blend->value : 0.85f;
+			// 0.005 e a densidade de um fog ja bem fechado (50% a 200u); acima
+			// disso a cobertura do ceu satura no teto.
+			float skyBlend = skyBlendMax * Q_min( 1.0f, tr.fogDensity / 0.005f );
+			u->SetValue( tr.fogColor[0], tr.fogColor[1], tr.fogColor[2], skyBlend );
 			break;
+		}
 		case UT_ZFAR:
 			u->SetValue( RI->view.farClip );
 			break;

@@ -22,6 +22,9 @@ Scripts are line-oriented key/value pairs inside { } blocks.
 #include <filesystem>
 #include "weaponscript.h"
 #include "cbase.h"
+#include "player.h"	// CBasePlayer::m_pActiveItem - ws_give diagnostics
+#include "weapons.h"	// CBasePlayerItem definition - player.h only forward-declares it,
+			// and the diagnostics below dereference m_pActiveItem
 
 static void WS_Printf( const char *fmt, ... )
 {
@@ -61,11 +64,11 @@ static void WS_strncpy( char *dst, const char *src, int n )
 }
 
 
-ammoinfo_t	gAmmoInfo[MAX_AMMO_TYPES];
+ammoinfo_t	gAmmoInfo[WS_MAX_ENTRIES];
 int		gNumAmmoInfo = 0;
-ammopickup_t	gAmmoPickups[MAX_AMMO_TYPES];
+ammopickup_t	gAmmoPickups[WS_MAX_ENTRIES];
 int		gNumAmmoPickups = 0;
-weaponinfo_t	gWeaponInfo[MAX_AMMO_TYPES];
+weaponinfo_t	gWeaponInfo[WS_MAX_ENTRIES];
 int		gNumWeaponInfo = 0;
 
 ammoinfo_t *WeaponScript_FindAmmo( const char *name )
@@ -91,16 +94,18 @@ weaponinfo_t *WeaponScript_FindWeaponByName( const char *scriptname )
 {
 	char want[64];
 	WS_StripTxt( want, scriptname, sizeof( want ) );
-	g_engfuncs.pfnServerPrint( va( "DEBUG FindWeaponByName: want=[%s], gNumWeaponInfo=%d\n", want, gNumWeaponInfo ) );
+	// This used to print one line PER ENTRY on every call - with 18 scripts and
+	// several calls per pickup that is 50+ lines that scroll the map-load
+	// diagnostics (where the parse results are reported) clean off the screen.
+	// Only the failure is worth a line.
 	for( int i = 0; i < gNumWeaponInfo; i++ )
 	{
 		char have[64];
 		WS_StripTxt( have, gWeaponInfo[i].scriptname, sizeof( have ) );
-		g_engfuncs.pfnServerPrint( va( "DEBUG FindWeaponByName: i=%d have=[%s] want=[%s] cmp=%d\n", i, have, want, WS_stricmp(have,want) ) );
 		if( !WS_stricmp( have, want ) )
 			return &gWeaponInfo[i];
 	}
-	g_engfuncs.pfnServerPrint( "DEBUG FindWeaponByName: NOT FOUND\n" );
+	WS_Printf( "WeaponScript: [%s] nao encontrado entre os %d scripts carregados\n", want, gNumWeaponInfo );
 	return NULL;
 }
 
@@ -121,7 +126,33 @@ static char *WS_LoadText( const char *filename )
 	return text;
 }
 
-// Advance *pp past whitespace and comments; return next token (in place) or NULL.
+// A token has to be NUL-terminated to be comparable with WS_stricmp(). A quoted
+// token is terminated in place (the closing quote becomes the NUL), but an
+// unquoted one is followed by a delimiter we cannot always overwrite: it may be a
+// '{' or '}' that still has to come back as the NEXT token. So those get copied
+// out instead. One shared buffer would not do - WS_ParseKVBlock() holds a key and
+// a value at the same time - hence a small rotating set.
+// 4 bastava para chave+valor. Com chaves de multiplos valores (PunchAngle puxa
+// mais dois tokens sem soltar a chave nem o primeiro valor) chegam a ficar 4
+// vivos ao mesmo tempo - exatamente o tamanho antigo, ou seja, no limite. 8 da
+// folga para a proxima chave de N valores sem que a chave viva seja sobrescrita
+// por baixo do laco.
+#define WS_TOKEN_RING	8
+static char ws_tokenRing[WS_TOKEN_RING][256];
+static int  ws_tokenRingPos = 0;
+
+static char *WS_CopyToken( const char *src, size_t len )
+{
+	char *dst = ws_tokenRing[ws_tokenRingPos];
+	ws_tokenRingPos = ( ws_tokenRingPos + 1 ) % WS_TOKEN_RING;
+	if( len >= sizeof( ws_tokenRing[0] ) )
+		len = sizeof( ws_tokenRing[0] ) - 1;
+	memcpy( dst, src, len );
+	dst[len] = '\0';
+	return dst;
+}
+
+// Advance *pp past whitespace and comments; return next token or NULL.
 static char *WS_NextToken( char **pp )
 {
 	char *p = *pp;
@@ -151,7 +182,19 @@ static char *WS_NextToken( char **pp )
 
 		if( *p == '"' )
 		{
-			char *start = p + 1;
+			// The loop below shifts the quoted content one byte left, over the
+			// opening quote, so it can be NUL-terminated in place without eating
+			// the character that follows the closing quote. The token therefore
+			// begins where the opening quote was - NOT one byte after it.
+			// This used to be "p + 1", which returned the token minus its first
+			// character: every quoted key came out as "iewmodel", "ucket",
+			// "lip_size"..., so no key ever matched in WS_ApplyWeaponData() and
+			// every quoted field stayed at its zeroed default. Only unquoted
+			// tokens (the block names WeaponData/PrimaryAttack/..., and the
+			// scriptname, which comes from the FILENAME) ever survived - which is
+			// exactly why a weapon could be found by name while every one of its
+			// fields read back empty.
+			char *start = p;
 			char *dst = p;
 			p++;
 			while( *p && *p != '"' )
@@ -164,15 +207,23 @@ static char *WS_NextToken( char **pp )
 
 		if( *p != '{' && *p != '}' )
 		{
+			// This used to "return start" straight into the text, with no NUL:
+			// the caller then compared a string that ran on past the token
+			// ("WeaponData\n{\n\t\"viewmodel\"..."), so WS_stricmp() came back
+			// with the delimiter's value instead of 0 and NO unquoted block name
+			// ever matched - WeaponData, PrimaryAttack, SecondaryAttack,
+			// SoundData and ammoinfo alike. That is why every weapon parsed to
+			// empty fields while the QUOTED "hudsprite" blocks were counted
+			// correctly, and why ammodesc.txt reported "parsed 0 ammo definitions".
 			char *start = p;
 			while( *p && *p != ' ' && *p != '\t' && *p != '\r'
 				&& *p != '\n' && *p != '{' && *p != '}' )
 				p++;
 			*pp = p;
-			return start;
+			return WS_CopyToken( start, (size_t)( p - start ) );
 		}
 
-		{ char *start = p; p++; *pp = p; return start; }
+		{ char *start = p; p++; *pp = p; return WS_CopyToken( start, 1 ); }
 	}
 	*pp = p;
 	return NULL;
@@ -200,8 +251,15 @@ static void WS_ParseRange( const char *s, float *outMin, float *outMax )
 }
 
 // Read a { } block of key/value pairs, calling apply() for each pair.
+// `apply` recebe tambem o cursor (pp) para poder consumir tokens EXTRAS quando a
+// chave tiver mais de um valor. E o caso de "PunchAngle" "a..b" "c..d" "e", que
+// sao tres valores numa linha: o laco generico aqui so sabe ler pares chave/valor,
+// entao antes ele entregava so o primeiro componente e depois lia "c..d" como se
+// fosse uma NOVA chave (desconhecida, silenciosamente ignorada) - o coice lateral
+// e o vertical simplesmente nao existiam. Quem sabe quantos valores uma chave tem
+// e o callback, nao este laco, entao e ele que puxa o resto.
 static qboolean WS_ParseKVBlock( char **pp, void *out,
-	void (*apply)( void *out, const char *key, const char *val ) )
+	void (*apply)( void *out, const char *key, const char *val, char **pp ) )
 {
 	char *t = WS_NextToken( pp );
 	if( !t || t[0] != '{' )
@@ -215,12 +273,12 @@ static qboolean WS_ParseKVBlock( char **pp, void *out,
 			break;
 		char *v = WS_NextToken( pp );
 		if( !v ) return false;
-		apply( out, k, v );
+		apply( out, k, v, pp );
 	}
 	return true;
 }
 
-static void WS_ApplyAmmoInfo( void *out, const char *key, const char *val )
+static void WS_ApplyAmmoInfo( void *out, const char *key, const char *val, char **pp )
 {
 	ammoinfo_t *a = (ammoinfo_t *)out;
 	if( !WS_stricmp( key, "name" ) ) WS_strncpy( a->name, val, sizeof( a->name ) );
@@ -235,7 +293,7 @@ static void WS_ApplyAmmoInfo( void *out, const char *key, const char *val )
 	else if( !WS_stricmp( key, "count" ) ) a->count = atoi( val );
 }
 
-static void WS_ApplyAmmoPickup( void *out, const char *key, const char *val )
+static void WS_ApplyAmmoPickup( void *out, const char *key, const char *val, char **pp )
 {
 	ammopickup_t *p = (ammopickup_t *)out;
 	if( !WS_stricmp( key, "model" ) ) WS_strncpy( p->model, val, sizeof( p->model ) );
@@ -261,7 +319,7 @@ static int WS_FlagsFromString( const char *val )
 	return f;
 }
 
-static void WS_ApplyWeaponData( void *out, const char *key, const char *val )
+static void WS_ApplyWeaponData( void *out, const char *key, const char *val, char **pp )
 {
 	weaponinfo_t *w = (weaponinfo_t *)out;
 	if( !WS_stricmp( key, "viewmodel" ) ) WS_strncpy( w->viewmodel, val, sizeof( w->viewmodel ) );
@@ -285,43 +343,61 @@ static void WS_ApplyWeaponData( void *out, const char *key, const char *val )
 }
 
 
-// Parse a "x..y" "z..w" "k" style triple (three quoted subs in one value) into 3 mids.
-static void WS_ParseTriple( const char *s, float *out )
+// Le "PunchAngle" "a..b" "c..d" "e" - pitch, yaw e roll, cada um podendo ser uma
+// faixa. O primeiro componente ja veio no `val` que o WS_ParseKVBlock leu como
+// "valor"; os outros dois sao puxados aqui do cursor.
+//
+// Substitui o antigo WS_ParseTriple(), que tentava separar os tres por aspas
+// DENTRO de uma unica string - impossivel, porque o tokenizer ja tinha removido
+// as aspas muito antes (ele devolve cada trecho entre aspas como um token
+// proprio). Na pratica ele lia so o pitch, e os outros dois tokens voltavam para
+// o laco como chave/valor desconhecidos.
+//
+// Guarda min e max separados em vez do meio da faixa: sortear dentro da faixa a
+// cada tiro e o que produz recuo. Com o meio, "-0.5..0.5" vira 0 e o coice
+// lateral desaparece por completo.
+static void WS_ParsePunch( const char *val, char **pp, float *outMin, float *outMax )
 {
-	char buf[256];
-	WS_strncpy( buf, s, sizeof( buf ) );
-	// split by '"' into up to 3 tokens
-	char *tok = strtok( buf, "\"" );
-	int n = 0;
-	while( tok && n < 3 )
+	WS_ParseRange( val, &outMin[0], &outMax[0] );
+
+	for( int i = 1; i < 3; i++ )
 	{
-		// skip leading spaces
-		while( *tok == ' ' ) tok++;
-		if( *tok )
+		if( !pp )
 		{
-			float lo, hi;
-			WS_ParseRange( tok, &lo, &hi );
-			out[n++] = (lo + hi) * 0.5f;
+			outMin[i] = outMax[i] = 0.0f;
+			continue;
 		}
-		tok = strtok( NULL, "\"" );
+
+		// Guarda o cursor ANTES de ler: um script que declare PunchAngle com
+		// menos de tres componentes traria aqui o '}' de fechamento do bloco, e
+		// engoli-lo faria WS_ParseKVBlock continuar lendo para fora do bloco.
+		// Restaurar o cursor devolve o token para o laco de fora.
+		char *save = *pp;
+		char *t = WS_NextToken( pp );
+
+		if( !t || t[0] == '}' || t[0] == '{' )
+		{
+			*pp = save;
+			outMin[i] = outMax[i] = 0.0f;
+			continue;
+		}
+
+		WS_ParseRange( t, &outMin[i], &outMax[i] );
 	}
-	while( n < 3 ) out[n++] = 0;
 }
 
-static void WS_ApplyAttack( void *out, const char *key, const char *val )
+static void WS_ApplyAttack( void *out, const char *key, const char *val, char **pp )
 {
 	weaponattack_t *at = (weaponattack_t *)out;
-	float lo, hi;
 	if( !WS_stricmp( key, "action" ) ) WS_strncpy( at->action, val, sizeof( at->action ) );
 	else if( !WS_stricmp( key, "nextattack" ) ) at->nextattack = atof( val );
 	else if( !WS_stricmp( key, "PunchAngle" ) )
 	{
-		// "a..b" "c..d" "e"
-		WS_ParseTriple( val, at->PunchAngle );
+		WS_ParsePunch( val, pp, at->PunchAngleMin, at->PunchAngleMax );
 	}
 	else if( !WS_stricmp( key, "PunchAngleIS" ) )
 	{
-		WS_ParseRange( val, &lo, &hi ); at->PunchAngleIS[0] = (lo + hi) * 0.5f;
+		WS_ParsePunch( val, pp, at->PunchAngleISMin, at->PunchAngleISMax );
 	}
 	else if( !WS_stricmp( key, "SpreadRange" ) )
 	{
@@ -335,7 +411,7 @@ static void WS_ApplyAttack( void *out, const char *key, const char *val )
 	else if( !WS_stricmp( key, "SpreadExpandIS" ) ) at->SpreadExpandIS = atof( val );
 }
 
-static void WS_ApplySound( void *out, const char *key, const char *val )
+static void WS_ApplySound( void *out, const char *key, const char *val, char **pp )
 {
 	weaponsound_t *s = (weaponsound_t *)out;
 	if( !WS_stricmp( key, "shootsound1" ) )
@@ -346,7 +422,7 @@ static void WS_ApplySound( void *out, const char *key, const char *val )
 	else if( !WS_stricmp( key, "emptysound" ) ) WS_strncpy( s->emptysound, val, sizeof( s->emptysound ) );
 }
 
-static void WS_ApplySprite( void *out, const char *key, const char *val )
+static void WS_ApplySprite( void *out, const char *key, const char *val, char **pp )
 {
 	weaponsprite_t *sp = (weaponsprite_t *)out;
 	if( !WS_stricmp( key, "name" ) ) WS_strncpy( sp->name, val, sizeof( sp->name ) );
@@ -378,7 +454,7 @@ int WeaponScript_ParseAmmoDesc( const char *filename )
 
 		if( !WS_stricmp( t, "ammoinfo" ) )
 		{
-			if( gNumAmmoInfo >= MAX_AMMO_TYPES )
+			if( gNumAmmoInfo >= WS_MAX_ENTRIES )
 			{
 				WS_Printf( "WeaponScript: ammo type limit reached\n" );
 				break;
@@ -392,7 +468,7 @@ int WeaponScript_ParseAmmoDesc( const char *filename )
 			ammopickup_t pk;
 			memset( &pk, 0, sizeof( pk ) );
 			WS_strncpy( pk.classname, t, sizeof( pk.classname ) );
-			if( gNumAmmoPickups < MAX_AMMO_TYPES )
+			if( gNumAmmoPickups < WS_MAX_ENTRIES )
 			{
 				if( WS_ParseKVBlock( &p, &pk, WS_ApplyAmmoPickup ) )
 					gAmmoPickups[gNumAmmoPickups++] = pk;
@@ -427,6 +503,7 @@ int WeaponScript_ParseWeapon( const char *filename )
 	memset( &w, 0, sizeof( w ) );
 	memset( &snd, 0, sizeof( snd ) );
 	w.sound = snd;
+	w.id = -1; // unassigned - see WeaponScript_GetWeaponID()
 
 	p = text;
 	while( true )
@@ -468,7 +545,32 @@ int WeaponScript_ParseWeapon( const char *filename )
 		}
 	}
 
-	if( gNumWeaponInfo < MAX_AMMO_TYPES )
+	// Paranoia 2 compatibility clamp. The scripts we import are written against
+	// Uncle Mike's HUD, which has MAX_WEAPON_SLOTS 10 (P2 game_shared/cdll_dll.h);
+	// PrimeXT's is 5 (game_shared/cdll_dll.h here), and MAX_WEAPON_POSITIONS is
+	// defined as MAX_WEAPON_SLOTS on the client (client/ammohistory.h). Those
+	// values reach the client's WeaponsResource::rgSlots[6][6] unchecked, via
+	// the WeaponList message and PickupWeapon() - so an out-of-range bucket or
+	// bucket_position both writes out of bounds AND lands the weapon where
+	// GetFirstPos()/GetNextActivePos() (which only walk 0..MAX_WEAPON_POSITIONS-1)
+	// can never find it again: the weapon becomes unselectable in the HUD.
+	// weapon_parafal.txt is a real example - it carries P2's bucket_position 6.
+	// Clamping here (instead of editing the scripts) keeps stock P2 scripts
+	// importable as-is, which is the whole point of the format compatibility.
+	if( w.bucket < 0 || w.bucket >= MAX_WEAPON_SLOTS )
+	{
+		WS_Printf( "WeaponScript: bucket %d out of range (0..%d), clamping - script written for a wider HUD?\n",
+			w.bucket, MAX_WEAPON_SLOTS - 1 );
+		w.bucket = ( w.bucket < 0 ) ? 0 : MAX_WEAPON_SLOTS - 1;
+	}
+	if( w.bucket_position < 0 || w.bucket_position >= MAX_WEAPON_SLOTS )
+	{
+		WS_Printf( "WeaponScript: bucket_position %d out of range (0..%d), clamping - script written for a wider HUD?\n",
+			w.bucket_position, MAX_WEAPON_SLOTS - 1 );
+		w.bucket_position = ( w.bucket_position < 0 ) ? 0 : MAX_WEAPON_SLOTS - 1;
+	}
+
+	if( gNumWeaponInfo < WS_MAX_ENTRIES )
 	{
 		// store the script file basename (e.g. "weapon_mp5") for lookup by name
 		// use std::filesystem::path to strip directory regardless of / or \ separator
@@ -477,9 +579,18 @@ int WeaponScript_ParseWeapon( const char *filename )
 		size_t sl = strlen( w.scriptname );
 		if( sl > 4 && !WS_stricmp( w.scriptname + sl - 4, ".txt" ) )
 			w.scriptname[sl-4] = 0;
-		WS_Printf( "WeaponScript: indexed [%s] from file [%s]\n", w.scriptname, baseName.c_str() );
 		gWeaponInfo[gNumWeaponInfo++] = w;
-		WS_Printf( "WeaponScript: loaded weapon (%d sprites)\n", w.num_sprites );
+		// Report what was actually READ from the file, not just that the file was
+		// found. These two are very different failures that look identical from
+		// the outside: the scriptname above comes from the FILENAME, so a weapon
+		// whose contents parsed to nothing still shows up "indexed" and findable
+		// by name, with every field silently zeroed.
+		WS_Printf( "WeaponScript: [%s] vm=[%s] bucket=%d pos=%d clip=%d ammo1=[%s] sprites=%d\n",
+			w.scriptname, w.viewmodel, w.bucket, w.bucket_position,
+			w.clip_size, w.primary_ammo, w.num_sprites );
+		if( !w.viewmodel[0] || !w.primary_ammo[0] || w.clip_size <= 0 )
+			WS_Printf( "WeaponScript: AVISO - [%s] tem campos vazios; o arquivo foi lido mas o conteudo nao foi interpretado\n",
+				w.scriptname );
 	}
 
 	free( text );
@@ -600,13 +711,169 @@ void WeaponScript_Give_f( void )
 	DispatchSpawn( pEnt->edict() );
 	DispatchTouch( pEnt->edict(), pPlayer->edict() );
 	WS_Printf( "ws_give: %s given to player\n", name );
+
+	// Post-mortem of the whole give->pickup->deploy chain in one line, because
+	// every failure mode downstream of here looks identical in game ("pickup
+	// sound, no weapon") while having completely different causes:
+	//   active != the weapon we just gave -> SwitchWeapon() bailed, i.e. either
+	//     CanDeploy() was false (no ammo AND empty clip) or FShouldSwitchWeapon()
+	//     refused because the currently held weapon would not holster;
+	//   viewmodel empty/wrong  -> Deploy() ran but DefaultDeploy() did not set it;
+	//   modelindex 0           -> the model was never precached, so the client
+	//                             resolves it to "no model" and draws an empty
+	//                             hand no matter how correct everything else is;
+	//   everything correct     -> the server is fine and the weapon is being lost
+	//                             on the client (prediction/renderer).
+	CBasePlayer *plr = static_cast<CBasePlayer *>( pPlayer );
+	const char *activeName = ( plr && plr->m_pActiveItem )
+		? STRING( plr->m_pActiveItem->pev->classname ) : "NONE";
+	const char *viewModel = ( plr && plr->pev->viewmodel ) ? STRING( plr->pev->viewmodel ) : "";
+	WS_Printf( "ws_give: active=[%s] viewmodel=[%s] modelindex=%d weaponmodel=[%s]\n",
+		activeName, viewModel, viewModel[0] ? MODEL_INDEX( viewModel ) : 0,
+		( plr && plr->pev->weaponmodel ) ? STRING( plr->pev->weaponmodel ) : "" );
+
+	CBasePlayerWeapon *wpn = dynamic_cast<CBasePlayerWeapon *>( pEnt );
+	if( !plr || !wpn || !wpn->m_pWeaponContext )
+		return;
+
+	// CRASH (build 146): dar de novo uma arma que o jogador JA tem cai no ramo de
+	// duplicata de CBasePlayer::AddPlayerItem() (server/player.cpp) - ele credita a
+	// municao via AddDuplicate(), agenda a entidade para remocao e retorna FALSE
+	// SEM nunca chamar AddToPlayer(), que e o unico lugar que preenche m_pPlayer.
+	// Esta entidade fica portanto com m_pPlayer == NULL, e o diagnostico abaixo
+	// chama wpn->CanDeploy() -> CBaseWeaponContext::CanDeploy() ->
+	// m_pLayer->GetPlayerAmmo() -> m_pWeapon->m_pPlayer->m_rgAmmo[...] -> deref de
+	// NULL -> Sys_Crash C0000005 dentro do Cmd_ExecuteString do console.
+	//
+	// Nao e erro: e o caminho NORMAL de "peguei mais municao". A munica ja foi
+	// creditada em pInsert (a arma que o jogador realmente carrega) antes de
+	// chegarmos aqui, entao so ha o que relatar - nada a diagnosticar nesta
+	// entidade, que ja esta morta.
+	if( !wpn->m_pPlayer )
+	{
+		WS_Printf( "ws_give: [%s] ja estava no inventario - municao creditada na arma existente (esta copia foi descartada)\n", name );
+		return;
+	}
+
+	CBaseWeaponContext *ctx = wpn->m_pWeaponContext.get();
+	// ItemInfoArray[] is the shared table W_Precache() fills; CanDeploy() and the
+	// ammo bookkeeping read the weapon's stats from it, NOT from the script - so
+	// an empty row here means the weapon was never registered and every one of
+	// those reads silently returns zero/NULL.
+	const ItemInfo &reg = CBaseWeaponContext::ItemInfoArray[ctx->m_iId];
+	WS_Printf( "ws_give: ctx id=%d clip=%d defaultammo=%d ammotype=%d slot=%d candeploy=%d inventory=%d\n",
+		ctx->m_iId, ctx->m_iClip, ctx->m_iDefaultAmmo, ctx->m_iPrimaryAmmoType,
+		wpn->iItemSlot(), wpn->CanDeploy() ? 1 : 0, plr->HasPlayerItem( wpn ) ? 1 : 0 );
+	WS_Printf( "ws_give: ItemInfoArray[%d] name=[%s] ammo1=[%s] maxclip=%d maxammo1=%d id=%d\n",
+		ctx->m_iId, reg.pszName ? reg.pszName : "NULL", reg.pszAmmo1 ? reg.pszAmmo1 : "NULL",
+		reg.iMaxClip, reg.iMaxAmmo1, reg.iId );
+
+	// The parsed script entry itself, read straight out of gWeaponInfo instead of
+	// inferred from ItemInfoArray. Everything above is a COPY made at Spawn time;
+	// if the two disagree the copy is stale, and if they agree that the fields are
+	// empty then the parser never filled them - which points at the script file,
+	// not at the weapon code.
+	const weaponinfo_t *src = WeaponScript_FindWeaponByName( name );
+	if( src )
+	{
+		WS_Printf( "ws_give: gWeaponInfo[%s] vm=[%s] pm=[%s] wm=[%s]\n",
+			src->scriptname, src->viewmodel, src->playermodel, src->worldmodel );
+		WS_Printf( "ws_give: gWeaponInfo[%s] bucket=%d pos=%d clip=%d defammo=%d ammo1=[%s] id=%d\n",
+			src->scriptname, src->bucket, src->bucket_position, src->clip_size,
+			src->defaultammo, src->primary_ammo, src->id );
+	}
+	else
+	{
+		WS_Printf( "ws_give: gWeaponInfo NAO tem entrada para [%s]\n", name );
+	}
+
+	// Last-resort equip. CanDeploy() gates SwitchWeapon() on "has any ammo at
+	// all", and a script weapon whose clip never got filled fails it silently -
+	// picked up, never equipped, no console word about it. Refill from the
+	// script's own clip_size and equip directly, so the weapon reaches the
+	// screen even when the ammo path is still wrong. This is a diagnostic
+	// crutch on a debug-only console command (ws_give), not a fix for the
+	// underlying bookkeeping - the printout above is what tells us what to fix.
+	if( !plr->m_pActiveItem && plr->HasPlayerItem( wpn ) )
+	{
+		if( ctx->m_iClip <= 0 && wpn->iMaxClip() > 0 )
+		{
+			ctx->m_iClip = wpn->iMaxClip();
+			WS_Printf( "ws_give: clip estava vazio - preenchido com %d do script\n", ctx->m_iClip );
+		}
+		if( !plr->SwitchWeapon( wpn ) )
+		{
+			WS_Printf( "ws_give: SwitchWeapon recusou (CanDeploy=%d) - equipando na marra\n",
+				wpn->CanDeploy() ? 1 : 0 );
+			plr->m_pActiveItem = wpn;
+			wpn->Deploy();
+		}
+		const char *vm2 = plr->pev->viewmodel ? STRING( plr->pev->viewmodel ) : "";
+		WS_Printf( "ws_give: apos forcar -> active=[%s] viewmodel=[%s] modelindex=%d\n",
+			plr->m_pActiveItem ? STRING( plr->m_pActiveItem->pev->classname ) : "NONE",
+			vm2, vm2[0] ? MODEL_INDEX( vm2 ) : 0 );
+	}
 }
 
 void WeaponScript_Init( void )
 {
+	// Stamp which server.dll is actually loaded. Two test rounds were spent on a
+	// log that looked unchanged, with no way to tell "the fix did not work" apart
+	// from "the new DLL was never loaded" - this removes that ambiguity for good.
+	// XASH_BUILD_COMMIT is the git describe, injected by the root CMakeLists.txt.
+#ifdef XASH_BUILD_COMMIT
+	WS_Printf( "WeaponScript: server.dll build [%s]\n", XASH_BUILD_COMMIT );
+#else
+	WS_Printf( "WeaponScript: server.dll build [desconhecido]\n" );
+#endif
 	g_engfuncs.pfnAddServerCommand( "weaponscript_reload", WeaponScript_Reload_f );
 	g_engfuncs.pfnAddServerCommand( "weaponscript_list", WeaponScript_List_f );
 	g_engfuncs.pfnAddServerCommand( "ws_give", WeaponScript_Give_f );
 	WeaponScript_LoadAll();
+	// Precisa vir DEPOIS do LoadAll: registra uma classe de entidade por arma
+	// parseada, o que e o que faz CreateEntityByName("weapon_m4") parar de
+	// responder "unknown entity type" sem um LINK_ENTITY_TO_CLASS por arma.
+	WeaponScript_RegisterEntities();
 	WS_Printf( "WeaponScript: auto-loaded %d weapons at startup\n", gNumWeaponInfo );
+}
+
+// defined in server/weapons.cpp, no header declares it - it's only ever called
+// from W_Precache() (same file) and from here.
+extern void AddAmmoNameToAmmoRegistry( const char *szAmmoname );
+
+void WeaponScript_RegisterAmmoTypes( void )
+{
+	int registered = 0;
+	for( int i = 0; i < gNumAmmoInfo; i++ )
+	{
+		if( gAmmoInfo[i].name[0] )
+		{
+			AddAmmoNameToAmmoRegistry( gAmmoInfo[i].name );
+			registered++;
+		}
+	}
+	WS_Printf( "WeaponScript: registered %d ammo types from ammodesc.txt into the engine ammo registry\n", registered );
+}
+
+int WeaponScript_GetWeaponID( weaponinfo_t *info )
+{
+	static int nextId = WEAPON_SCRIPT_ID_BASE;
+
+	if( !info )
+		return WEAPON_SCRIPT_ID_BASE; // shouldn't happen - safe fallback bucket
+
+	if( info->id >= 0 )
+		return info->id; // already assigned (Paranoia2's FindWeaponID() equivalent)
+
+	if( nextId > WEAPON_SCRIPT_ID_MAX )
+	{
+		WS_Printf( "WeaponScript: out of script weapon IDs (max %d), reusing %d for [%s]\n",
+			WEAPON_SCRIPT_ID_MAX - WEAPON_SCRIPT_ID_BASE + 1, WEAPON_SCRIPT_ID_MAX, info->scriptname );
+		info->id = WEAPON_SCRIPT_ID_MAX;
+		return info->id;
+	}
+
+	info->id = nextId++;
+	WS_Printf( "WeaponScript: assigned id %d to [%s]\n", info->id, info->scriptname );
+	return info->id;
 }
