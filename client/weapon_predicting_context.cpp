@@ -252,6 +252,22 @@ void CWeaponPredictingContext::ReadWeaponSpecificData(CBaseWeaponContext *weapon
 		ctx->m_flNextAmmoBurn = data.fuser2;
 		ctx->m_fInAttack = data.iuser1;
 	}
+	else if (weapon->m_iId >= WEAPON_SCRIPT_ID_BASE && weapon->m_iId <= WEAPON_SCRIPT_ID_MAX)
+	{
+		// RTN weapon-script: parametros do .txt que o servidor mandou (ver o
+		// bloco equivalente em server/client.cpp, GetWeaponData). Sem isto a
+		// predicao usaria os numeros hardcoded da MP5 enquanto o servidor usa os
+		// do script - cadencia e dispersao divergentes, tiro "borrachando".
+		// static_cast pelo mesmo motivo do lado servidor: As<>() exigiria
+		// m_iId == WEAPON_MP5, e arma de script tem id proprio.
+		CMP5WeaponContext *ctx = static_cast<CMP5WeaponContext *>(weapon);
+		ctx->m_flScriptNextAttack = data.fuser1;
+		ctx->m_flScriptSpread = data.fuser2;
+		ctx->m_flScriptSpreadIS = data.fuser3;
+		ctx->m_iScriptZoomFOV = data.iuser1;
+		ctx->m_iScriptFlags = data.iuser2;
+		ctx->m_iScriptHasSound = data.iuser3;
+	}
 }
 
 void CWeaponPredictingContext::WriteWeaponSpecificData(CBaseWeaponContext *weapon, local_state_t *to)
@@ -285,6 +301,18 @@ void CWeaponPredictingContext::WriteWeaponSpecificData(CBaseWeaponContext *weapo
 		data.fuser1 = ctx->m_flAmmoStartCharge;
 		data.fuser2 = ctx->m_flNextAmmoBurn;
 		data.iuser1 = ctx->m_fInAttack;
+	}
+	else if (weapon->m_iId >= WEAPON_SCRIPT_ID_BASE && weapon->m_iId <= WEAPON_SCRIPT_ID_MAX)
+	{
+		// Espelha o que foi lido, para o estado predito continuar coerente entre
+		// frames - estes valores sao constantes por arma, o servidor e a fonte.
+		CMP5WeaponContext *ctx = static_cast<CMP5WeaponContext *>(weapon);
+		data.fuser1 = ctx->m_flScriptNextAttack;
+		data.fuser2 = ctx->m_flScriptSpread;
+		data.fuser3 = ctx->m_flScriptSpreadIS;
+		data.iuser1 = ctx->m_iScriptZoomFOV;
+		data.iuser2 = ctx->m_iScriptFlags;
+		data.iuser3 = ctx->m_iScriptHasSound;
 	}
 }
 

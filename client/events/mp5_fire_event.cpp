@@ -117,6 +117,14 @@ void CMP5FireEvent::HandleShot()
 
 	GameEventUtils::FireBullet(m_arguments->entindex, cameraMatrix, GetOrigin(), muzzleOrigin, GetShootDirection(cameraMatrix), 2);
 
+	// iparam1 != 0 = arma de script: o servidor ja tocou o .wav do SoundData
+	// (EMIT_SOUND_DYN em CMP5WeaponContext::PrimaryAttack). Tocar o hks1/hks2 da
+	// MP5 aqui por cima daria dois sons de tiro simultaneos, um deles da arma
+	// errada. Ver o comentario em mp5.cpp sobre por que o som e o unico efeito
+	// que ficou do lado do servidor.
+	if( m_arguments->iparam1 )
+		return;
+
 	const char *soundName = gEngfuncs.pfnRandomLong(0, 1) == 0 ? "weapons/hks1.wav" : "weapons/hks2.wav";
 	gEngfuncs.pEventAPI->EV_PlaySound( GetEntityIndex(), GetOrigin(), CHAN_WEAPON, soundName, 1.f, ATTN_NORM, 0, 94 + gEngfuncs.pfnRandomLong(0, 15));
 }

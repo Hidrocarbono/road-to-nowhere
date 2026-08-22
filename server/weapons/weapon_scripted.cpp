@@ -89,6 +89,10 @@ void CWeaponScripted::Precache( void )
 		if( m_pInfo->viewmodel[0] ) PRECACHE_MODEL( m_pInfo->viewmodel );
 		if( m_pInfo->worldmodel[0] ) PRECACHE_MODEL( m_pInfo->worldmodel );
 		if( m_pInfo->playermodel[0] ) PRECACHE_MODEL( m_pInfo->playermodel );
+
+		// Sons do SoundData - ver CMP5WeaponContext::PrecacheScriptSounds() para
+		// por que o precache e condicional a existencia do arquivo.
+		static_cast<CMP5WeaponContext *>( m_pWeaponContext.get() )->PrecacheScriptSounds();
 	}
 	else
 	{

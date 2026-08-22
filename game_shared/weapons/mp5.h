@@ -30,6 +30,19 @@
 #define WEAPON_SCRIPT_ID_MAX	31
 #endif
 
+// item_flags do script. Definidos tambem em server/weaponscript.h (o parser),
+// espelhados aqui pelo mesmo motivo de WEAPON_SCRIPT_ID_BASE acima: o cliente
+// nao inclui weaponscript.h, mas precisa dos bits para decidir se a arma tem
+// mira de ferro durante a predicao. Manter as duas copias em sincronia.
+// ATENCAO: colidem em valor com ITEM_FLAG_SELECTONEMPTY/NOAUTORELOAD/
+// NOAUTOSWITCHEMPTY (1|2|4, game_shared/item_info.h) e nao tem NADA a ver com
+// eles - nunca atribuir um no outro.
+#ifndef WIF_IRONSIGHT
+#define WIF_IRONSIGHT	(1<<0)
+#define WIF_AUTOAIM	(1<<1)
+#define WIF_AUTOFIRE	(1<<2)
+#endif
+
 #define MP5_WEIGHT			15
 #define MP5_MAX_CLIP		50
 #define MP5_DEFAULT_AMMO	25
@@ -83,6 +96,50 @@ public:
 	float m_fFOVLerpStart = 0.0f;
 	float m_fFOVFrom = 90.0f;
 	float m_fFOVTo = 90.0f;
+
+	// ---------------------------------------------------------------------
+	// Parametros vindos do script que PRECISAM existir nos dois lados.
+	//
+	// m_pScriptInfo (abaixo) e server-only: o parser usa std::filesystem e
+	// GET_GAME_DIR, e nao ha porte dele para o cliente. Mas o PrimeXT PREDIZ
+	// arma no cliente (client/weapon_predicting_context.cpp) - diferente do
+	// Paranoia 2, que nao tem predicao nenhuma de arma no cl_dll e por isso
+	// podia deixar tudo no servidor.
+	//
+	// Consequencia: cadencia e dispersao calculadas so no servidor divergem da
+	// predicao do cliente - o tiro "borracha", a arma dispara em ritmo diferente
+	// do que a tela mostra. Entao estes campos sao NEUTROS quanto a lado, e o
+	// servidor os manda pelo weapon_data_t (fuser1..3/iuser1..2, que ja existem
+	// no delta.lst e ja estao plumbados) - ver server/client.cpp (GetWeaponData)
+	// e client/weapon_predicting_context.cpp (Read/WriteWeaponSpecificData).
+	//
+	// Zero = "sem script", e o codigo cai no valor hardcoded da MP5. Isso mantem
+	// a MP5 de verdade e qualquer arma sem .txt exatamente como estavam.
+	// ---------------------------------------------------------------------
+	float m_flScriptNextAttack = 0.0f;	// PrimaryAttack/nextattack (segundos)
+	float m_flScriptSpread = 0.0f;		// SpreadRange, em graus, no quadril
+	float m_flScriptSpreadIS = 0.0f;	// SpreadRangeIS, em graus, mirando
+	int m_iScriptZoomFOV = 0;		// zoom_fov (0 = arma sem mira de ferro)
+	int m_iScriptFlags = 0;			// WIF_IRONSIGHT|WIF_AUTOAIM|WIF_AUTOFIRE
+
+	// 1 = o servidor tem o .wav do SoundData e toca o tiro ele mesmo; o evento do
+	// cliente entao NAO deve tocar o som hardcoded por cima. 0 = o som do script
+	// nao existe no disco, e o cliente segue tocando o som padrao.
+	//
+	// Precisa viajar: quem sabe se o arquivo existe e o servidor
+	// (PrecacheScriptSounds), mas quem decide tocar ou nao o som hardcoded e o
+	// evento no cliente. Sem isso, uma arma cujo .wav faltasse ficaria MUDA -
+	// o servidor nao toca porque nao tem o arquivo, e o cliente nao toca porque
+	// acha que o servidor tocou.
+	int m_iScriptHasSound = 0;
+
+	// true quando a arma declara WIF_IRONSIGHT no script. Para arma sem script
+	// (m_iScriptFlags == 0) devolve true, preservando o comportamento atual da
+	// MP5 hardcoded, que sempre teve mira no botao direito.
+	bool HasIronSight() const { return m_iScriptFlags == 0 || ( m_iScriptFlags & WIF_IRONSIGHT ) != 0; }
+
+	// FOV da mira: do script quando houver, senao o 65 que estava fixo no codigo.
+	float IronSightFOV() const { return m_iScriptZoomFOV > 0 ? (float)m_iScriptZoomFOV : 65.0f; }
 	bool ShouldWeaponIdle() override { return true; }  // so WeaponIdle runs every frame (FOV lerp)
 	uint16_t m_usEvent1;
 	uint16_t m_usEvent2;
@@ -93,7 +150,7 @@ public:
 	// in which case Deploy()/GetItemInfo() keep the classic hardcoded MP5 values.
 	// Used by the REAL weapon_mp5 entity (CMP5) - never touches m_iId, so it
 	// stays WEAPON_MP5 always, even if a future weapon_mp5.txt gets added.
-	void SetScriptInfo( const weaponinfo_t *info ) { m_pScriptInfo = info; }
+	void SetScriptInfo( const weaponinfo_t *info ) { m_pScriptInfo = info; CacheScriptParams(); }
 
 	// Used by CWeaponScripted (any weapon_<name> that isn't the real MP5): same
 	// as SetScriptInfo(), but also gives the context its own dynamic m_iId via
@@ -106,9 +163,53 @@ public:
 	{
 		m_pScriptInfo = info;
 		m_iId = info ? WeaponScript_GetWeaponID( const_cast<weaponinfo_t *>( info ) ) : WEAPON_MP5;
+		CacheScriptParams();
+	}
+
+	// Copia do script para os campos neutros de lado (declarados acima), que sao
+	// os unicos que o cliente vai enxergar - via weapon_data_t. Chamada sempre
+	// que m_pScriptInfo muda.
+	void CacheScriptParams()
+	{
+		if( !m_pScriptInfo )
+		{
+			m_flScriptNextAttack = 0.0f;
+			m_flScriptSpread = 0.0f;
+			m_flScriptSpreadIS = 0.0f;
+			m_iScriptZoomFOV = 0;
+			m_iScriptFlags = 0;
+			return;
+		}
+
+		m_flScriptNextAttack = m_pScriptInfo->primary.nextattack;
+
+		// SpreadRange vem como faixa ("1..2" graus). Usamos o meio da faixa como
+		// cone base; a variacao por tiro (SpreadExpand/SpreadTime) ainda nao esta
+		// portada, entao um valor unico e o mais honesto por enquanto.
+		m_flScriptSpread = ( m_pScriptInfo->primary.SpreadRange[0] + m_pScriptInfo->primary.SpreadRange[1] ) * 0.5f;
+		m_flScriptSpreadIS = ( m_pScriptInfo->primary.SpreadRangeIS[0] + m_pScriptInfo->primary.SpreadRangeIS[1] ) * 0.5f;
+
+		m_iScriptZoomFOV = m_pScriptInfo->zoom_fov;
+		m_iScriptFlags = m_pScriptInfo->item_flags;
 	}
 
 	const weaponinfo_t *m_pScriptInfo = nullptr;
+
+	// Sons de tiro do script que EXISTEM de fato no disco. Vazio = nao ha, e o
+	// disparo cai no som hardcoded do cliente. Preenchidos por
+	// PrecacheScriptSounds() (weapon_scripted.cpp chama no Precache()).
+	char m_szShootSound1[64] = { 0 };
+	char m_szShootSound2[64] = { 0 };
+
+	// Precacha os .wav do SoundData, mas SO os que existem.
+	//
+	// Os scripts importados do Paranoia 2 referenciam sons que nao vieram junto:
+	// weapon_parafal.txt pede weapons/parafal_fire1.wav, que nao esta no
+	// repositorio. Precachear arquivo ausente aborta o carregamento do mapa -
+	// trocar "som errado" por "mapa nao abre" seria um pessimo negocio. Entao o
+	// que falta simplesmente nao e registrado, e a arma segue com o som antigo
+	// ate os arquivos aparecerem, sem exigir nenhuma outra mudanca de codigo.
+	void PrecacheScriptSounds();
 #endif
 };
 

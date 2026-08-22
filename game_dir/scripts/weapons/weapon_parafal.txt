@@ -16,8 +16,8 @@ GNU General Public License for more details.
 WeaponData
 {
 	"viewmodel"	"models/v_parafal.mdl"	// path to viewmodel
-	"playermodel"	"models/w_parafal.mdl" 		// path to world model
-	"worldmodel"	"models/p_parafal.mdl" 		// path to world model	
+	"playermodel"	"models/p_parafal.mdl" 		// p_: arma nas maos do jogador (pev->weaponmodel)
+	"worldmodel"	"models/w_parafal.mdl" 		// w_: arma caida no chao (SET_MODEL da entidade)
 	"anim_prefix"	"crowbar" 			// player animation prefix
 	"bucket"		"4"			// slot number
 	"bucket_position"	"6"			// slot position
@@ -30,6 +30,7 @@ WeaponData
 	"item_flags"	"IronSight|AutoAim|AutoFire"	// weapon flags			
 	"MaxSpeed"	"55"
 	"MaxSpeedIS"	"30"
+	"zoom_fov"	"65"			// FOV da camera na mira de ferro (era fixo 65 no codigo)
 	"volume"		"normal"
 	"flash"		"normal"
 }

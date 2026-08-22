@@ -132,7 +132,12 @@ static char *WS_LoadText( const char *filename )
 // '{' or '}' that still has to come back as the NEXT token. So those get copied
 // out instead. One shared buffer would not do - WS_ParseKVBlock() holds a key and
 // a value at the same time - hence a small rotating set.
-#define WS_TOKEN_RING	4
+// 4 bastava para chave+valor. Com chaves de multiplos valores (PunchAngle puxa
+// mais dois tokens sem soltar a chave nem o primeiro valor) chegam a ficar 4
+// vivos ao mesmo tempo - exatamente o tamanho antigo, ou seja, no limite. 8 da
+// folga para a proxima chave de N valores sem que a chave viva seja sobrescrita
+// por baixo do laco.
+#define WS_TOKEN_RING	8
 static char ws_tokenRing[WS_TOKEN_RING][256];
 static int  ws_tokenRingPos = 0;
 
@@ -246,8 +251,15 @@ static void WS_ParseRange( const char *s, float *outMin, float *outMax )
 }
 
 // Read a { } block of key/value pairs, calling apply() for each pair.
+// `apply` recebe tambem o cursor (pp) para poder consumir tokens EXTRAS quando a
+// chave tiver mais de um valor. E o caso de "PunchAngle" "a..b" "c..d" "e", que
+// sao tres valores numa linha: o laco generico aqui so sabe ler pares chave/valor,
+// entao antes ele entregava so o primeiro componente e depois lia "c..d" como se
+// fosse uma NOVA chave (desconhecida, silenciosamente ignorada) - o coice lateral
+// e o vertical simplesmente nao existiam. Quem sabe quantos valores uma chave tem
+// e o callback, nao este laco, entao e ele que puxa o resto.
 static qboolean WS_ParseKVBlock( char **pp, void *out,
-	void (*apply)( void *out, const char *key, const char *val ) )
+	void (*apply)( void *out, const char *key, const char *val, char **pp ) )
 {
 	char *t = WS_NextToken( pp );
 	if( !t || t[0] != '{' )
@@ -261,12 +273,12 @@ static qboolean WS_ParseKVBlock( char **pp, void *out,
 			break;
 		char *v = WS_NextToken( pp );
 		if( !v ) return false;
-		apply( out, k, v );
+		apply( out, k, v, pp );
 	}
 	return true;
 }
 
-static void WS_ApplyAmmoInfo( void *out, const char *key, const char *val )
+static void WS_ApplyAmmoInfo( void *out, const char *key, const char *val, char **pp )
 {
 	ammoinfo_t *a = (ammoinfo_t *)out;
 	if( !WS_stricmp( key, "name" ) ) WS_strncpy( a->name, val, sizeof( a->name ) );
@@ -281,7 +293,7 @@ static void WS_ApplyAmmoInfo( void *out, const char *key, const char *val )
 	else if( !WS_stricmp( key, "count" ) ) a->count = atoi( val );
 }
 
-static void WS_ApplyAmmoPickup( void *out, const char *key, const char *val )
+static void WS_ApplyAmmoPickup( void *out, const char *key, const char *val, char **pp )
 {
 	ammopickup_t *p = (ammopickup_t *)out;
 	if( !WS_stricmp( key, "model" ) ) WS_strncpy( p->model, val, sizeof( p->model ) );
@@ -307,7 +319,7 @@ static int WS_FlagsFromString( const char *val )
 	return f;
 }
 
-static void WS_ApplyWeaponData( void *out, const char *key, const char *val )
+static void WS_ApplyWeaponData( void *out, const char *key, const char *val, char **pp )
 {
 	weaponinfo_t *w = (weaponinfo_t *)out;
 	if( !WS_stricmp( key, "viewmodel" ) ) WS_strncpy( w->viewmodel, val, sizeof( w->viewmodel ) );
@@ -331,43 +343,61 @@ static void WS_ApplyWeaponData( void *out, const char *key, const char *val )
 }
 
 
-// Parse a "x..y" "z..w" "k" style triple (three quoted subs in one value) into 3 mids.
-static void WS_ParseTriple( const char *s, float *out )
+// Le "PunchAngle" "a..b" "c..d" "e" - pitch, yaw e roll, cada um podendo ser uma
+// faixa. O primeiro componente ja veio no `val` que o WS_ParseKVBlock leu como
+// "valor"; os outros dois sao puxados aqui do cursor.
+//
+// Substitui o antigo WS_ParseTriple(), que tentava separar os tres por aspas
+// DENTRO de uma unica string - impossivel, porque o tokenizer ja tinha removido
+// as aspas muito antes (ele devolve cada trecho entre aspas como um token
+// proprio). Na pratica ele lia so o pitch, e os outros dois tokens voltavam para
+// o laco como chave/valor desconhecidos.
+//
+// Guarda min e max separados em vez do meio da faixa: sortear dentro da faixa a
+// cada tiro e o que produz recuo. Com o meio, "-0.5..0.5" vira 0 e o coice
+// lateral desaparece por completo.
+static void WS_ParsePunch( const char *val, char **pp, float *outMin, float *outMax )
 {
-	char buf[256];
-	WS_strncpy( buf, s, sizeof( buf ) );
-	// split by '"' into up to 3 tokens
-	char *tok = strtok( buf, "\"" );
-	int n = 0;
-	while( tok && n < 3 )
+	WS_ParseRange( val, &outMin[0], &outMax[0] );
+
+	for( int i = 1; i < 3; i++ )
 	{
-		// skip leading spaces
-		while( *tok == ' ' ) tok++;
-		if( *tok )
+		if( !pp )
 		{
-			float lo, hi;
-			WS_ParseRange( tok, &lo, &hi );
-			out[n++] = (lo + hi) * 0.5f;
+			outMin[i] = outMax[i] = 0.0f;
+			continue;
 		}
-		tok = strtok( NULL, "\"" );
+
+		// Guarda o cursor ANTES de ler: um script que declare PunchAngle com
+		// menos de tres componentes traria aqui o '}' de fechamento do bloco, e
+		// engoli-lo faria WS_ParseKVBlock continuar lendo para fora do bloco.
+		// Restaurar o cursor devolve o token para o laco de fora.
+		char *save = *pp;
+		char *t = WS_NextToken( pp );
+
+		if( !t || t[0] == '}' || t[0] == '{' )
+		{
+			*pp = save;
+			outMin[i] = outMax[i] = 0.0f;
+			continue;
+		}
+
+		WS_ParseRange( t, &outMin[i], &outMax[i] );
 	}
-	while( n < 3 ) out[n++] = 0;
 }
 
-static void WS_ApplyAttack( void *out, const char *key, const char *val )
+static void WS_ApplyAttack( void *out, const char *key, const char *val, char **pp )
 {
 	weaponattack_t *at = (weaponattack_t *)out;
-	float lo, hi;
 	if( !WS_stricmp( key, "action" ) ) WS_strncpy( at->action, val, sizeof( at->action ) );
 	else if( !WS_stricmp( key, "nextattack" ) ) at->nextattack = atof( val );
 	else if( !WS_stricmp( key, "PunchAngle" ) )
 	{
-		// "a..b" "c..d" "e"
-		WS_ParseTriple( val, at->PunchAngle );
+		WS_ParsePunch( val, pp, at->PunchAngleMin, at->PunchAngleMax );
 	}
 	else if( !WS_stricmp( key, "PunchAngleIS" ) )
 	{
-		WS_ParseRange( val, &lo, &hi ); at->PunchAngleIS[0] = (lo + hi) * 0.5f;
+		WS_ParsePunch( val, pp, at->PunchAngleISMin, at->PunchAngleISMax );
 	}
 	else if( !WS_stricmp( key, "SpreadRange" ) )
 	{
@@ -381,7 +411,7 @@ static void WS_ApplyAttack( void *out, const char *key, const char *val )
 	else if( !WS_stricmp( key, "SpreadExpandIS" ) ) at->SpreadExpandIS = atof( val );
 }
 
-static void WS_ApplySound( void *out, const char *key, const char *val )
+static void WS_ApplySound( void *out, const char *key, const char *val, char **pp )
 {
 	weaponsound_t *s = (weaponsound_t *)out;
 	if( !WS_stricmp( key, "shootsound1" ) )
@@ -392,7 +422,7 @@ static void WS_ApplySound( void *out, const char *key, const char *val )
 	else if( !WS_stricmp( key, "emptysound" ) ) WS_strncpy( s->emptysound, val, sizeof( s->emptysound ) );
 }
 
-static void WS_ApplySprite( void *out, const char *key, const char *val )
+static void WS_ApplySprite( void *out, const char *key, const char *val, char **pp )
 {
 	weaponsprite_t *sp = (weaponsprite_t *)out;
 	if( !WS_stricmp( key, "name" ) ) WS_strncpy( sp->name, val, sizeof( sp->name ) );

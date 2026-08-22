@@ -65,8 +65,15 @@ typedef struct weaponattack_s
 {
 	char	action[32];
 	float	nextattack;
-	float	PunchAngle[3];
-	float	PunchAngleIS[3];
+	// Recuo como FAIXA, nao como valor unico. O script escreve
+	// "PunchAngle" "1..1.2" "-0.5..0.5" "0" - tres componentes, cada um podendo
+	// ser uma faixa. Guardar so o meio da faixa (o que se fazia antes) apagava
+	// justamente a variacao por tiro, que e o que da sensacao de recuo: o
+	// "-0.5..0.5" do yaw tem meio ZERO, ou seja, o coice lateral sumia inteiro.
+	float	PunchAngleMin[3];
+	float	PunchAngleMax[3];
+	float	PunchAngleISMin[3];
+	float	PunchAngleISMax[3];
 	float	SpreadRange[2];
 	float	SpreadExpand;
 	float	SpreadRangeIS[2];
