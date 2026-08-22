@@ -5,7 +5,11 @@
 #include "ammohistory.h"  // WeaponsResource gWR (reserva de municao)
 #include "enginecallback.h"
 #include "filesystem_utils.h"  // fs::FileExists - sprite de arma e opcional
+#include "gl_local.h"          // TextureHandle / GL_Bind (icone .tga do VGUI)
 #include <ctype.h>        // toupper()
+
+// definido em client/hud_textwindow.cpp - desenha uma textura crua em 2D
+extern void OrthoQuad( int x1, int y1, int x2, int y2 );
 
 // RTN F10: HUD de armas (canto inferior direito) estilo Paranoia 2.
 // Silhueta branca da arma + nome + municao "clip / reserva" em Roboto Bold.
@@ -45,6 +49,10 @@ int CHudWeaponBox::Init( void )
 
 int CHudWeaponBox::VidInit( void )
 {
+	// m_iLastWeaponId = -1 abaixo forca o recarregamento no proximo Draw, entao
+	// o handle antigo (invalido apos troca de modo de video) so precisa ser
+	// esquecido, nao liberado.
+	m_hWeaponTex = TextureHandle::Null();
 	m_hWeaponSpr = 0;
 	m_iLastWeaponId = -1;
 	m_iClip = 0;
@@ -55,6 +63,11 @@ int CHudWeaponBox::VidInit( void )
 
 void CHudWeaponBox::Reset( void )
 {
+	if( m_hWeaponTex.Initialized( ))
+	{
+		FREE_TEXTURE( m_hWeaponTex );
+		m_hWeaponTex = TextureHandle::Null();
+	}
 	m_hWeaponSpr = 0;
 	m_iLastWeaponId = -1;
 	m_iClip = 0;
@@ -89,6 +102,25 @@ int CHudWeaponBox::Draw( float flTime )
 		// municao) desenha sem ele.
 		m_hWeaponSpr = fs::FileExists( szSpr ) ? LoadSprite( szSpr ) : 0;
 
+		// Sem .spr, tenta o .tga do VGUI direto. E o arquivo que o script da
+		// arma ja referencia ("hudsprite" name "ammo"), e ate agora ele so
+		// funcionava depois de uma conversao manual para .spr - passo que
+		// ninguem lembrava de fazer, deixando a arma sem icone com o arquivo
+		// certo na pasta certa.
+		if( m_hWeaponTex.Initialized( ))
+		{
+			FREE_TEXTURE( m_hWeaponTex );
+			m_hWeaponTex = TextureHandle::Null();
+		}
+
+		if( !m_hWeaponSpr )
+		{
+			char szTga[ 96 ];
+			Q_snprintf( szTga, sizeof( szTga ), "gfx/vgui/ammo/640_%s.tga", pw->szName );
+			if( fs::FileExists( szTga ))
+				m_hWeaponTex = LOAD_TEXTURE( szTga, NULL, 0, TF_CLAMP | TF_IMAGE | TF_HAS_ALPHA );
+		}
+
 		// nome: mapa de exibicao (weapon_mp5 -> "FN FAL") ou fallback
 		// classname limpo ("weapon_shotgun" -> "SHOTGUN")
 		const char *pDisplay = RTN_GetDisplayName( pw->szName );
@@ -116,6 +148,13 @@ int CHudWeaponBox::Draw( float flTime )
 	// ---- layout vertical (canto inferior direito) ----
 	int w = SPR_Width( m_hWeaponSpr, 0 );
 	int h = SPR_Height( m_hWeaponSpr, 0 );
+	// O .tga nao passa pelo SPR_Width; usa o mesmo tamanho nominal do .spr do
+	// mp5 (96x30 em 640), que e como a arte do VGUI foi desenhada.
+	if( m_hWeaponTex.Initialized( ))
+	{
+		w = XRES( 96 );
+		h = YRES( 30 );
+	}
 	if( w <= 0 ) w = XRES( 96 );
 	if( h <= 0 ) h = YRES( 30 );
 
@@ -130,6 +169,15 @@ int CHudWeaponBox::Draw( float flTime )
 	{
 		SPR_Set( m_hWeaponSpr, 255, 255, 255 );
 		SPR_Draw( 0, wbX, wbY, NULL );
+	}
+	else if( m_hWeaponTex.Initialized( ))
+	{
+		// mesmo caminho que hud_textwindow/hud_radio usam para desenhar
+		// textura crua em 2D
+		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
+		gEngfuncs.pTriAPI->Color4f( 1.0f, 1.0f, 1.0f, 1.0f );
+		GL_Bind( 0, m_hWeaponTex );
+		OrthoQuad( wbX, wbY, wbX + w, wbY + h );
 	}
 
 	// nome da arma (pequeno, cinza claro) + municao "00/000" NA MESMA LINHA
