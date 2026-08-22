@@ -267,6 +267,21 @@ int CBaseWeaponContext::ResolveWeaponAnim( int activity, int fallbackSeq, int va
 	if( seq == WACT_NOT_AVAILABLE )
 		return fallbackSeq;
 
+#ifndef CLIENT_DLL
+	// So relata quando a activity REDIRECIONOU a animacao para uma sequencia
+	// diferente do indice hardcoded. Para arma classica isso nunca deveria
+	// acontecer (modelo do HL nao marca activity, cai no fallback acima e nem
+	// chega aqui) - se aparecer, esta linha e a prova de que este sistema mexeu
+	// numa arma que nao era para mexer, que e o unico jeito dele quebrar algo
+	// fora do sistema de script. Silencioso no caso normal: a parafal so imprime
+	// no deploy e na recarga, e nao imprime nada no idle (resolve para o mesmo 0).
+	if( seq != fallbackSeq )
+	{
+		ALERT( at_console, "WeaponAnim: id=%d activity=%d -> seq %d (indice fixo era %d)\n",
+			m_iId, activity, seq, fallbackSeq );
+	}
+#endif
+
 	return seq;
 }
 

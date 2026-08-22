@@ -209,6 +209,16 @@ Vector CServerWeaponLayerImpl::FireBullets(int bullets, Vector origin, matrix3x3
 
 int CServerWeaponLayerImpl::GetPlayerAmmo(int ammoType)
 {
+	// m_pPlayer e NULL em toda arma que ainda nao foi para o inventario de
+	// ninguem - inclusive na copia descartada quando se pega uma arma repetida
+	// (CBasePlayer::AddPlayerItem() retorna FALSE pelo ramo de duplicata sem
+	// chamar AddToPlayer()). CanDeploy() e uma CONSULTA e pode ser chamada sobre
+	// uma arma nessas condicoes; antes disso ela derrubava o servidor com
+	// C0000005 em vez de responder. Sem dono, "quanta municao o dono tem" e 0 -
+	// que e a resposta correta, nao um remendo.
+	if( !m_pWeapon || !m_pWeapon->m_pPlayer )
+		return 0;
+
 	return m_pWeapon->m_pPlayer->m_rgAmmo[ammoType];
 }
 

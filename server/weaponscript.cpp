@@ -706,6 +706,25 @@ void WeaponScript_Give_f( void )
 	if( !plr || !wpn || !wpn->m_pWeaponContext )
 		return;
 
+	// CRASH (build 146): dar de novo uma arma que o jogador JA tem cai no ramo de
+	// duplicata de CBasePlayer::AddPlayerItem() (server/player.cpp) - ele credita a
+	// municao via AddDuplicate(), agenda a entidade para remocao e retorna FALSE
+	// SEM nunca chamar AddToPlayer(), que e o unico lugar que preenche m_pPlayer.
+	// Esta entidade fica portanto com m_pPlayer == NULL, e o diagnostico abaixo
+	// chama wpn->CanDeploy() -> CBaseWeaponContext::CanDeploy() ->
+	// m_pLayer->GetPlayerAmmo() -> m_pWeapon->m_pPlayer->m_rgAmmo[...] -> deref de
+	// NULL -> Sys_Crash C0000005 dentro do Cmd_ExecuteString do console.
+	//
+	// Nao e erro: e o caminho NORMAL de "peguei mais municao". A munica ja foi
+	// creditada em pInsert (a arma que o jogador realmente carrega) antes de
+	// chegarmos aqui, entao so ha o que relatar - nada a diagnosticar nesta
+	// entidade, que ja esta morta.
+	if( !wpn->m_pPlayer )
+	{
+		WS_Printf( "ws_give: [%s] ja estava no inventario - municao creditada na arma existente (esta copia foi descartada)\n", name );
+		return;
+	}
+
 	CBaseWeaponContext *ctx = wpn->m_pWeaponContext.get();
 	// ItemInfoArray[] is the shared table W_Precache() fills; CanDeploy() and the
 	// ammo bookkeeping read the weapon's stats from it, NOT from the script - so
