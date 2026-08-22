@@ -4601,3 +4601,83 @@
 @PointClass base(Targetname, Reflection, RenderFields, Angles) size(-90 -90 0, 90 90 220 ) studio("models/fungus(large).mdl") = xen_spore_large : "Xen Spore (large)" []
 
 //@SolidClass base(Targetname, Reflection, RenderFields, Angles) = func_physbox : "PhysX box" []
+
+//=============================================================================
+// Road to Nowhere - entidades proprias do mod e do PrimeXT que faltavam
+//
+// Estas classes EXISTEM no codigo (LINK_ENTITY_TO_CLASS) mas nunca chegaram ao
+// .fgd, entao nao apareciam no editor: para coloca-las no mapa era preciso
+// digitar o classname a mao e adivinhar as chaves. As chaves abaixo foram
+// tiradas do proprio codigo (KeyValue/Use de cada entidade), nao inferidas.
+//=============================================================================
+
+// server/entities/radio_sentence.cpp - CRadio
+// Porta do Paranoia 2 (sound.cpp:2037). Toca a fala no CHAN_VOICE e mostra o
+// painel do radio no HUD. O Xash le .wav e .ogg sem mudanca de codigo.
+@PointClass base(Targetname, Parent) size(-8 -8 -8, 8 8 8) color(180 100 220) = radio_sentence : "RTN: Radio Sentence (fala + painel no HUD)"
+[
+	message(sound) : "Arquivo de som (wav/ogg)"
+	netname(string) : "Nome do interlocutor no HUD" : "" : "Texto mostrado no painel. Aceita '!entrada' do titles.txt. Vazio = nao mostra painel, so toca o som."
+	health(integer) : "Tempo do painel na tela (s)" : 5
+	rendercolor(color255) : "Cor do painel (R G B)" : "0 0 0"
+	renderamt(integer) : "Transparencia do painel (0-255)" : 128
+]
+
+// server/entities/trigger_textwindow.cpp - CTriggerTextWindow
+// Ao ser acionada, abre no cliente a janela de documento com texts/<nome>.txt.
+// O jogo PAUSA enquanto a janela esta aberta e qualquer tecla fecha.
+@PointClass base(Targetname) size(-8 -8 -8, 8 8 8) color(220 200 100) = trigger_textwindow : "RTN: Abre janela de documento"
+[
+	message(string) : "Documento" : "" : "Nome do arquivo em texts/, SEM a pasta e SEM .txt (ex: p_army1b). O codigo aceita as tres formas, mas esta e a canonica."
+]
+
+// server/entities/trigger_hideweapon.cpp - CTriggerHideWeapon
+// Liga/desliga HIDEHUD_WEAPONS no jogador. Sem targetname nao ha como aciona-la.
+@PointClass base(Targetname) size(-8 -8 -8, 8 8 8) color(200 120 120) = trigger_hideweapon : "RTN: Esconde/mostra a arma e o HUD de armas"
+[
+	delay(string) : "Atraso antes de disparar" : "0"
+]
+
+// server/entities/trigger_dsp_zone.cpp - CTriggerDSPZone (herda CTriggerInOut)
+// Volume que troca o roomtype (reverb) enquanto o jogador esta dentro.
+@SolidClass base(Targetname, Parent, Filter) = trigger_dsp_zone : "RTN: Zona de reverb (roomtype)"
+[
+	roomtype(integer) : "Room Type (DSP)" : 0 : "Mesmo indice de roomtype do env_sound."
+	master(target_destination) : "Master"
+]
+
+// server/weapons/item_painkiller.cpp / item_stimulant.cpp
+// Ambos reusam o modelo do antidote (o Paranoia 2 usa w_painkiller.mdl proprio).
+@PointClass base(Targetname, Targetx, Parent, Reflection) studio("models/w_antidote.mdl") = item_painkiller : "RTN: Analgesico" []
+@PointClass base(Targetname, Targetx, Parent, Reflection) studio("models/w_antidote.mdl") = item_stimulant : "RTN: Estimulante" []
+
+// server/weapons/weapon_scripted.cpp - CWeaponScripted
+// Arma dirigida por game_dir/scripts/weapons/<classname>.txt.
+//
+// ATENCAO: normalmente NAO se usa este classname. Toda arma da pasta de scripts
+// e registrada como uma classe de entidade propria no carregamento
+// (WeaponScript_RegisterEntities), entao coloque no mapa o classname da arma -
+// weapon_parafal, weapon_diplomat, weapon_m4a3... - digitando-o a mao no editor.
+// Estes nao aparecem nesta lista porque dependem dos arquivos da sua pasta, nao
+// do codigo. weapon_scripted so serve como generico sem script proprio.
+@PointClass base(Weapon, Targetx, Parent, Reflection) size(-16 -16 -16, 16 16 16) = weapon_scripted : "RTN: Arma por script (generica)" []
+
+// server/entities/env_time.cpp - CEnvTime
+// Relogio do nivel: define a hora e a velocidade de passagem do tempo.
+@PointClass base(Targetname) size(-8 -8 -8, 8 8 8) color(120 180 220) = env_time : "PrimeXT: Hora e velocidade do tempo do nivel"
+[
+	time(string) : "Hora inicial (H M S)" : "12 0 0"
+	scale(string) : "Velocidade do tempo" : "1.0" : "1.0 = tempo real. Maior = o dia passa mais rapido."
+]
+
+// server/entities/conveyor_setspeed.cpp - CConveyorSetSpeed
+// Muda a velocidade de func_conveyor(s) alvo, opcionalmente com rampa.
+@PointClass base(Targetname, Target) size(-8 -8 -8, 8 8 8) color(120 200 140) = conveyor_setspeed : "PrimeXT: Muda a velocidade de um func_conveyor"
+[
+	speed(integer) : "Velocidade alvo" : 0 : "Limitado a -10000..10000."
+	time(string) : "Tempo da rampa (s)" : "0" : "0 = muda de uma vez."
+	spawnflags(flags) =
+	[
+		1 : "Debug (imprime no console)" : 0
+	]
+]
