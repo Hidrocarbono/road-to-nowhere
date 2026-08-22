@@ -1897,9 +1897,29 @@ void CBasePlayer::PreThink(void)
 				bCanUse = true;
 		}
 
-		if( bCanUse != m_bCanUseStatus )
+		// rtn_debug_canuse 1: imprime o que o trace encontrou. O icone nunca
+		// apareceu em teste e a leitura do codigo nao explica - o log diz de uma
+		// vez se o trace acha a entidade, quais caps ela tem, e se a mensagem
+		// chega a ser enviada. Sem isto so da para adivinhar entre "trace nao
+		// acha", "caps nao batem" e "mensagem nao chega ao HUD".
+		if( CVAR_GET_FLOAT( "rtn_debug_canuse" ) > 0.0f && tr.pHit )
+		{
+			CBaseEntity *pDbg = CBaseEntity::Instance( tr.pHit );
+			ALERT( at_console, "[CanUse] hit=[%s] caps=0x%x usavel=%d enviado=%d\n",
+				pDbg ? STRING( pDbg->pev->classname ) : "NULL",
+				pDbg ? pDbg->ObjectCaps() : 0,
+				bCanUse ? 1 : 0,
+				( bCanUse != m_bCanUseStatus ) ? 1 : 0 );
+		}
+
+		// Reenvio periodico alem do dirty-check: o cliente zera m_bShow no
+		// ResetHUD (respawn, troca de mapa) enquanto o servidor mantem
+		// m_bCanUseStatus, e nesse caso o dirty-check sozinho nunca reenviaria -
+		// o icone ficaria morto ate o jogador sair e voltar do alcance.
+		if( bCanUse != m_bCanUseStatus || gpGlobals->time > m_flNextCanUseResend )
 		{
 			m_bCanUseStatus = bCanUse;
+			m_flNextCanUseResend = gpGlobals->time + 0.5f;
 			MESSAGE_BEGIN( MSG_ONE, gmsgCanUse, NULL, pev );
 				WRITE_BYTE( bCanUse ? 1 : 0 );
 			MESSAGE_END();

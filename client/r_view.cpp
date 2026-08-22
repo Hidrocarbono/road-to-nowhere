@@ -261,6 +261,23 @@ void V_CalcGunAngle( struct ref_params_s *pparams )
 	viewent = GET_VIEWMODEL();
 	if( !viewent ) return;
 
+	// RTN: com a janela de documento aberta, o viewmodel some.
+	//
+	// A janela PAUSA o jogo (hud_textwindow.cpp), e com o jogo pausado o
+	// viewmodel deixa de ser reposicionado - mas a camera ainda gira, porque o
+	// jogador precisa do mouse para clicar no botao de fechar. O resultado era a
+	// arma congelada no ultimo ponto, aparecendo "solta no mundo" ao girar a
+	// vista, como se fosse uma camera livre.
+	//
+	// Esconder e mais honesto que tentar manter o alinhamento: durante a leitura
+	// do documento a arma nao tem por que estar na tela.
+	if( gHUD.m_TextWindow.IsOpen( ))
+	{
+		viewent->model = NULL;
+		viewent->curstate.modelindex = 0;
+		return;
+	}
+
 	// RTN F10: PERNAS - olhando para BAIXO, troca o viewmodel pelo modelo do
 	// jogador (as pernas, mecanismo classico do HL), independente da arma
 	// equipada (so geometrico). O engine re-monta o viewent a cada frame

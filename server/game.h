@@ -47,6 +47,7 @@ extern cvar_t	*p_speeds;
 extern cvar_t	*g_physdebug;	// quake physics debug
 extern cvar_t	*g_allow_physx;
 extern cvar_t	g_sync_physic;
+extern cvar_t	rtn_debug_canuse;	// RTN: diagnostico da maozinha de interacao
 
 #endif		// GAME_H
 
