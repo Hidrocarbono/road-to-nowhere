@@ -451,6 +451,8 @@ public:
 //
 //-----------------------------------------------------
 //
+class CRTNTitleFont; // hud_titlefont.h - so ponteiro aqui, nao precisa do header completo
+
 class CHudMessage: public CHudBase
 {
 public:
@@ -479,6 +481,12 @@ private:
 	client_textmessage_t *m_pGameTitle;
 	int m_HUD_title_life;
 	int m_HUD_title_half;
+
+	// RTN: fonte custom ($font/$fontsize do titles.txt) da mensagem que
+	// MessageDrawScan esta desenhando agora - NULL = fonte padrao do engine
+	// (comportamento identico ao de sempre). Ver client/hud_titlefont.h/.cpp.
+	CRTNTitleFont *m_pCustomFont;
+	float m_flCustomFontScale;
 };
 
 //

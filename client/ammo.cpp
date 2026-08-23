@@ -399,9 +399,13 @@ void WeaponsResource :: SelectSlot( int iSlot, int fAdvance, int iDirection )
 	if( gHUD.m_fPlayerDead || gHUD.m_iHideHUDDisplay & ( HIDEHUD_WEAPONS | HIDEHUD_ALL ))
 		return;
 
-	if( !gHUD.HasWeapon( WEAPON_SUIT ))
-		return;
-
+	// RTN: a selecao de arma NAO depende mais do traje.
+	//
+	// No Half-Life o HEV e o "computador" que desenha o HUD, entao todo o menu de
+	// armas era bloqueado sem ele. No RTN o traje passa a ser um COLETE - protege,
+	// mas nao e o que permite trocar de arma. Sem esta mudanca, a selecao pela
+	// rodinha do mouse simplesmente nunca aparecia, porque o jogador nunca pega
+	// item_suit.
 	if ( !memcmp( gHUD.m_iWeaponBits, nullbits, sizeof( gHUD.m_iWeaponBits )))
 		return;
 
@@ -832,26 +836,36 @@ void CHudAmmo::UserCmd_PrevWeapon( void )
 //-------------------------------------------------------------------------
 int CHudAmmo::Draw( float flTime )
 {
-	// RTN F10: com o HUD novo (rtn_hud_style 1), a municao classica some -
-	// o CHudWeaponBox mostra no canto inferior direito (estilo Paranoia 2).
-	extern cvar_t *rtn_hud_style;
-	if( rtn_hud_style && rtn_hud_style->value >= 1.0f )
-		return 1;
-
 	int a, x, y, r, g, b;
 	int AmmoWidth;
 
-	if (!gHUD.HasWeapon( WEAPON_SUIT ))
-		return 1;
-
+	// RTN: sem checagem de traje - ver o comentario em SlotInput() acima.
 	if(( gHUD.m_iHideHUDDisplay & ( HIDEHUD_WEAPONS | HIDEHUD_ALL )))
 		return 1;
 
 	// Draw Weapon Menu
+	//
+	// DrawWList() e o MENU de selecao que aparece ao girar a rodinha do
+	// mouse (ou apertar um slot) - nao e a mesma coisa que o contador de
+	// municao classico la embaixo. O gate de rtn_hud_style ficava ANTES
+	// desta chamada (return 1 direto no topo da funcao), entao ativar o HUD
+	// novo (CHudWeaponBox, canto inferior direito) apagava de brinde o menu
+	// de selecao inteiro - o CHudWeaponBox nunca substituiu essa funcao, so
+	// o contador de municao. O Paranoia2 (cl_dll/ammo.cpp) chama DrawWList()
+	// sem gate nenhum de estilo de HUD, so depois de checar HIDEHUD - e por
+	// isso o menu sempre funcionou la.
 	DrawWList( flTime );
 
 	// Draw ammo pickup history
 	gHR.DrawAmmoHistory( flTime );
+
+	// RTN F10: com o HUD novo (rtn_hud_style 1), o CONTADOR classico de
+	// municao (o resto desta funcao, dai pra baixo) some - o CHudWeaponBox
+	// mostra no canto inferior direito (estilo Paranoia 2) em seu lugar.
+	// O menu de selecao acima de nenhuma forma depende deste gate.
+	extern cvar_t *rtn_hud_style;
+	if( rtn_hud_style && rtn_hud_style->value >= 1.0f )
+		return 1;
 
 	if( !( m_iFlags & HUD_ACTIVE ))
 		return 0;

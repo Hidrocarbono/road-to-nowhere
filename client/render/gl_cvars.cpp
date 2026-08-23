@@ -50,6 +50,10 @@ cvar_t *r_dof_change_time;
 cvar_t *r_dof_focal_length;
 cvar_t *gl_lensdirt;		// RTN F10
 cvar_t *gl_lensdirt_scale;	// RTN F10
+cvar_t *gl_lensdirt_threshold;	// RTN F10
+cvar_t *gl_lensdirt_debug;	// RTN F10
+cvar_t *gl_fog_density_scale;	// RTN: calibragem do fog do mod
+cvar_t *gl_fog_sky_blend;	// RTN: quanto o fog cobre o skybox
 cvar_t *r_dof_fstop;
 cvar_t *r_dof_debug;
 cvar_t *r_pvs_radius;
@@ -199,5 +203,32 @@ void R_InitializeConVars()
 	r_grass_shadows = CVAR_REGISTER("r_grass_shadows", "1", FCVAR_ARCHIVE);
 	r_grass_fade_start = CVAR_REGISTER("r_grass_fade_start", "1024", FCVAR_ARCHIVE);
 	r_grass_fade_dist = CVAR_REGISTER("r_grass_fade_dist", "2048", FCVAR_ARCHIVE);
+
+	// RTN: multiplicador sobre a density do 'fog R G B D' do worldspawn.
+	// Existe para calibrar nevoa OLHANDO A TELA - achar o valor rodando o jogo e
+	// so depois gravar o D definitivo no mapa. Antes essa calibragem vivia num
+	// #define (SKY_FOG_DENSITY_FACTOR, gl_rmisc.cpp), o que exigia recompilar a
+	// dll a cada tentativa - e foi assim que um x10 provisorio acabou virando
+	// permanente sem ninguem revisar.
+	//
+	// 2.5 com o D=10 do mapa da density 0.00125: 50% de nevoa a ~800u (20 m),
+	// 90% a ~2650u (67 m). Referencias para ajustar:
+	//     1.0  = PrimeXT puro       50% a 2000u (51 m)  - quase sem nevoa
+	//     2.5  = padrao do RTN      50% a  800u (20 m)
+	//     5.0  =                    50% a  400u (10 m)
+	//    10.0  = o que estava aqui  50% a  200u (5 m)   - sufocante
+	gl_fog_density_scale = CVAR_REGISTER("gl_fog_density_scale", "2.5", FCVAR_ARCHIVE);
+
+	// RTN: teto de quanto o fog cobre o SKYBOX (0..1). O ceu esta no infinito,
+	// entao nao existe distancia com que calcular a nevoa nele - o unico
+	// controle possivel e o peso da mistura. O shader antes SUBSTITUIA o ceu
+	// pela cor do fog sempre que houvesse fog, o que fazia o skybox sumir por
+	// completo em qualquer densidade.
+	//     1.0  = comportamento antigo, ceu totalmente coberto
+	//     0.85 = padrao: o fog domina, mas o ceu ainda se insinua
+	//     0.0  = ceu limpo, sem fog nenhum
+	// O valor efetivo acompanha gl_fog_density_scale: com o fog no minimo o ceu
+	// quase nao e tocado.
+	gl_fog_sky_blend = CVAR_REGISTER("gl_fog_sky_blend", "0.85", FCVAR_ARCHIVE);
 }
 

@@ -33,14 +33,43 @@ GNU General Public License for more details.
 
 #define DEFAULT_SMOOTHNESS			0.0f
 #define FILTER_SIZE					2
-// RTN F10 fix: SKY_FOG_DENSITY_FACTOR x10 (0.00005 -> 0.0005). O fog do
-// worldspawn 'fog R G B D' usa o byte D (0-255) como density. Com 0.00005,
-// o byte 10 (mapa do user) dava density 0.0005 -> o exp2 nunca saturava ->
-// o mundo ao longe ficava claro ('fog clareando'). Com 0.0005, o byte 10
-// da density 0.005 -> satura a ~660u (exp2(-3.3)=0.1). O user ajusta o D
-// no mapa (10 = nevoa a ~660u; 30 = a ~220u; 2 = a ~3300u).
-#define SKY_FOG_DENSITY_FACTOR		0.0005f	// experimentally determined value (chislo s potolka)
+// Valor do PrimeXT original. Ele ja esteve x10 aqui (0.0005), para corrigir um
+// "fog clareando ao longe" - mas aquele clareamento nao vinha da densidade e sim
+// do bug de gamma logo abaixo, que renderizava a cor 63 do mapa como 135 (um
+// creme claro). Os dois foram corrigidos na mesma leva e o x10 nunca foi
+// revertido, virando uma compensacao orfa: calibrada contra um bug que nao
+// existe mais.
+//
+// O custo era alto. Com o D=10 do mapa, x10 dava density 0.005:
+//     50% de nevoa a  200u (5,1 m)   <- fim de uma sala
+//     90% de nevoa a  664u (16,9 m)
+// ou seja, meia cena virava nevoa solida a cinco metros do jogador.
+//
+// A calibragem do mod agora vive em gl_fog_density_scale (abaixo), nao numa
+// divergencia silenciosa deste #define - assim da para ajustar olhando a tela em
+// vez de recompilar, e este arquivo continua igual ao upstream.
+#define SKY_FOG_DENSITY_FACTOR		0.00005f	// experimentally determined value (chislo s potolka)
 #define WATER_FOG_DENSITY_FACTOR	0.000025f
+
+// sRGB -> linear, com a MESMA curva que game_dir/glsl/mathlib.h usa
+// (ConvertSRGBToLinear, formula do Frostbite/SIGGRAPH 2014).
+//
+// Aqui se usava pow(x, 2.2), que e a aproximacao popular da curva - e ela erra
+// feio justamente onde o fog do RTN vive, no escuro, porque a curva real tem um
+// trecho LINEAR perto do preto que a potencia nao reproduz:
+//
+//     canal 63 -> erro   +8%
+//     canal 47 -> erro  +17%
+//     canal  2 -> erro +2502%   (0.00002 em vez de 0.00061)
+//
+// Ou seja: num fog "63 47 2" o canal azul era esmagado a zero e a nevoa saia
+// mais morta/marrom do que a cor escolhida no mapa. Com o shader usando a curva
+// exata e o C++ usando a aproximada, os dois lados nem sequer concordavam sobre
+// o que a mesma cor significa.
+static inline float SRGBToLinear( float c )
+{
+	return ( c <= 0.04045f ) ? ( c / 12.92f ) : powf(( c + 0.055f ) / 1.055f, 2.4f );
+}
 
 // defined in cdll_int.cpp
 extern void CL_NewMap();
@@ -1012,16 +1041,21 @@ void R_UpdateFogParameters()
 		// RTN F10 fix: PARENTESES + cast unsigned! O original fazia
 		// 'fog_settings & 0xFF000000 >> 24' = '& (0xFF000000>>24)' = '& 0xFF'
 		// (precedencia: >> antes de &) -> as 3 cores liam o byte da DENSITY
-		// RTN F10 fix CRITICO: a potencia estava INVERTIDA (1.f/2.2f) - isso
-		// CLAREIA a cor (63 -> 193!) em vez de linearizar. O 63 47 2 do mapa
-		// virava um creme/branco. Correto: sRGB->linear = pow(x, 2.2).
+		// RTN F10 fix: a potencia ja esteve INVERTIDA (1.f/2.2f), o que CLAREIA
+		// a cor (63 -> 135) em vez de linearizar - era esse o "fog clareando ao
+		// longe". A conversao agora usa a curva sRGB de verdade; ver
+		// SRGBToLinear() acima para por que pow(2.2) nao servia.
 		const unsigned int fogSettings = (unsigned int)tr.movevars->fog_settings;
-		tr.fogColor[0] = pow(((fogSettings & 0xFF000000u) >> 24) / 255.0f, 2.2f);
-		tr.fogColor[1] = pow(((fogSettings & 0xFF0000u) >> 16) / 255.0f, 2.2f);
-		tr.fogColor[2] = pow(((fogSettings & 0xFF00u) >> 8) / 255.0f, 2.2f);
+		tr.fogColor[0] = SRGBToLinear(((fogSettings & 0xFF000000u) >> 24) / 255.0f);
+		tr.fogColor[1] = SRGBToLinear(((fogSettings & 0xFF0000u) >> 16) / 255.0f);
+		tr.fogColor[2] = SRGBToLinear(((fogSettings & 0xFF00u) >> 8) / 255.0f);
 
 		const float skyScaleMultiplier = FBitSet(RI->params, RP_SKYPORTALVIEW) ? tr.sky_camera->curstate.scale : 1.0f;
-		tr.fogDensity = (fogSettings & 0xFF) * SKY_FOG_DENSITY_FACTOR * skyScaleMultiplier;
+		// guarda contra o cvar ainda nao registrado: esta funcao roda por frame e
+		// um ponteiro nulo aqui derrubaria o cliente num ponto dificil de ligar
+		// a causa.
+		const float fogScale = gl_fog_density_scale ? gl_fog_density_scale->value : 1.0f;
+		tr.fogDensity = (fogSettings & 0xFF) * SKY_FOG_DENSITY_FACTOR * skyScaleMultiplier * fogScale;
 		tr.fogEnabled = true;
 	}
 	else

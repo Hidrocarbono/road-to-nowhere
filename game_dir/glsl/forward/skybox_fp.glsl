@@ -47,14 +47,26 @@ void main()
 #endif
 	vec3 diffuse = sky_color + sun_color * sun_factor;
 
-	if( bool( u_FogParams.w != 0.0 ))
+	if( bool( u_FogParams.w > 0.0 ))
 	{
-		// RTN F10 fix FINAL: o horizonte/ceu SATURA SEMPRE com a cor do fog.
-		// A versao anterior usava exp2(density * dist) - com a density baixa
-		// do mapa o fator nao saturava e o horizonte ficava claro (branco).
-		// O fog existe p/ esconder as limitacoes da engine -> o ceu DEVE ser
-		// exatamente a cor do fog do mapa. (dist infinita = fogFactor 0)
-		diffuse.rgb = u_FogParams.xyz;
+		// Mistura o ceu com a cor do fog, em vez de SUBSTITUIR.
+		//
+		// Antes esta linha era 'diffuse.rgb = u_FogParams.xyz' - substituicao
+		// pura e simples, sem distancia e sem peso. Foi escrita para corrigir um
+		// horizonte que ficava branco, mas o branco vinha da cor do fog ser
+		// convertida com a gamma invertida no C++ (ver gl_rmisc.cpp), nao do ceu.
+		// Resultado: com QUALQUER densidade de fog, ate a minima, o skybox
+		// desaparecia por completo - nao havia valor de gl_fog_density_scale que
+		// o trouxesse de volta, porque a densidade nunca entrou nesta conta.
+		//
+		// Agora u_FogParams.w chega aqui como PESO DE MISTURA (0..1), calculado
+		// em client/render/gl_sky.cpp a partir de gl_fog_sky_blend - e o unico
+		// lugar do renderer onde .w nao e densidade, justamente porque o ceu esta
+		// no infinito e nao ha distancia com que calcular um fator.
+		//   1.0 = comportamento antigo, ceu totalmente coberto
+		//   0.85 = padrao: fog domina, mas o ceu ainda se insinua
+		//   0.0 = ceu limpo, sem fog nenhum
+		diffuse.rgb = mix( diffuse.rgb, u_FogParams.xyz, clamp( u_FogParams.w, 0.0, 1.0 ));
 	}
 
 	gl_FragColor = vec4(diffuse, 1.0);

@@ -42,6 +42,8 @@
 #include "weapons/egon.h"
 #include "weapons/gauss.h"
 #include "cycler_weapon.h"
+#include "func_door.h"		// CBaseDoor - filtro do icone de interacao (ver PreThink)
+#include "func_button.h"		// CBaseButton - idem
 #include <algorithm>
 
 // #define DUCKFIX
@@ -1894,12 +1896,76 @@ void CBasePlayer::PreThink(void)
 		{
 			CBaseEntity *pObject = CBaseEntity::Instance( tr.pHit );
 			if( pObject && ( pObject->ObjectCaps() & ( FCAP_IMPULSE_USE | FCAP_CONTINUOUS_USE | FCAP_ONOFF_USE | FCAP_DISTANCE_USE )) && !( pObject->ObjectCaps() & FCAP_HIDE_USE ))
+			{
 				bCanUse = true;
+
+				// Botao/porta que ja disparou e NAO tem como ser usado de
+				// novo (fica "emperrado" fisicamente) continua reportando
+				// FCAP_IMPULSE_USE em ObjectCaps() mesmo assim - nada no
+				// codigo deles muda isso ao serem usados - entao sem este
+				// filtro a maozinha seguiria oferecendo "use" num alvo que
+				// nunca mais vai fazer nada.
+				//
+				// GetToggleState()/TS_AT_TOP NAO serve para isto: func_door
+				// e func_button nunca escrevem em m_toggle_state (so
+				// func_platform/func_trackchange usam), entao para eles
+				// GetToggleState() so devolveria o default de CBaseEntity
+				// (TS_AT_TOP sempre, cbase.h) - inclusive para portas/botoes
+				// que nunca foram tocados. O estado de verdade que
+				// door.cpp/button.cpp usam e GetState() (STATE_OFF/ON/...),
+				// e SO combinado com o proprio spawnflag que cada classe usa
+				// pra decidir se ainda responde a um novo uso (a mesma
+				// checagem que func_door.cpp:486 faz internamente antes de
+				// aceitar Use() de novo).
+				//
+				// dynamic_cast por classe (nao um cast generico) porque a
+				// condicao de "emperrado" e diferente em cada uma:
+				//   porta:  STATE_ON + SF_DOOR_NO_AUTO_RETURN (abriu e NAO
+				//           tem timer pra fechar sozinha - fica aberta pra
+				//           sempre; com auto-return o icone volta sozinho
+				//           assim que ela fechar, sem precisar de logica
+				//           extra aqui, porque o proximo trace ja pega
+				//           STATE_OFF)
+				//   botao:  m_fStayPushed + NAO e SF_BUTTON_TOGGLE (fica
+				//           pressionado e ninguem alterna de volta; o botao
+				//           tipo "alterna" continua mostrando o icone porque
+				//           apertar de novo o desliga de verdade)
+				if( CBaseDoor *pDoor = dynamic_cast<CBaseDoor *>( pObject ))
+				{
+					if( pDoor->GetState() == STATE_ON && FBitSet( pDoor->pev->spawnflags, SF_DOOR_NO_AUTO_RETURN ))
+						bCanUse = false;
+				}
+				else if( CBaseButton *pButton = dynamic_cast<CBaseButton *>( pObject ))
+				{
+					if( pButton->GetState() == STATE_ON && pButton->m_fStayPushed && !FBitSet( pButton->pev->spawnflags, SF_BUTTON_TOGGLE ))
+						bCanUse = false;
+				}
+			}
 		}
 
-		if( bCanUse != m_bCanUseStatus )
+		// rtn_debug_canuse 1: imprime o que o trace encontrou. O icone nunca
+		// apareceu em teste e a leitura do codigo nao explica - o log diz de uma
+		// vez se o trace acha a entidade, quais caps ela tem, e se a mensagem
+		// chega a ser enviada. Sem isto so da para adivinhar entre "trace nao
+		// acha", "caps nao batem" e "mensagem nao chega ao HUD".
+		if( CVAR_GET_FLOAT( "rtn_debug_canuse" ) > 0.0f && tr.pHit )
+		{
+			CBaseEntity *pDbg = CBaseEntity::Instance( tr.pHit );
+			ALERT( at_console, "[CanUse] hit=[%s] caps=0x%x usavel=%d enviado=%d\n",
+				pDbg ? STRING( pDbg->pev->classname ) : "NULL",
+				pDbg ? pDbg->ObjectCaps() : 0,
+				bCanUse ? 1 : 0,
+				( bCanUse != m_bCanUseStatus ) ? 1 : 0 );
+		}
+
+		// Reenvio periodico alem do dirty-check: o cliente zera m_bShow no
+		// ResetHUD (respawn, troca de mapa) enquanto o servidor mantem
+		// m_bCanUseStatus, e nesse caso o dirty-check sozinho nunca reenviaria -
+		// o icone ficaria morto ate o jogador sair e voltar do alcance.
+		if( bCanUse != m_bCanUseStatus || gpGlobals->time > m_flNextCanUseResend )
 		{
 			m_bCanUseStatus = bCanUse;
+			m_flNextCanUseResend = gpGlobals->time + 0.5f;
 			MESSAGE_BEGIN( MSG_ONE, gmsgCanUse, NULL, pev );
 				WRITE_BYTE( bCanUse ? 1 : 0 );
 			MESSAGE_END();

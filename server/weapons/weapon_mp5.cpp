@@ -34,6 +34,7 @@ CMP5::CMP5()
 void CMP5::Spawn()
 {
 	m_pScriptInfo = WeaponScript_FindWeaponByName( "weapon_mp5" );
+	m_pWeaponContext->As<CMP5WeaponContext>()->SetScriptInfo( m_pScriptInfo );
 	pev->classname = MAKE_STRING(CLASSNAME_STR(MP5_CLASSNAME));
 	Precache();
 	if( m_pScriptInfo && m_pScriptInfo->worldmodel[0] )
@@ -47,6 +48,7 @@ void CMP5::Precache()
 {
 	// always re-lookup script in Precache (engine may call Precache before Spawn)
 	m_pScriptInfo = WeaponScript_FindWeaponByName( "weapon_mp5" );
+	m_pWeaponContext->As<CMP5WeaponContext>()->SetScriptInfo( m_pScriptInfo );
 	if( m_pScriptInfo )
 	{
 		if( m_pScriptInfo->viewmodel[0] ) PRECACHE_MODEL( m_pScriptInfo->viewmodel );
@@ -94,25 +96,21 @@ int CMP5::AddToPlayer(CBasePlayer *pPlayer)
 
 BOOL CMP5::Deploy()
 {
-	// PLAN B: hardcoded viewmodel from weapon_mp5.txt (Fase 4 Final)
-	BOOL result = CBasePlayerWeapon::Deploy();
-	m_pPlayer->pev->viewmodel = MAKE_STRING( "models/v_mp5.mdl" );
-	m_pPlayer->pev->weaponmodel = MAKE_STRING( "models/p_mp5.mdl" );
-	return result;
+	// CMP5WeaponContext::Deploy() (game_shared/weapons/mp5.cpp) already sets
+	// pev->viewmodel/weaponmodel - from m_pScriptInfo when a script was loaded,
+	// falling back to the hardcoded MP5 models otherwise. No override needed here
+	// anymore (removed the old "PLAN B" hardcode that was forcing v_mp5/p_mp5
+	// unconditionally and silently defeating the script data).
+	return CBasePlayerWeapon::Deploy();
 }
 
 int CMP5::GetItemInfo(ItemInfo *p) const
 {
-	int base = CBasePlayerWeapon::GetItemInfo( p );
-	// PLAN B (Fase 4 Final): hardcoded from weapon_mp5.txt
-	p->iMaxClip = 30;
-	p->pszAmmo1 = "9mm";
-	p->pszAmmo2 = "ARgrenades";
-	p->iSlot = 3;
-	p->iPosition = 1;  // pos 6 quebrava o ciclo do scroll (padrao HL: 1-5)
-	p->iWeight = 15;
-	p->iFlags = ITEM_FLAG_SELECTONEMPTY;
-	return base;
+	// CMP5WeaponContext::GetItemInfo() (game_shared/weapons/mp5.cpp) already reads
+	// from m_pScriptInfo when present, falling back to the classic MP5 values
+	// otherwise - no need to overwrite them again here (removed the old "PLAN B"
+	// hardcode block that was discarding script-driven clip/ammo/slot data).
+	return CBasePlayerWeapon::GetItemInfo( p );
 }
 
 int CMP5::iMaxClip() { return 30; }

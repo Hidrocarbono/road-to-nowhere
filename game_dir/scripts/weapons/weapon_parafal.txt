@@ -1,0 +1,94 @@
+/*
+weapon_ak74.txt - weapon description file (part of Xash Weapon System)
+Copyright (C) 2014 Uncle Mike
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+*/
+
+WeaponData
+{
+	"viewmodel"	"models/v_parafal.mdl"	// path to viewmodel
+	"playermodel"	"models/p_parafal.mdl" 		// p_: arma nas maos do jogador (pev->weaponmodel)
+	"worldmodel"	"models/w_parafal.mdl" 		// w_: arma caida no chao (SET_MODEL da entidade)
+	"anim_prefix"	"crowbar" 			// player animation prefix
+	"bucket"		"4"			// slot number
+	"bucket_position"	"6"			// slot position
+	"clip_size"	"30"			// clip size
+	"defaultammo"	"30"			// default ammo give print "random" for random choose
+	"primary_ammo"	"ak"			// FIXME: need to use single ammo type for aks, ak74 and groza
+	"secondary_ammo" 	"none"			// secondary ammo type
+	"weight"		"15"			// autoswitch weight
+	"SpreadTime"	"0.3"			// time to back to normal spread
+	"item_flags"	"IronSight|AutoAim|AutoFire"	// weapon flags			
+	"MaxSpeed"	"55"
+	"MaxSpeedIS"	"30"
+	"zoom_fov"	"65"			// FOV da camera na mira de ferro (era fixo 65 no codigo)
+	"volume"		"normal"
+	"flash"		"normal"
+}
+
+PrimaryAttack
+{
+	"action"		"ammo1"			// attack type
+	"nextattack"	"0.1"			// speedshoot
+
+	"PunchAngle"	"1..1.2" "-0.5..0.5" "0"	// punchangle
+	SpreadRange	"1..2"
+	SpreadExpand	0.1
+
+	"PunchAngleIS"	"0.3..1.0" "-0.3..0.1" "0"	// punchangle
+	SpreadRangeIS	"1"			// IS - IronSight
+	SpreadExpandIS	0.03
+}
+
+SecondaryAttack
+{
+	"action"		"IronSight"
+	"nextattack"	"-1"			// sequence-length based
+}
+
+SoundData
+{
+	"shootsound1"	"weapons/parafal_fire1.wav"	// primary attack sound
+	"shootsound1"	"weapons/parafal_fire2.wav"	// primary attack sound
+	"emptysound"	"weapons/w_empty.wav"	// ammo is out
+}
+
+// hud sprites
+"hudsprite"	
+{
+	"name"		"weapon"
+	"file"		"sprites/weapon_parafal.spr"
+	"x"		"0"
+	"y"		"64"
+	"width"		"256"
+	"height"		"64"
+}
+
+"hudsprite"	
+{
+	"name"		"weapon_s"
+	"file"		"sprites/weapon_parafal.spr"
+	"x"		"0"
+	"y"		"0"
+	"width"		"256"
+	"height"		"64"
+}
+
+"hudsprite"	
+{
+	"name"		"ammo"
+	"file"		"gfx/vgui/ammo/640_weapon_parafal.tga"
+	"x"		"0"
+	"y"		"72"
+	"width"		"24"
+	"height"		"24"
+}

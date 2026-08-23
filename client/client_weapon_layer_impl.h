@@ -39,6 +39,7 @@ public:
 	void SetPlayerViewmodel(std::string_view model) override;
 	void DisablePlayerViewmodel() override;
 	int GetPlayerViewmodel() override;
+	void *GetViewmodelStudioHeader() override;
 	int GetPlayerWaterlevel() override;
 	bool CheckPlayerButtonFlag(int buttonMask) override;
 	void ClearPlayerButtonFlag(int buttonMask) override;

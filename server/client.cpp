@@ -45,6 +45,7 @@
 #include "weapons/handgrenade.h"
 #include "weapons/egon.h"
 #include "weapons/gauss.h"
+#include "weapons/mp5.h"	// CMP5WeaponContext + faixa WEAPON_SCRIPT_ID_* (weapon-script)
 #include "usercmd.h"
 #include "netadr.h"
 #include "user_messages.h"
@@ -1757,6 +1758,27 @@ int GetWeaponData( struct edict_s *player, struct weapon_data_s *info )
 							data->fuser1 = std::max(pGauss->m_flAmmoStartCharge, -0.001f);
 							data->fuser2 = std::max(pGauss->m_flNextAmmoBurn, -0.001f);
 							data->iuser1 = pGauss->m_fInAttack;
+						}
+						else if (itemInfo.iId >= WEAPON_SCRIPT_ID_BASE && itemInfo.iId <= WEAPON_SCRIPT_ID_MAX)
+						{
+							// RTN weapon-script: os parametros do .txt que a PREDICAO do
+							// cliente precisa. O parser e server-only (usa std::filesystem
+							// e GET_GAME_DIR), entao o cliente nunca ve o script - mas ele
+							// preve PrimaryAttack/SecondaryAttack, e cadencia ou dispersao
+							// diferentes entre os dois lados fazem o tiro "borrachar".
+							// Estes seis campos ja existem no weapon_data_t e ja estao no
+							// delta.lst, entao isto NAO e mudanca de protocolo.
+							//
+							// static_cast, nao As<CMP5WeaponContext>(): As<>() exige que
+							// m_iId ainda seja WEAPON_MP5, e uma arma de script tem id
+							// proprio (31..62) - mesma razao de weapon_scripted.cpp.
+							CMP5WeaponContext *pScripted = static_cast<CMP5WeaponContext *>(ctx);
+							data->fuser1 = pScripted->m_flScriptNextAttack;
+							data->fuser2 = pScripted->m_flScriptSpread;
+							data->fuser3 = pScripted->m_flScriptSpreadIS;
+							data->iuser1 = pScripted->m_iScriptZoomFOV;
+							data->iuser2 = pScripted->m_iScriptFlags;
+							data->iuser3 = pScripted->m_iScriptHasSound;
 						}
 					}
 				}

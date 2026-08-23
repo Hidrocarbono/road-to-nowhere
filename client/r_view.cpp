@@ -35,6 +35,13 @@ static float g_flLeanOffset = 0.0f;
 // o modelo com o viewmodel da arma enquanto esta flag estiver ligada.
 bool g_bRTNLegs = false;
 
+// RTN: 0..1, quanto a arma esta "mirada" agora (0 = quadril, 1 = mira total).
+// Escrito por CMP5WeaponContext::WeaponIdle() (game_shared/weapons/mp5.cpp) -
+// reusa o MESMO t do lerp de FOV, entao a arma sobe em sincronia com o zoom,
+// nao num tempo separado. Lido aqui so no client (r_view.cpp so existe na
+// dll do cliente); o servidor nunca toca nisto.
+float g_flIronSightRaise = 0.0f;
+
 cvar_t	*cl_bobcycle;
 cvar_t	*cl_bob;
 cvar_t	*cl_bobup;
@@ -42,6 +49,7 @@ cvar_t	*cl_waterdist;
 cvar_t	*cl_chasedist;
 cvar_t	*cl_weaponlag;
 cvar_t	*cl_vsmoothing;
+cvar_t	*cl_ironsight_raise;	// RTN: sobe o viewmodel na mira p/ alinhar com o tracante
 cvar_t	*v_centermove;
 cvar_t	*v_centerspeed;
 cvar_t	*cl_viewsize;
@@ -92,6 +100,16 @@ void V_Init( void )
 	cl_chasedist	= CVAR_REGISTER( "cl_chasedist","112", 0 );
 	cl_weaponlag	= CVAR_REGISTER( "cl_weaponlag", "0.3", FCVAR_ARCHIVE );
 	cl_vsmoothing = CVAR_REGISTER("cl_vsmoothing", "0.05", FCVAR_ARCHIVE);
+	// RTN: unidades de mundo para subir o viewmodel quando 100% mirado (0 =
+	// desligado). O bullet SEMPRE sai da camera (GetGunPosition() = eye +
+	// view_ofs, em CServerWeaponLayerImpl/CClientWeaponLayerImpl - nao muda
+	// com a mira), entao o tiro ja vai onde a crosshair aponta; o que pode
+	// nao bater e a mira DESENHADA no modelo da arma, que nao tem dado
+	// nenhum de "onde fica o alho de mira" - so os attachments do cano
+	// (usados pro flash/tracante). Ajuste este cvar OLHANDO A TELA em vez
+	// de adivinhar um numero: mire numa superficie lisa a media distancia,
+	// atire e compare o furo com onde a mira do modelo aponta.
+	cl_ironsight_raise = CVAR_REGISTER( "cl_ironsight_raise", "1.5", FCVAR_ARCHIVE );
 	cl_viewsize = CVAR_GET_POINTER("viewsize");
 	
 	R_InitializeConVars();
@@ -260,6 +278,23 @@ void V_CalcGunAngle( struct ref_params_s *pparams )
 
 	viewent = GET_VIEWMODEL();
 	if( !viewent ) return;
+
+	// RTN: com a janela de documento aberta, o viewmodel some.
+	//
+	// A janela PAUSA o jogo (hud_textwindow.cpp), e com o jogo pausado o
+	// viewmodel deixa de ser reposicionado - mas a camera ainda gira, porque o
+	// jogador precisa do mouse para clicar no botao de fechar. O resultado era a
+	// arma congelada no ultimo ponto, aparecendo "solta no mundo" ao girar a
+	// vista, como se fosse uma camera livre.
+	//
+	// Esconder e mais honesto que tentar manter o alinhamento: durante a leitura
+	// do documento a arma nao tem por que estar na tela.
+	if( gHUD.m_TextWindow.IsOpen( ))
+	{
+		viewent->model = NULL;
+		viewent->curstate.modelindex = 0;
+		return;
+	}
 
 	// RTN F10: PERNAS - olhando para BAIXO, troca o viewmodel pelo modelo do
 	// jogador (as pernas, mecanismo classico do HL), independente da arma
@@ -1072,6 +1107,14 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 	{
 		view->origin[2] += 0.5;
 	}
+
+	// RTN: sobe o viewmodel enquanto mirado, para o alho de mira do modelo
+	// bater com o ponto de impacto (que sempre sai da camera - ver o
+	// comentario grande em cl_ironsight_raise, V_Init). Aplicado ANTES do
+	// ViewModelLag de proposito: assim o levantar da arma participa da MESMA
+	// suavizacao que o resto do movimento do viewmodel, em vez de "colar" de
+	// forma seca por cima.
+	view->origin += pparams->up * ( g_flIronSightRaise * cl_ironsight_raise->value );
 
 	V_CalcViewModelLag( pparams, view->origin, view->angles, lastAngles );
 

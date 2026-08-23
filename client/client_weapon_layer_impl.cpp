@@ -18,6 +18,8 @@ GNU General Public License for more details.
 #include "utils.h"
 #include "event_api.h"
 #include "event_args.h"
+#include "gl_local.h"		// IEngineStudio (GetViewmodelStudioHeader)
+#include "r_studioint.h"
 
 CClientWeaponLayerImpl::CClientWeaponLayerImpl(CWeaponPredictingContext::PlayerState &state) :
 	m_playerState(state)
@@ -109,6 +111,25 @@ void CClientWeaponLayerImpl::DisablePlayerViewmodel()
 int CClientWeaponLayerImpl::GetPlayerViewmodel()
 {
 	return m_playerState.viewmodel;
+}
+
+void *CClientWeaponLayerImpl::GetViewmodelStudioHeader()
+{
+	// m_playerState.viewmodel e o indice da clientdata PREDITA - o mesmo que
+	// HUD_TxferLocalOverrides() copia para gHUD.m_iViewModelIndex e que o renderer
+	// desenha. Ou seja: a busca por activity enxerga exatamente o modelo que esta
+	// na tela, mesmo quando o servidor acabou de trocar a arma.
+	if( m_playerState.viewmodel <= 0 )
+		return NULL;
+
+	if( !IEngineStudio.GetModelByIndex || !IEngineStudio.Mod_Extradata )
+		return NULL;	// renderer studio ainda nao inicializado
+
+	model_t *mod = IEngineStudio.GetModelByIndex( m_playerState.viewmodel );
+	if( !mod )
+		return NULL;
+
+	return IEngineStudio.Mod_Extradata( mod );
 }
 
 int CClientWeaponLayerImpl::GetPlayerWaterlevel()
