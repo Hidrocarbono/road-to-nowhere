@@ -512,7 +512,29 @@ void CMP5WeaponContext::WeaponIdle()
 		// 90 e o padrao; mandar 0 no fim evita deixar o FOV "preso" num valor
 		// explicito quando a arma for trocada ou largada.
 		m_pLayer->SetPlayerFOV( ( !m_bFOVLerpActive && m_fFOVTo >= 90.0f ) ? 0.0f : flFOV );
+
+#ifdef CLIENT_DLL
+		// Sobe o viewmodel na MESMA curva 's' do FOV, para as duas transicoes
+		// (zoom e levantar a arma) chegarem ao fim juntas - ver
+		// cl_ironsight_raise em r_view.cpp para o motivo (o tiro sempre sai da
+		// camera, entao isto e so cosmetico, para o alho de mira bater com o
+		// tracante). 's' interpola RUMO ao alvo atual: se estamos entrando na
+		// mira, sobe (0->1); se estamos saindo, desce (1->0) - dai o espelhar
+		// quando m_bInIronSight e falso.
+		extern float g_flIronSightRaise;
+		g_flIronSightRaise = m_bInIronSight ? s : ( 1.0f - s );
+#endif
 	}
+#ifdef CLIENT_DLL
+	else
+	{
+		// Sem lerp ativo (arma acabou de ser sacada, ou a transicao ja
+		// terminou ha frames): mantem o valor parado no estado atual, em vez
+		// de deixar o ultimo numero escrito por outra arma sobrando aqui.
+		extern float g_flIronSightRaise;
+		g_flIronSightRaise = m_bInIronSight ? 1.0f : 0.0f;
+	}
+#endif
 
 	if (m_flTimeWeaponIdle > m_pLayer->GetWeaponTimeBase(UsePredicting()))
 		return;

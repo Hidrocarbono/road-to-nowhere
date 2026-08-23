@@ -93,7 +93,41 @@ int CHudBloody::Draw( float flTime )
 	ScaleColors( r, g, b, a );
 	SPR_Set( m_iBloody, r, g, b );
 	gEngfuncs.pTriAPI->RenderMode( kRenderTransAdd );
-	gEngfuncs.pfnSPR_DrawGeneric( 0, 0, 0, NULL, 0, 0, ScreenWidth, ScreenHeight );
+
+	// ANALISE (nao era o canal alpha - conferi contra o codigo-fonte do
+	// engine, ref/gl/gl_backend.c e engine/client/dll_int/cl_game.c, do fork
+	// do usuario):
+	//   - GL_SetRenderMode(kRenderTransAdd) usa glBlendFunc(GL_SRC_ALPHA,
+	//     GL_ONE) com GL_ALPHA_TEST desligado - o alpha por pixel do v32 E
+	//     lido e usado normalmente, sem corte binario nem banda.
+	//   - o .spr convertido (tools/spr2_to_v32.py) fechou certo: 256x256,
+	//     header v32 valido, bordas com alpha ~0-144 e RGB vermelho, centro
+	//     (0,0,0,0) totalmente transparente - renderizei os pixels crus e
+	//     bate com uma vinheta de sangue normal, sem quadrado nem artefato.
+	//
+	// O bug real e mais simples: o sprite e QUADRADO (256x256) e estava
+	// sendo esticado direto para ScreenWidth x ScreenHeight SEM preservar
+	// proporcao. Numa tela 16:9 isso estica ~1.8x mais no eixo horizontal
+	// que no vertical - as manchas de sangue (originalmente redondas) saem
+	// achatadas/ovaladas e a vinheta perde a simetria, o que facilmente lia
+	// como "a textura ficou errada" (o proprio canal alpha, sendo o que
+	// desenha a forma das manchas, e o que mais evidencia essa distorcao).
+	//
+	// Fix: escala UNIFORME que cobre a tela toda (o maior dos dois fatores),
+	// centralizada - o excesso e cortado pelo viewport sozinho, sem precisar
+	// de recorte manual de UV.
+	int texW = SPR_Width( m_iBloody, 0 );
+	int texH = SPR_Height( m_iBloody, 0 );
+	if( texW <= 0 ) texW = 256;
+	if( texH <= 0 ) texH = 256;
+
+	float flScale = Q_max( (float)ScreenWidth / (float)texW, (float)ScreenHeight / (float)texH );
+	int iDrawW = (int)( texW * flScale + 0.5f );
+	int iDrawH = (int)( texH * flScale + 0.5f );
+	int iDrawX = ( ScreenWidth - iDrawW ) / 2;
+	int iDrawY = ( ScreenHeight - iDrawH ) / 2;
+
+	gEngfuncs.pfnSPR_DrawGeneric( 0, iDrawX, iDrawY, NULL, 0, 0, iDrawW, iDrawH );
 	gEngfuncs.pTriAPI->RenderMode( kRenderNormal );
 
 	// bordas vermelhas escuras quando a vida esta muito baixa (imersao)
