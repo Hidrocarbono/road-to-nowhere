@@ -45,13 +45,81 @@
 //    Linha 1 = título (cor $color), linhas seguintes = mensagem ($color2).
 //
 //  FONTE:
-//    O HUD usa a fonte bitmap global do engine (gfx/creditsfont.fnt).
-//    Fontes custom (imagem .tga + .chw) podem ser apontadas via con_charset.
+//    O HUD usa a fonte bitmap global do engine (gfx/creditsfont.fnt) POR
+//    PADRÃO - isso não muda a menos que você use $font (ver abaixo).
 //
 //  DICAS:
 //    - Mensagem com # na frente (ex: "#Doutor_Intro") busca aqui.
 //    - Texto sem # é exibido literalmente (com %player_name% e \n funcionando).
 //    - Para legenda estilo filme: $position -1 -0.1 (centralizada no fundo).
+// ============================================================================
+
+
+// ============================================================================
+//  FONTE E TAMANHO CUSTOM ($font / $fontsize) - RTN
+//  ----------------------------------------------------------------------------
+//  Por padrão toda mensagem usa a fonte fixa do engine (gfx/creditsfont.fnt),
+//  desenhada num tamanho ÚNICO que não dá pra mudar - o engine não tem
+//  parâmetro de tamanho nem de fonte na função que desenha cada letra
+//  (pfnDrawCharacter). Pra ter TAMANHO configurável e FONTE escolhível por
+//  mensagem (ex.: título de "episódio" grande, com fonte diferente), o RTN
+//  ganhou um sistema PRÓPRIO de fonte bitmap, independente do engine:
+//
+//    $font <nome_curto>   -> ativa a fonte custom pro bloco INTEIRO (título
+//                            E mensagem). <nome_curto> é o nome usado ao
+//                            gerar a fonte com utils/gen_titlefont.py -
+//                            ex.: "kirkwood" (fonte cplkirkwood.ttf, já
+//                            incluída no projeto - ver abaixo como gerar
+//                            outra fonte a partir de um .ttf).
+//    $fontsize <px>       -> tamanho da fonte custom NA TELA, em pixels de
+//                            altura de linha. SÓ TEM EFEITO junto com $font
+//                            no mesmo bloco - não existe como aumentar a
+//                            fonte padrão do engine, então $fontsize sozinho
+//                            (sem $font) é ignorado. Sem $fontsize, mas COM
+//                            $font, usa o tamanho "natural" da fonte (o
+//                            tamanho em que o atlas foi gerado - 128px).
+//
+//  NÃO SÃO PERSISTENTES: assim como $position/$color/$effect/etc., $font e
+//  $fontsize valem só pro bloco em que aparecem. Se a próxima mensagem não
+//  repetir $font, ela volta a usar a fonte padrão do engine automaticamente -
+//  não precisa "desligar" nada.
+//
+//  COMO GERAR UMA FONTE NOVA A PARTIR DE UM .ttf:
+//    pip install Pillow      (uma vez só)
+//    python3 utils/gen_titlefont.py minhafonte.ttf nome_curto
+//  Isso cria:
+//    game_dir/sprites/fonts/nome_curto.spr   (atlas com as letras, imagem)
+//    game_dir/fonts/nome_curto.rtnfont       (métricas - onde cada letra
+//                                              está no atlas e quanto espaço
+//                                              ela ocupa)
+//  Depois é só usar "$font nome_curto" em qualquer bloco deste arquivo.
+//
+//  IMPLEMENTAÇÃO (pra quem for mexer): client/hud_titlefont.h/.cpp carregam
+//  o atlas (.spr) e as métricas (.rtnfont), e um parser próprio (bem mais
+//  simples que o do engine) lê ESTE ARQUIVO de novo só pra achar as linhas
+//  $font/$fontsize de cada bloco - porque client_textmessage_t (a struct que
+//  o engine preenche com o resto dos dados de cada mensagem) é uma struct
+//  fixa do engine, sem campo de fonte nem tamanho, e não dá pra estender.
+//  O desenho de cada letra usa DrawSpriteAsPoly (client/render/tri.cpp),
+//  recortando o glifo certo do atlas e desenhando do tamanho pedido - sem
+//  isso, client/message.cpp usa TextMessageDrawChar como sempre (fonte do
+//  engine, comportamento 100% igual ao de antes desta feature).
+//
+//  Exemplo (título de episódio, fonte grande):
+//    $position -1 -1
+//    $effect 0
+//    $color 255 255 255
+//    $color2 200 200 200
+//    $fadein 1.0
+//    $fadeout 1.0
+//    $holdtime 4
+//    $font kirkwood
+//    $fontsize 96
+//    Episodio_01
+//    {
+//    CAPITULO UM
+//    A Estrada Sem Volta
+//    }
 // ============================================================================
 
 
@@ -108,6 +176,26 @@ Aviso_Estrada
 {
 ATENCAO
 A estrada nao tem volta.
+}
+
+// ============================================================================
+//  EXEMPLO 4 - Título de "episódio" com fonte custom ($font)
+//  Uso no mapa: env_message com message = "#Episodio_01" - ver a documentação
+//  de $font/$fontsize logo no início deste arquivo.
+// ============================================================================
+$position -1 -1
+$effect 0
+$color 255 255 255
+$color2 200 200 200
+$fadein 1.0
+$fadeout 1.0
+$holdtime 4
+$font kirkwood
+$fontsize 96
+Episodio_01
+{
+CAPITULO UM
+A Estrada Sem Volta
 }
 
 // ============================================================================

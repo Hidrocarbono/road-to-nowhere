@@ -20,6 +20,7 @@ list(APPEND CLDLL_SOURCES
 	"hud_msg.cpp"
 	"hud_rtn_items.cpp"
 	"hud_bloody.cpp"
+	"hud_titlefont.cpp"
 	"hud_status.cpp"
 	"hud_weaponbox.cpp"
 	"hud_interact.cpp"

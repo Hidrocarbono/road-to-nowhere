@@ -21,6 +21,7 @@
 #include "hud.h"
 #include "utils.h"
 #include "parsemsg.h"
+#include "hud_titlefont.h"	// RTN: $font/$fontsize custom do titles.txt
 #include <mathlib.h>
 
 DECLARE_MESSAGE( m_Message, HudText )
@@ -55,9 +56,12 @@ void CHudMessage::Reset( void )
 {
  	memset( m_pMessages, 0, sizeof( m_pMessages ));
 	memset( m_startTime, 0, sizeof( m_startTime ));
-	
+
 	m_gameTitleTime = 0;
 	m_pGameTitle = NULL;
+
+	m_pCustomFont = NULL;
+	m_flCustomFontScale = 1.0f;
 }
 
 float CHudMessage::FadeBlend( float fadein, float fadeout, float hold, float localTime )
@@ -206,8 +210,18 @@ void CHudMessage::MessageScanNextChar( void )
 
 	if( m_parms.pMessage->effect == 1 && m_parms.charTime != 0 )
 	{
-		if( m_parms.x >= 0 && m_parms.y >= 0 && (m_parms.x + gHUD.m_scrinfo.charWidths[m_parms.text]) <= ScreenWidth )
-			TextMessageDrawChar( m_parms.x, m_parms.y, m_parms.text, m_parms.pMessage->r2, m_parms.pMessage->g2, m_parms.pMessage->b2 );
+		// RTN: mesma logica, so troca o glifo desenhado se a mensagem tem
+		// $font custom (ver comentario grande em MessageDrawScan)
+		int charW = m_pCustomFont ? RTN_TitleFont_CharWidth( m_pCustomFont, m_parms.text, m_flCustomFontScale )
+					   : gHUD.m_scrinfo.charWidths[m_parms.text];
+
+		if( m_parms.x >= 0 && m_parms.y >= 0 && (m_parms.x + charW) <= ScreenWidth )
+		{
+			if( m_pCustomFont )
+				RTN_TitleFont_DrawChar( m_pCustomFont, m_parms.x, m_parms.y, m_parms.text, m_flCustomFontScale, m_parms.pMessage->r2, m_parms.pMessage->g2, m_parms.pMessage->b2, 255 );
+			else
+				TextMessageDrawChar( m_parms.x, m_parms.y, m_parms.text, m_parms.pMessage->r2, m_parms.pMessage->g2, m_parms.pMessage->b2 );
+		}
 	}
 }
 
@@ -273,6 +287,33 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 	RTN_Utf8ToCp1252( szPlayerNameBuf );
 	pText = szPlayerNameBuf;
 
+	// RTN: $font/$fontsize do titles.txt - troca a fonte SO desta mensagem,
+	// pelo nome do bloco (pMessage->pName, preenchido pelo proprio engine ao
+	// achar o bloco em titles.txt). Sem "$font" no bloco -> m_pCustomFont
+	// fica NULL e todo o resto da funcao se comporta exatamente como antes
+	// (fonte fixa do engine, TextMessageDrawChar). Ver client/hud_titlefont.h.
+	m_pCustomFont = NULL;
+	m_flCustomFontScale = 1.0f;
+	{
+		char szFontName[32];
+		int iFontSize = 0;
+		if( pMessage->pName && RTN_GetTitleFontOverride( pMessage->pName, szFontName, sizeof( szFontName ), &iFontSize ))
+		{
+			CRTNTitleFont *pFont = RTN_GetTitleFont( szFontName );
+			if( pFont )
+			{
+				m_pCustomFont = pFont;
+				// sem $fontsize -> usa o tamanho de bake como "tamanho natural" (escala 1:1, sem perda de nitidez)
+				int iSize = ( iFontSize > 0 ) ? iFontSize : pFont->iBakeSize;
+				m_flCustomFontScale = (float)iSize / (float)pFont->iBakeSize;
+			}
+			else
+			{
+				gEngfuncs.Con_Printf( "RTN titlefont: '%s' ($font em '%s') nao carregou - usando fonte padrao\n", szFontName, pMessage->pName );
+			}
+		}
+	}
+
 	// Count lines
 	m_parms.lines = 1;
 	m_parms.time = time;
@@ -291,13 +332,13 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 			width = 0;
 		}
 		else
-			width += gHUD.m_scrinfo.charWidths[*pText];
+			width += m_pCustomFont ? RTN_TitleFont_CharWidth( m_pCustomFont, *pText, m_flCustomFontScale ) : gHUD.m_scrinfo.charWidths[*pText];
 		pText++;
 		length++;
 	}
 
 	m_parms.length = length;
-	m_parms.totalHeight = (m_parms.lines * gHUD.m_scrinfo.iCharHeight);
+	m_parms.totalHeight = ( m_parms.lines * ( m_pCustomFont ? RTN_TitleFont_LineHeight( m_pCustomFont, m_flCustomFontScale ) : gHUD.m_scrinfo.iCharHeight ));
 
 
 	m_parms.y = YPosition( pMessage->y, m_parms.totalHeight );
@@ -323,7 +364,7 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 		{
 			byte c = *pText;
 			line[m_parms.lineLength] = c;
-			m_parms.width += gHUD.m_scrinfo.charWidths[c];
+			m_parms.width += m_pCustomFont ? RTN_TitleFont_CharWidth( m_pCustomFont, c, m_flCustomFontScale ) : gHUD.m_scrinfo.charWidths[c];
 			m_parms.lineLength++;
 			pText++;
 		}
@@ -336,14 +377,20 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 		for( j = 0; j < m_parms.lineLength; j++ )
 		{
 			m_parms.text = line[j];
-			int next = m_parms.x + gHUD.m_scrinfo.charWidths[ m_parms.text ];
+			int charW = m_pCustomFont ? RTN_TitleFont_CharWidth( m_pCustomFont, m_parms.text, m_flCustomFontScale ) : gHUD.m_scrinfo.charWidths[ m_parms.text ];
+			int next = m_parms.x + charW;
 			MessageScanNextChar();
-			
+
 			if( m_parms.x >= 0 && m_parms.y >= 0 && next <= ScreenWidth )
-				TextMessageDrawChar( m_parms.x, m_parms.y, m_parms.text, m_parms.r, m_parms.g, m_parms.b );
+			{
+				if( m_pCustomFont )
+					RTN_TitleFont_DrawChar( m_pCustomFont, m_parms.x, m_parms.y, m_parms.text, m_flCustomFontScale, m_parms.r, m_parms.g, m_parms.b, 255 );
+				else
+					TextMessageDrawChar( m_parms.x, m_parms.y, m_parms.text, m_parms.r, m_parms.g, m_parms.b );
+			}
 			m_parms.x = next;
 		}
- 		m_parms.y += gHUD.m_scrinfo.iCharHeight;
+ 		m_parms.y += m_pCustomFont ? RTN_TitleFont_LineHeight( m_pCustomFont, m_flCustomFontScale ) : gHUD.m_scrinfo.iCharHeight;
 	}
 }
 
