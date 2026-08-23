@@ -1,7 +1,3 @@
-Here is the fully translated version with the updated title.
-
----
-
 PrimeXT - Road to Nowhere <img align="right" width="128" height="128" src="https://github.com/Hidrocarbono/xash3d-fwgs/raw/master/game_launch/icon-xash-material.png" alt="Xash3D FWGS icon" />
 
 https://github.com/Hidrocarbono/xash3d-fwgs/actions/workflows/c-cpp.yml/badge.svg https://img.shields.io/discord/355697768582610945?logo=Discord&label=International%20Discord%20chat https://img.shields.io/badge/Telegram_chat-gray?logo=Telegram
