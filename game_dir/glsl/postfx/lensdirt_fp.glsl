@@ -13,7 +13,7 @@ Copyright (C) 2026 Hermes e Hidrocarboneto (Road to Nowhere mod)
 uniform sampler2D	u_ScreenMap;
 uniform sampler2D	u_DirtMap;
 uniform float		u_DirtScale;
-uniform vec2		u_DirtParams;		// x = limiar de brilho, y = modo debug
+uniform vec3		u_DirtParams;		// x = limiar de brilho, y = modo debug, z = aspecto (largura/altura) da textura de sujeira
 uniform vec2		u_ScreenSizeInv;
 
 varying vec2		var_TexCoord;
@@ -84,11 +84,23 @@ void main( void )
 {
 	vec3 screen = texture2D( u_ScreenMap, var_TexCoord ).rgb;
 
-	// A textura e quadrada; sem correcao os bokehs saem ovais numa tela 16:9.
-	// Corrige comprimindo o eixo X (usa a faixa central da textura) em vez de
-	// esticar, que faria a UV sair de 0..1 e borrar nas bordas pelo TF_CLAMP.
-	float aspect = u_ScreenSizeInv.y / u_ScreenSizeInv.x;
-	vec2 dirtUV = vec2(( var_TexCoord.x - 0.5 ) / max( aspect, 1.0 ) + 0.5, var_TexCoord.y );
+	// Correcao de aspecto RELATIVA a textura de verdade, nao mais assumindo
+	// quadrada. A textura gerada por utils/gen_lensdirt.py e 512x512
+	// (quadrada, precisa da correcao cheia); uma textura de referencia real
+	// de ReShade costuma vir no tamanho da propria tela de quem a capturou
+	// (ex: 1920x1080, ja widescreen). Aplicar a MESMA compressao de eixo X
+	// nos dois casos recortava justamente as bordas da textura widescreen -
+	// onde a sujeira de lente se concentra (efeito vinheta) - deixando so
+	// uma faixa central pobre, que carregava (aparecia no modo debug, que
+	// ignora a mascara) mas raramente tinha brilho suficiente pra passar do
+	// limiar no jogo normal.
+	//
+	// aspectCorrection = quanto a tela e MAIS larga que a textura, em
+	// proporcao. Se a textura ja e tao larga quanto a tela (ou mais), o
+	// max(...,1.0) zera a correcao - mapeamento 1:1, sem recorte.
+	float screenAspect = u_ScreenSizeInv.y / u_ScreenSizeInv.x;
+	float aspectCorrection = max( screenAspect / max( u_DirtParams.z, 0.0001 ), 1.0 );
+	vec2 dirtUV = vec2(( var_TexCoord.x - 0.5 ) / aspectCorrection + 0.5, var_TexCoord.y );
 	vec3 dirt = texture2D( u_DirtMap, dirtUV ).rgb;
 
 	// Modo debug (gl_lensdirt_debug 1): mostra a sujeira em cima da cena sem

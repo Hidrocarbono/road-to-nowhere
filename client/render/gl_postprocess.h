@@ -26,6 +26,12 @@ public:
 
 	TextureHandle	target_rgb[2];
 	TextureHandle	m_dirtTexture;	// RTN F10: textura de sujeira (lensdirt.tga)
+	// RTN: proporcao largura/altura REAL do lensdirt.tga, lida do proprio
+	// cabecalho do arquivo em InitLensDirt() - nao dá pra assumir textura
+	// quadrada (a de referencia do usuario e 1920x1080, a gerada por script
+	// e 512x512). O shader usa isto para so corrigir aspecto quando a
+	// textura realmente PRECISA - ver o comentario em lensdirt_fp.glsl.
+	float	m_dirtAspect;
 	float	blurFactor[2];
 	bool	m_bUseTarget;
 	CPostFxParameters fxParameters;

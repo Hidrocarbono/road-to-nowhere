@@ -13,6 +13,7 @@
 #include "gl_cvars.h"
 #include "gl_debug.h"
 #include "postfx_controller.h"
+#include "filesystem_utils.h"	// fs::File - le so o cabecalho do lensdirt.tga (dimensoes reais)
 
 static CBasePostEffects	post;
 void V_RenderPostEffect(word hProgram);
@@ -123,6 +124,38 @@ void CBasePostEffects :: InitLensDirt( void )
 		m_dirtTexture = TextureHandle::Null();
 	}
 	m_dirtTexture = LOAD_TEXTURE( "textures/lensdirt.tga", NULL, 0, TF_CLAMP | TF_IMAGE | TF_HAS_ALPHA );
+
+	// Dimensoes REAIS do arquivo, lidas do proprio cabecalho TGA (18 bytes:
+	// ver spec em https://www.fileformat.info/format/tga/egff.htm, width em
+	// offset 12-13, height em 14-15, little-endian) em vez de assumir
+	// quadrada. LOAD_TEXTURE nao devolve largura/altura, entao a unica forma
+	// de saber e ler o arquivo por conta propria - o mesmo caminho que
+	// fs::FileExists ja usa em outros lugares deste mod.
+	//
+	// Por que importa: a textura GERADA por utils/gen_lensdirt.py e 512x512
+	// (quadrada), mas uma textura de referencia real de ReShade costuma vir
+	// no tamanho da tela de quem a capturou (ex: 1920x1080, ja widescreen).
+	// O shader so deve comprimir o eixo X quando a textura for MAIS quadrada
+	// que a tela - aplicar a mesma correcao numa textura ja widescreen
+	// recorta justamente as bordas, onde a sujeira de lente normalmente se
+	// concentra (efeito de vinheta) - a textura carregava (aparecia no
+	// modo debug, que ignora a mascara), mas a faixa central que sobrava
+	// apos o recorte errado raramente cruzava o limiar de brilho da
+	// mascara no jogo normal.
+	m_dirtAspect = 1.0f;	// fallback: sem correcao, textura tratada como ja larga o bastante
+	fs::File f;
+	if( f.Open( "textures/lensdirt.tga", "rb" ))
+	{
+		uint8_t header[18];
+		if( f.Read( header, sizeof( header )) == sizeof( header ))
+		{
+			int texW = header[12] | ( header[13] << 8 );
+			int texH = header[14] | ( header[15] << 8 );
+			if( texW > 0 && texH > 0 )
+				m_dirtAspect = (float)texW / (float)texH;
+		}
+		f.Close();
+	}
 }
 
 void CBasePostEffects :: RequestScreenColor( void )
@@ -617,8 +650,8 @@ void V_RenderPostEffect( word hProgram )
 		case UT_DIRTSCALE:		// RTN F10: lens dirt (intensidade)
 			u->SetValue( gl_lensdirt_scale->value );
 			break;
-		case UT_DIRTPARAMS:		// RTN F10: lens dirt (limiar, debug)
-			u->SetValue( gl_lensdirt_threshold->value, CVAR_TO_BOOL( gl_lensdirt_debug ) ? 1.0f : 0.0f );
+		case UT_DIRTPARAMS:		// RTN F10: lens dirt (limiar, debug, aspecto da textura)
+			u->SetValue( gl_lensdirt_threshold->value, CVAR_TO_BOOL( gl_lensdirt_debug ) ? 1.0f : 0.0f, post.m_dirtAspect );
 			break;
 		case UT_FILMGRAINSCALE:
 			u->SetValue(post.fxParameters.GetFilmGrainScale());
