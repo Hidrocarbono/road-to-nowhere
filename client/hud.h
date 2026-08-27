@@ -466,9 +466,14 @@ public:
 	int XPosition( float x, int width, int lineWidth );
 	int YPosition( float y, int height );
 
-	void MessageAdd( const char *pName, float time );
+	// RTN: iArg troca a primeira ocorrencia literal de "%d" no texto da
+	// mensagem pelo valor passado (ex.: quantidade de municao recebida no
+	// pickup - client/ammo.cpp::MsgFunc_AmmoPickup). Default 0 mantem o
+	// comportamento de sempre p/ quem nao usa (WeapPickup, etc.) - ver
+	// comentario grande em MessageDrawScan().
+	void MessageAdd( const char *pName, float time, int iArg = 0 );
 	void MessageAdd(client_textmessage_t * newMessage );
-	void MessageDrawScan( client_textmessage_t *pMessage, float time );
+	void MessageDrawScan( client_textmessage_t *pMessage, float time, int iArg );
 	void MessageScanStart( void );
 	void MessageScanNextChar( void );
 	void Reset( void );
@@ -476,6 +481,10 @@ public:
 private:
 	client_textmessage_t *m_pMessages[maxHUDMessages];
 	float m_startTime[maxHUDMessages];
+	// RTN: valor de "%d" p/ a mensagem no mesmo indice de m_pMessages - ver
+	// o comentario grande em MessageDrawScan() sobre por que isso e guardado
+	// por SLOT em vez de numa variavel global (como o g_ammoAdded do P2).
+	int m_iMessageArg[maxHUDMessages];
 	message_parms_t m_parms;
 	float m_gameTitleTime;
 	client_textmessage_t *m_pGameTitle;

@@ -511,20 +511,28 @@ int CHudAmmo::MsgFunc_AmmoX( const char *pszName, int iSize, void *pbuf )
 int CHudAmmo::MsgFunc_AmmoPickup( const char *pszName, int iSize, void *pbuf )
 {
 	BEGIN_READ( pszName, pbuf, iSize );
-	int iIndex = READ_BYTE();
+	int iIndex = READ_BYTE();	// so avanca o cursor de leitura - AddToHistory (unico uso) esta desligado abaixo
+	(void)iIndex;
 	int iCount = READ_BYTE();
 
-	// Add ammo to the history
-	gHR.AddToHistory( HISTSLOT_AMMO, iIndex, abs( iCount ));
+	// RTN: desligado de proposito (igual o Paranoia 2 fez em cl_dll/ammo.cpp)
+	// - a mensagem do titles.txt logo abaixo ja mostra o pickup de municao,
+	// com a quantidade real (%d). Com os dois ativos ao mesmo tempo, o
+	// jogador via a mensagem customizada E o numero padrao do sistema no
+	// canto inferior direito (gHR.DrawAmmoHistory, ainda chamado no Draw()
+	// mas sem nada pra desenhar - a lista so recebe item por AddToHistory).
+	// gHR.AddToHistory( HISTSLOT_AMMO, iIndex, abs( iCount ));
 
 	// RTN F10: pickup message do titles.txt ("!<nome>" - estilo P2 ammo.cpp)
-	// Nao mostra se nao achar a entrada no titles.txt (silencioso).
+	// Nao mostra se nao achar a entrada no titles.txt (silencioso). iCount
+	// vai como iArg - substitui um "%d" no texto da mensagem pela
+	// quantidade de verdade (ver client/message.cpp::MessageDrawScan).
 	const char *szAmmoName = READ_STRING();
 	if( szAmmoName && szAmmoName[0] )
 	{
 		char msgname[256];
 		Q_snprintf( msgname, sizeof( msgname ), "!%s", szAmmoName );
-		gHUD.m_Message.MessageAdd( msgname, gEngfuncs.GetClientTime( ));
+		gHUD.m_Message.MessageAdd( msgname, gEngfuncs.GetClientTime( ), abs( iCount ));
 	}
 
 	END_READ();

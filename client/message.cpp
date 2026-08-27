@@ -56,6 +56,7 @@ void CHudMessage::Reset( void )
 {
  	memset( m_pMessages, 0, sizeof( m_pMessages ));
 	memset( m_startTime, 0, sizeof( m_startTime ));
+	memset( m_iMessageArg, 0, sizeof( m_iMessageArg ));
 
 	m_gameTitleTime = 0;
 	m_pGameTitle = NULL;
@@ -265,7 +266,31 @@ void CHudMessage::MessageScanStart( void )
 	}
 }
 
-void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
+// RTN: troca a PRIMEIRA ocorrencia literal de "%d" em szText por iAmount em
+// decimal (in-place, dentro do proprio buffer). Sem "%d" no texto, e um
+// no-op - seguro chamar pra toda mensagem, nao so pickups. Ver o comentario
+// grande em MessageDrawScan() pra motivacao (por que nao e sprintf/printf).
+static void RTN_SubstitutePickupAmount( char *szText, size_t szTextSize, int iAmount )
+{
+	char *p = strstr( szText, "%d" );
+	if( !p )
+		return;
+
+	char szNum[16];
+	Q_snprintf( szNum, sizeof( szNum ), "%d", iAmount );
+
+	// copia o restante (depois do "%d") pra um buffer a parte ANTES de
+	// escrever por cima - p aponta pro meio de szText, escrever ali destroi
+	// o que vem depois antes de ter sido lido, se feito na ordem errada
+	char szRest[1024];
+	Q_strncpy( szRest, p + 2, sizeof( szRest ));
+
+	size_t prefixLen = (size_t)( p - szText );
+	size_t avail = ( szTextSize > prefixLen ) ? ( szTextSize - prefixLen ) : 0;
+	Q_snprintf( p, avail, "%s%s", szNum, szRest );
+}
+
+void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time, int iArg )
 {
 	int i, j, length, width;
 	const char *pText;
@@ -285,6 +310,22 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 	// UTF-8 se o user editar com Notepad/VS Code - antes virava "nÃ£o")
 	extern void RTN_Utf8ToCp1252( char *szText );
 	RTN_Utf8ToCp1252( szPlayerNameBuf );
+
+	// RTN: "%d" no texto do titles.txt vira iArg (ex.: quantidade recebida
+	// no pickup de municao - client/ammo.cpp::MsgFunc_AmmoPickup passa o
+	// iCount pro MessageAdd(nome, tempo, iArg), que guarda esse valor POR
+	// SLOT em m_iMessageArg[] - ver o comentario em MessageAdd(). Isso e
+	// diferente do g_ammoAdded do Paranoia 2 (cl_dll/vgui_pickup.h): la a
+	// substituicao e sincrona (dentro do proprio MsgFunc, via sprintf), aqui
+	// MessageDrawScan roda de novo TODO FRAME enquanto a mensagem esta na
+	// tela - uma global setada/zerada em volta do MessageAdd ja teria
+	// voltado a 0 no frame em que o texto e desenhado de verdade.
+	//
+	// Troca de SUBSTRING literal, nao sprintf/printf: rodar o texto inteiro
+	// do titles.txt como format string (o que o P2 faz) e um bug classico de
+	// format-string se sobrar um "%" solto em alguma fala - aqui um "%d" sem
+	// intencao nenhuma so fica intacto (nao ha outro %-token reconhecido).
+	RTN_SubstitutePickupAmount( szPlayerNameBuf, sizeof( szPlayerNameBuf ), iArg );
 	pText = szPlayerNameBuf;
 
 	// RTN: $font/$fontsize do titles.txt - troca a fonte SO desta mensagem,
@@ -476,7 +517,7 @@ int CHudMessage::Draw( float fTime )
 				// effect 0 is fade in/fade out
 				// effect 1 is flickery credits
 				// effect 2 is write out (training room)
-				MessageDrawScan( pMessage, messageTime );
+				MessageDrawScan( pMessage, messageTime, m_iMessageArg[i] );
 
 				drawn++;
 			}
@@ -497,7 +538,7 @@ int CHudMessage::Draw( float fTime )
 	return 1;
 }
 
-void CHudMessage::MessageAdd( const char *pName, float time )
+void CHudMessage::MessageAdd( const char *pName, float time, int iArg )
 {
 	client_textmessage_t *tempMessage;
 
@@ -550,6 +591,12 @@ void CHudMessage::MessageAdd( const char *pName, float time )
 
 			m_pMessages[i] = tempMessage;
 			m_startTime[i] = time;
+			// RTN: guardado POR SLOT (nao numa global tipo o g_ammoAdded do P2)
+			// - MessageDrawScan roda de novo a cada frame enquanto a mensagem
+			// esta na tela, entao uma global setada/zerada so durante este
+			// MessageAdd() ja teria voltado a 0 no frame em que o texto e
+			// realmente desenhado. Ver o comentario grande em MessageDrawScan().
+			m_iMessageArg[i] = iArg;
 
 			// RTN F10 fix: o gHUD so chama o Draw dos elementos com HUD_ACTIVE -
 			// o MsgFunc_HudText setava mas o MessageAdd (pickups) NAO -> as
@@ -608,6 +655,7 @@ void CHudMessage::MessageAdd( client_textmessage_t *newMessage )
 		{
 			m_pMessages[i] = newMessage;
 			m_startTime[i] = gHUD.m_flTime;
+			m_iMessageArg[i] = 0;	// RTN: sem "%d" nesse caminho (GAMETITLE etc.) - evita lixo de slot reciclado
 			return;
 		}
 	}

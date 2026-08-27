@@ -204,6 +204,15 @@ A Estrada Sem Volta
 //  e busca aqui. Sem a entrada, o fallback mostra o texto cru (feio) -
 //  entao crie uma entrada para cada tipo de municao do mod.
 //  Local: canto inferior-esquerdo, discreto (estilo Tarkov).
+//
+//  "%d" NO TEXTO -> QUANTIDADE RECEBIDA (Paranoia 2 style):
+//  O client troca a primeira ocorrencia de "%d" pela quantidade real de
+//  municao do pickup (client/ammo.cpp::MsgFunc_AmmoPickup passa o numero,
+//  client/message.cpp faz a troca). O contador PADRAO do sistema (numero
+//  generico no canto inferior direito) foi desligado de proposito pra nao
+//  duplicar a mensagem - essas entradas aqui sao a UNICA notificacao de
+//  pickup de municao agora. "%d" e opcional: sem ele, so mostra o texto
+//  fixo, igual antes.
 // ============================================================================
 $position 0.02 -0.12
 $effect 0
@@ -214,7 +223,7 @@ $fadeout 0.5
 $holdtime 3
 !9mm
 {
-Municao 9mm
++%d Municao 9mm
 }
 
 $position 0.02 -0.12
@@ -226,7 +235,7 @@ $fadeout 0.5
 $holdtime 3
 !buckshot
 {
-Municao de escopeta
++%d Municao de escopeta
 }
 
 $position 0.02 -0.12
@@ -238,7 +247,7 @@ $fadeout 0.5
 $holdtime 3
 !357
 {
-Municao .357
++%d Municao .357
 }
 
 $position 0.02 -0.12
@@ -250,7 +259,7 @@ $fadeout 0.5
 $holdtime 3
 !ARgrenades
 {
-Granadas
++%d Granadas
 }
 
 // ============================================================================
