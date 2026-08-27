@@ -134,11 +134,28 @@ $color2 255 255 255
 $fadein 0.3
 $fadeout 0.5
 $holdtime 4
+
 Doutor_Intro
 {
 Dr. Freeman:
 Bem-vindo a Black Mesa, %player_name%.
 Espero que goste do trabalho.
+}
+
+$holdtime 10
+random02
+{
+Desconhecido:
+Voce... voce nao devia ter vindo. Ninguem devia. Aqui a miseria gruda na pele,
+a morte assovia baixo nos ouvidos... e a traicao... a traicao vem ate dos
+seus. Agora e tarde demais pra voce. Tarde demais.
+}
+
+$holdtime 4
+doc_cadaver
+{
+%player_name%:
+Mais um que não voltou pra casa. 
 }
 
 
@@ -214,7 +231,8 @@ A Estrada Sem Volta
 //  pickup de municao agora. "%d" e opcional: sem ele, so mostra o texto
 //  fixo, igual antes.
 // ============================================================================
-$position 0.02 -0.12
+
+$position 0.02 -1
 $effect 0
 $color 255 200 0
 $color2 255 255 255
@@ -226,41 +244,51 @@ $holdtime 3
 +%d Municao 9mm
 }
 
-$position 0.02 -0.12
-$effect 0
-$color 255 200 0
-$color2 255 255 255
-$fadein 0.1
-$fadeout 0.5
-$holdtime 3
+
 !buckshot
 {
 +%d Municao de escopeta
 }
 
-$position 0.02 -0.12
-$effect 0
-$color 255 200 0
-$color2 255 255 255
-$fadein 0.1
-$fadeout 0.5
-$holdtime 3
+
 !357
 {
 +%d Municao .357
 }
 
-$position 0.02 -0.12
-$effect 0
-$color 255 200 0
-$color2 255 255 255
-$fadein 0.1
-$fadeout 0.5
-$holdtime 3
+
 !ARgrenades
 {
 +%d Granadas
 }
+
+!m16
+{
++%d munição 5.56
+}
+
+
+!ak
+{
++%d munição 5.56
+}
+
+!weapon_parafal
+{
+Item adicionado - Parafal
+}
+
+!weapon_m4a3
+{
+Item adicionado - M4A3
+}
+
+
+dica_casas
+{
+Procure nas casas e escombros itens importantes
+}
+
 
 // ============================================================================
 //  DOCUMENTOS (RTN F10 - trigger_textwindow)
