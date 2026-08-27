@@ -42,10 +42,43 @@ int WeaponsResource :: HasAmmo( WEAPON *p )
 		|| CountAmmo( p->iAmmo2Type ) || ( p->iFlags & WEAPON_FLAGS_SELECTONEMPTY );
 }
 
+// RTN: resolve o caminho de um sprite de HUD listado num manifesto
+// sprites/<classname>.txt, aceitando as DUAS convencoes que aparecem nesses
+// arquivos neste projeto:
+//
+//   1) nome nu, ex. "weapon_mp5"          (convencao classica do engine -
+//      pfnSPR_GetList/hud.txt: quem monta "sprites/" + ".spr" e o CHAMADOR)
+//   2) caminho completo, ex. "sprites/weapon_parafal.spr" (convencao do
+//      Paranoia 2 - cl_dll/ammo.cpp chama SPR_Load(p->szSprite) direto, sem
+//      prefixar/sufixar nada, entao o manifesto do P2 ja traz o caminho todo)
+//
+// Ports de arma do P2 trazem o manifesto de sprite (scripts/weapons/<nome>.txt
+// la, sprites/<nome>.txt aqui) no formato (2) - sem essa deteccao, colar o
+// arquivo como veio de la resultava em "sprites/" + "sprites/x.spr" + ".spr"
+// (caminho inexistente, SPR_Load falha em silencio, icone da arma some do
+// menu de selecao). Com isso, um manifesto de sprite portado do P2 funciona
+// SEM EDICAO NENHUMA - so o script de logica (bucket/clip/etc, formato
+// diferente, ver weaponscript.cpp) precisa ser adaptado.
+static void RTN_ResolveWeaponSpritePath( char *out, size_t outSize, const char *szSprite )
+{
+	bool hasDir = strchr( szSprite, '/' ) != NULL;
+	size_t len = strlen( szSprite );
+	bool hasExt = ( len > 4 && !Q_strnicmp( szSprite + len - 4, ".spr", 4 ));
+
+	if( hasDir && hasExt )
+		Q_snprintf( out, outSize, "%s", szSprite );		// P2-style: ja e o caminho completo
+	else if( hasDir )
+		Q_snprintf( out, outSize, "%s.spr", szSprite );
+	else if( hasExt )
+		Q_snprintf( out, outSize, "sprites/%s", szSprite );
+	else
+		Q_snprintf( out, outSize, "sprites/%s.spr", szSprite );	// convencao classica (nome nu)
+}
+
 void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 {
 	int i, iRes;
-	
+
 	if( ScreenWidth < 640 )
 		iRes = 320;
 	else iRes = 640;
@@ -73,7 +106,7 @@ void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 	p = GetSpriteList( pList, "crosshair", iRes, i );
 	if( p )
 	{
-		Q_snprintf( sz, sizeof( sz ), "sprites/%s.spr", p->szSprite );
+		RTN_ResolveWeaponSpritePath( sz, sizeof( sz ), p->szSprite );
 		pWeapon->hCrosshair = SPR_Load( sz );
 		pWeapon->rcCrosshair = p->rc;
 	}
@@ -82,7 +115,7 @@ void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 	p = GetSpriteList( pList, "autoaim", iRes, i );
 	if( p )
 	{
-		Q_snprintf( sz, sizeof( sz ), "sprites/%s.spr", p->szSprite );
+		RTN_ResolveWeaponSpritePath( sz, sizeof( sz ), p->szSprite );
 		pWeapon->hAutoaim = SPR_Load( sz );
 		pWeapon->rcAutoaim = p->rc;
 	}
@@ -91,7 +124,7 @@ void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 	p = GetSpriteList( pList, "zoom", iRes, i );
 	if( p )
 	{
-		Q_snprintf( sz, sizeof( sz ), "sprites/%s.spr", p->szSprite );
+		RTN_ResolveWeaponSpritePath( sz, sizeof( sz ), p->szSprite );
 		pWeapon->hZoomedCrosshair = SPR_Load( sz );
 		pWeapon->rcZoomedCrosshair = p->rc;
 	}
@@ -104,7 +137,7 @@ void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 	p = GetSpriteList( pList, "zoom_autoaim", iRes, i );
 	if( p )
 	{
-		Q_snprintf( sz, sizeof( sz ), "sprites/%s.spr", p->szSprite );
+		RTN_ResolveWeaponSpritePath( sz, sizeof( sz ), p->szSprite );
 		pWeapon->hZoomedAutoaim = SPR_Load( sz );
 		pWeapon->rcZoomedAutoaim = p->rc;
 	}
@@ -117,7 +150,7 @@ void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 	p = GetSpriteList( pList, "weapon", iRes, i );
 	if( p )
 	{
-		Q_snprintf( sz, sizeof( sz ), "sprites/%s.spr", p->szSprite );
+		RTN_ResolveWeaponSpritePath( sz, sizeof( sz ), p->szSprite );
 		pWeapon->hInactive = SPR_Load( sz );
 		pWeapon->rcInactive = p->rc;
 		gHR.iHistoryGap = Q_max( gHR.iHistoryGap, pWeapon->rcActive.bottom - pWeapon->rcActive.top );
@@ -132,7 +165,7 @@ void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 	p = GetSpriteList( pList, "weapon_s", iRes, i );
 	if( p )
 	{
-		Q_snprintf( sz, sizeof( sz ), "sprites/%s.spr", p->szSprite );
+		RTN_ResolveWeaponSpritePath( sz, sizeof( sz ), p->szSprite );
 		pWeapon->hActive = SPR_Load( sz );
 		pWeapon->rcActive = p->rc;
 	}
@@ -145,7 +178,7 @@ void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 	p = GetSpriteList( pList, "ammo", iRes, i );
 	if( p )
 	{
-		Q_snprintf( sz, sizeof( sz ), "sprites/%s.spr", p->szSprite );
+		RTN_ResolveWeaponSpritePath( sz, sizeof( sz ), p->szSprite );
 		pWeapon->hAmmo = SPR_Load( sz );
 		pWeapon->rcAmmo = p->rc;
 		gHR.iHistoryGap = Q_max( gHR.iHistoryGap, pWeapon->rcActive.bottom - pWeapon->rcActive.top );
@@ -155,7 +188,7 @@ void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 	p = GetSpriteList( pList, "ammo2", iRes, i );
 	if( p )
 	{
-		Q_snprintf( sz, sizeof( sz ), "sprites/%s.spr", p->szSprite );
+		RTN_ResolveWeaponSpritePath( sz, sizeof( sz ), p->szSprite );
 		pWeapon->hAmmo2 = SPR_Load( sz );
 		pWeapon->rcAmmo2 = p->rc;
 		gHR.iHistoryGap = Q_max( gHR.iHistoryGap, pWeapon->rcActive.bottom - pWeapon->rcActive.top );

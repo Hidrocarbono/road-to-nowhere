@@ -579,6 +579,33 @@ int WeaponScript_ParseWeapon( const char *filename )
 		size_t sl = strlen( w.scriptname );
 		if( sl > 4 && !WS_stricmp( w.scriptname + sl - 4, ".txt" ) )
 			w.scriptname[sl-4] = 0;
+
+		// Paranoia 2 slot count mismatch, part 2: the clamp above (bucket/
+		// bucket_position -> 0..MAX_WEAPON_SLOTS-1) stops us writing outside
+		// rgSlots[6][6], but it does NOT stop two DIFFERENT weapons from
+		// clamping down onto the exact same (bucket, bucket_position) cell -
+		// P2 had 10 slots x 10 positions to spread weapons across, we have 5x5,
+		// so the odds of a collision climb with every weapon script ported.
+		// WeaponsResource::PickupWeapon() (client/ammohistory.h) just does
+		// rgSlots[slot][pos] = wp with no collision check, so today the loser
+		// silently vanishes from the HUD - the exact kind of bug that took a
+		// while to track down for the Parafal (see the $font/etc. commit
+		// history). This only catches script-vs-script collisions (classic
+		// hardcoded C++ weapons - crowbar, mp5, etc. - aren't in gWeaponInfo,
+		// there's no central table to check them against here), but that's
+		// exactly the case that grows as more P2 weapons get ported.
+		for( int i = 0; i < gNumWeaponInfo; i++ )
+		{
+			if( gWeaponInfo[i].bucket == w.bucket && gWeaponInfo[i].bucket_position == w.bucket_position )
+			{
+				WS_Printf( "WeaponScript: AVISO - [%s] e [%s] cairam no mesmo slot %d/pos %d apos o clamp - "
+					"uma das duas vai sumir do HUD de selecao (a ultima carregada sobrescreve). "
+					"Escolha bucket/bucket_position diferentes num dos dois scripts.\n",
+					w.scriptname, gWeaponInfo[i].scriptname, w.bucket, w.bucket_position );
+				break;
+			}
+		}
+
 		gWeaponInfo[gNumWeaponInfo++] = w;
 		// Report what was actually READ from the file, not just that the file was
 		// found. These two are very different failures that look identical from
