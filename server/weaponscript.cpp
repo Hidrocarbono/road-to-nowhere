@@ -582,27 +582,56 @@ int WeaponScript_ParseWeapon( const char *filename )
 
 		// Paranoia 2 slot count mismatch, part 2: the clamp above (bucket/
 		// bucket_position -> 0..MAX_WEAPON_SLOTS-1) stops us writing outside
-		// rgSlots[6][6], but it does NOT stop two DIFFERENT weapons from
-		// clamping down onto the exact same (bucket, bucket_position) cell -
-		// P2 had 10 slots x 10 positions to spread weapons across, we have 5x5,
-		// so the odds of a collision climb with every weapon script ported.
-		// WeaponsResource::PickupWeapon() (client/ammohistory.h) just does
-		// rgSlots[slot][pos] = wp with no collision check, so today the loser
-		// silently vanishes from the HUD - the exact kind of bug that took a
-		// while to track down for the Parafal (see the $font/etc. commit
-		// history). This only catches script-vs-script collisions (classic
-		// hardcoded C++ weapons - crowbar, mp5, etc. - aren't in gWeaponInfo,
-		// there's no central table to check them against here), but that's
-		// exactly the case that grows as more P2 weapons get ported.
+		// rgSlots[6][6], but by itself it makes every weapon whose P2 position
+		// falls off our 5-wide HUD land on the exact SAME clamped value
+		// (MAX_WEAPON_SLOTS-1) - so the SECOND such weapon silently evicts the
+		// first from the HUD grid (WeaponsResource::PickupWeapon(), client/
+		// ammohistory.h, just does rgSlots[slot][pos] = wp, no collision
+		// check). That's exactly what happened testing the Parafal alongside
+		// a second rifle: it vanished from the selection menu the instant the
+		// other weapon was picked up.
+		//
+		// Instead of clamping blind, look for a FREE position in the target
+		// bucket first (0..MAX_WEAPON_SLOTS-1, starting from the clamped/
+		// parsed value) - only warn (loud, not silent) if the bucket is
+		// genuinely full (all MAX_WEAPON_SLOTS positions already taken by
+		// other script weapons - a real capacity limit, not something to
+		// route around). This only resolves script-vs-script collisions
+		// (classic hardcoded C++ weapons - crowbar, mp5, etc. - aren't in
+		// gWeaponInfo, there's no central table to check them against here).
+		bool taken[MAX_WEAPON_SLOTS];
+		memset( taken, 0, sizeof( taken ) );
 		for( int i = 0; i < gNumWeaponInfo; i++ )
 		{
-			if( gWeaponInfo[i].bucket == w.bucket && gWeaponInfo[i].bucket_position == w.bucket_position )
+			if( gWeaponInfo[i].bucket == w.bucket && gWeaponInfo[i].bucket_position >= 0
+				&& gWeaponInfo[i].bucket_position < MAX_WEAPON_SLOTS )
+				taken[gWeaponInfo[i].bucket_position] = true;
+		}
+
+		if( taken[w.bucket_position] )
+		{
+			int original = w.bucket_position;
+			int freePos = -1;
+			for( int pos = 0; pos < MAX_WEAPON_SLOTS; pos++ )
 			{
-				WS_Printf( "WeaponScript: AVISO - [%s] e [%s] cairam no mesmo slot %d/pos %d apos o clamp - "
-					"uma das duas vai sumir do HUD de selecao (a ultima carregada sobrescreve). "
-					"Escolha bucket/bucket_position diferentes num dos dois scripts.\n",
-					w.scriptname, gWeaponInfo[i].scriptname, w.bucket, w.bucket_position );
-				break;
+				if( !taken[pos] )
+				{
+					freePos = pos;
+					break;
+				}
+			}
+
+			if( freePos >= 0 )
+			{
+				w.bucket_position = freePos;
+				WS_Printf( "WeaponScript: [%s] colidiria com outra arma no slot %d/pos %d - realocada pra pos %d\n",
+					w.scriptname, w.bucket, original, freePos );
+			}
+			else
+			{
+				WS_Printf( "WeaponScript: AVISO - [%s] nao coube em nenhuma posicao livre do slot %d (todas as %d ja "
+					"estao ocupadas por outras armas de script) - vai ficar sem selecao no HUD ate liberar espaco.\n",
+					w.scriptname, w.bucket, MAX_WEAPON_SLOTS );
 			}
 		}
 
