@@ -43,6 +43,8 @@ BEGIN_DATADESC( CHGrunt )
 	DEFINE_FIELD( m_cClipSize, FIELD_INTEGER ),
 	DEFINE_FIELD( m_voicePitch, FIELD_INTEGER ),
 	DEFINE_FIELD( m_iSentence, FIELD_INTEGER ),
+	DEFINE_FIELD( m_hFlashlight, FIELD_EHANDLE ),
+//	DEFINE_FIELD( m_iLastFireCheckResult, FIELD_INTEGER ), // não salva, é recalculado a cada CheckRangeAttack1
 END_DATADESC()
 
 extern DLL_GLOBAL int		g_iSkillLevel;
@@ -189,11 +191,59 @@ void CHGrunt :: JustSpoke( void )
 }
 
 //=========================================================
+// InitFlashlight - cria a lanterna (env_dynlight) anexada ao
+// cano da arma, se o mapper marcou SF_GRUNT_HAS_FLASHLIGHT.
+//=========================================================
+void CHGrunt :: InitFlashlight( void )
+{
+	if ( !FBitSet( pev->spawnflags, SF_GRUNT_HAS_FLASHLIGHT ) )
+		return;
+
+	Vector vecGunPos, vecGunAngles;
+	GetAttachment( 0, vecGunPos, vecGunAngles );
+
+	CBaseEntity *pLight = CBaseEntity::Create( "env_dynlight", vecGunPos, vecGunAngles, edict() );
+	if ( !pLight )
+		return;
+
+	pLight->pev->rendercolor = Vector( 255, 235, 190 ); // tom quente de lanterna
+	pLight->pev->renderamt = 200; // brilho (a entidade já divide isso por 8 internamente)
+
+	if ( !FBitSet( pev->spawnflags, SF_GRUNT_FLASHLIGHT_ON ) )
+		pLight->Use( this, this, USE_OFF, 0 ); // nasce desligada
+
+	m_hFlashlight = pLight;
+}
+
+//=========================================================
+// Killed - garante que a lanterna não fica órfã boiando no
+// ar quando o grunt morre.
+//=========================================================
+void CHGrunt :: Killed( entvars_t *pevAttacker, int iGib )
+{
+	if ( m_hFlashlight != NULL )
+	{
+		UTIL_Remove( m_hFlashlight );
+		m_hFlashlight = NULL;
+	}
+
+	BaseClass::Killed( pevAttacker, iGib );
+}
+
+//=========================================================
 // PrescheduleThink - this function runs after conditions
 // are collected and before scheduling code is run.
 //=========================================================
 void CHGrunt :: PrescheduleThink ( void )
 {
+	if ( m_hFlashlight != NULL )
+	{
+		Vector vecGunPos, vecGunAngles;
+		GetAttachment( 0, vecGunPos, vecGunAngles );
+		UTIL_SetOrigin( m_hFlashlight, vecGunPos );
+		m_hFlashlight->pev->angles = vecGunAngles;
+	}
+
 	if ( InSquad() && m_hEnemy != NULL )
 	{
 		if ( HasConditions ( bits_COND_SEE_ENEMY ) )
@@ -283,14 +333,44 @@ BOOL CHGrunt :: CheckRangeAttack1 ( float flDot, float flDist )
 			return FALSE;
 		}
 
-		Vector vecSrc = GetGunPosition();
+		// testa a posição de tiro agachado e em pé, pra saber de qual delas
+		// (ou das duas) dá pra atirar sem a bala bater em cobertura no meio
+		// do caminho — assim o grunt sabe se pode ficar atrás de uma
+		// cobertura baixa (barril, caixa) em vez de sempre atirar em pé.
+		BOOL savedStanding = m_fStanding;
 
-		// verify that a bullet fired from the gun will hit the enemy before the world.
+		m_fStanding = FALSE;
+		Vector vecSrc = GetGunPosition();
 		UTIL_TraceLine( vecSrc, m_hEnemy->BodyTarget(vecSrc), ignore_monsters, ignore_glass, ENT(pev), &tr);
 
-		if ( tr.flFraction == 1.0 )
+		if ( tr.flFraction == 1.0 && !pev->gaitsequence ) // não dá pra atirar agachado enquanto anda
 		{
+			// dá pra atirar agachado; agora testa se em pé também dá
+			m_fStanding = TRUE;
+			vecSrc = GetGunPosition();
+			UTIL_TraceLine( vecSrc, m_hEnemy->BodyTarget(vecSrc), ignore_monsters, ignore_glass, ENT(pev), &tr);
+			m_fStanding = savedStanding;
+
+			m_iLastFireCheckResult = ( tr.flFraction == 1.0 ) ? 0 : 1; // 0-atira como quiser, 1-só agachado
+
 			return TRUE;
+		}
+		else
+		{
+			// não dá pra atirar agachado (cobertura ou inimigo atrás de algo baixo, ou o grunt está andando)
+			m_fStanding = TRUE;
+			vecSrc = GetGunPosition();
+			UTIL_TraceLine( vecSrc, m_hEnemy->BodyTarget(vecSrc), ignore_monsters, ignore_glass, ENT(pev), &tr);
+			m_fStanding = savedStanding;
+
+			if ( tr.flFraction == 1.0 )
+			{
+				m_iLastFireCheckResult = 2; // só em pé
+				return TRUE;
+			}
+
+			m_iLastFireCheckResult = 0;
+			return FALSE; // não dá pra atirar de jeito nenhum
 		}
 	}
 
@@ -606,8 +686,22 @@ Vector CHGrunt :: GetGunPosition( )
 	}
 	else
 	{
-		return GetAbsOrigin() + Vector( 0, 0, 48 );
+		// mais baixo que o padrão antigo (48) de propósito: impede o grunt de
+		// atirar por cima de cobertura baixa (barril, caixa) enquanto agachado
+		return GetAbsOrigin() + Vector( 0, 0, 40 );
 	}
+}
+
+//=========================================================
+// EyePosition - overridden porque a altura dos olhos muda
+// quando o grunt está agachado atrás de cobertura (ACT_TWITCH)
+//=========================================================
+Vector CHGrunt :: EyePosition( void )
+{
+	if ( m_Activity == ACT_TWITCH )
+		return GetAbsOrigin() + Vector( 0, 0, 36 );
+
+	return BaseClass::EyePosition();
 }
 
 //=========================================================
@@ -874,6 +968,7 @@ void CHGrunt :: Spawn()
 	CTalkMonster::g_talkWaitTime = 0;
 
 	MonsterInit();
+	InitFlashlight();
 }
 
 //=========================================================
@@ -1671,6 +1766,32 @@ Schedule_t	slGruntRepelLand[] =
 	},
 };
 
+//=========================================================
+// abaixar e esperar atrás da cobertura atual (barril, caixa, etc.)
+//=========================================================
+Task_t	tlGruntDuckAndCoverWait[] =
+{
+	{ TASK_STOP_MOVING,				(float)0			},
+	{ TASK_GRUNT_SPEAK_SENTENCE,		(float)0			},
+	{ TASK_SET_ACTIVITY,				(float)ACT_TWITCH	},
+	{ TASK_WAIT,						(float)3			},
+};
+
+Schedule_t	slGruntDuckAndCoverWait[] =
+{
+	{
+		tlGruntDuckAndCoverWait,
+		ARRAYSIZE ( tlGruntDuckAndCoverWait ),
+		bits_COND_NEW_ENEMY			|
+		bits_COND_ENEMY_DEAD		|
+		bits_COND_HEAVY_DAMAGE		|
+		bits_COND_CROUCH_NOT_SAFE	| // termina se abaixar aqui parar de ser seguro
+		bits_COND_HEAR_SOUND,
+
+		bits_SOUND_DANGER,
+		"DuckAndCover!"
+	},
+};
 
 DEFINE_CUSTOM_SCHEDULES( CHGrunt )
 {
@@ -1695,6 +1816,7 @@ DEFINE_CUSTOM_SCHEDULES( CHGrunt )
 	slGruntRepel,
 	slGruntRepelAttack,
 	slGruntRepelLand,
+	slGruntDuckAndCoverWait,
 };
 
 IMPLEMENT_CUSTOM_SCHEDULES( CHGrunt, CSquadMonster );
@@ -1931,15 +2053,27 @@ Schedule_t *CHGrunt :: GetSchedule( void )
 // no ammo
 			else if ( HasConditions ( bits_COND_NO_AMMO_LOADED ) )
 			{
-				//!!!KELLY - this individual just realized he's out of bullet ammo. 
-				// He's going to try to find cover to run to and reload, but rarely, if 
-				// none is available, he'll drop and reload in the open here. 
+				// se dá pra ficar seguro só abaixando aqui mesmo, recarrega
+				// no lugar em vez de correr atrás de outra cobertura
+				if ( (m_afCapability & bits_CAP_CROUCH_COVER) && !HasConditions(bits_COND_CROUCH_NOT_SAFE) )
+					return GetScheduleOfType ( SCHED_RELOAD );
+
+				//!!!KELLY - this individual just realized he's out of bullet ammo.
+				// He's going to try to find cover to run to and reload, but rarely, if
+				// none is available, he'll drop and reload in the open here.
 				return GetScheduleOfType ( SCHED_GRUNT_COVER_AND_RELOAD );
 			}
-			
+
 // damaged just a little
 			else if ( HasConditions( bits_COND_LIGHT_DAMAGE ) )
 			{
+				// 90% de chance de só abaixar onde já está, se a cobertura atual for segura
+				if ( (m_afCapability & bits_CAP_CROUCH_COVER) && !HasConditions(bits_COND_CROUCH_NOT_SAFE) && m_hEnemy != NULL )
+				{
+					if ( RANDOM_LONG(0,99) <= 90 )
+						return GetScheduleOfType( SCHED_GRUNT_DUCK_COVER_WAIT );
+				}
+
 				// if hurt:
 				// 90% chance of taking cover
 				// 10% chance of flinch.
@@ -2120,10 +2254,24 @@ Schedule_t* CHGrunt :: GetScheduleOfType ( int Type )
 		break;
 	case SCHED_RANGE_ATTACK1:
 		{
-			// randomly stand or crouch
-			if (RANDOM_LONG(0,9) == 0)
-				m_fStanding = RANDOM_LONG(0,1);
-		 
+			// segue a recomendação do último CheckRangeAttack1: se ele achou
+			// que só dá pra atirar agachado (ou só em pé), respeita isso;
+			// só sorteia livremente quando as duas posições servem (0)
+			switch ( m_iLastFireCheckResult )
+			{
+			case 1: // só agachado
+				m_fStanding = FALSE;
+				break;
+			case 2: // só em pé
+				m_fStanding = TRUE;
+				break;
+			case 0: // qualquer uma serve
+			default:
+				if (RANDOM_LONG(0,9) == 0)
+					m_fStanding = RANDOM_LONG(0,1);
+				break;
+			}
+
 			if (m_fStanding)
 				return &slGruntRangeAttack1B[ 0 ];
 			else
@@ -2148,6 +2296,10 @@ Schedule_t* CHGrunt :: GetScheduleOfType ( int Type )
 	case SCHED_GRUNT_COVER_AND_RELOAD:
 		{
 			return &slGruntHideReload[ 0 ];
+		}
+	case SCHED_GRUNT_DUCK_COVER_WAIT:
+		{
+			return &slGruntDuckAndCoverWait[ 0 ];
 		}
 	case SCHED_GRUNT_FOUND_ENEMY:
 		{

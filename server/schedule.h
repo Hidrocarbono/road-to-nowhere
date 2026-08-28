@@ -267,6 +267,7 @@ struct WayPoint_t
 #define bits_COND_CAN_RANGE_ATTACK2		( 1 << 12)
 #define bits_COND_CAN_MELEE_ATTACK2		( 1 << 13)
 // #define bits_COND_CAN_RANGE_ATTACK3		( 1 << 14)
+#define bits_COND_CROUCH_NOT_SAFE			( 1 << 14) // monstro não fica seguro nem se abaixando atrás da cobertura atual
 #define bits_COND_PROVOKED				( 1 << 15)
 #define bits_COND_NEW_ENEMY				( 1 << 16)
 #define bits_COND_HEAR_SOUND			( 1 << 17) // there is an interesting sound

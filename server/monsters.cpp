@@ -1056,7 +1056,8 @@ int CBaseMonster :: CheckEnemy ( CBaseEntity *pEnemy )
 
 	iUpdatedLKP = FALSE;
 	ClearConditions ( bits_COND_ENEMY_FACING_ME );
-	
+	ClearConditions ( bits_COND_CROUCH_NOT_SAFE );
+
 	if ( !FVisible( pEnemy ) )
 	{
 		ASSERT(!HasConditions(bits_COND_SEE_ENEMY));
@@ -1070,6 +1071,25 @@ int CBaseMonster :: CheckEnemy ( CBaseEntity *pEnemy )
 		SetConditions ( bits_COND_ENEMY_DEAD );
 		ClearConditions( bits_COND_SEE_ENEMY | bits_COND_ENEMY_OCCLUDED );
 		return FALSE;
+	}
+
+	// checa se abaixar aqui mesmo já resolve, ou se o inimigo ainda enxerga
+	// a altura de cobertura (pra decidir entre recarregar/esperar aqui ou
+	// procurar cobertura de verdade)
+	if ( m_afCapability & bits_CAP_CROUCH_COVER )
+	{
+		CBaseMonster *pEnemyMonster = pEnemy->MyMonsterPointer();
+		if ( pEnemyMonster )
+		{
+			TraceResult tr;
+			Vector vecEnemyGun = pEnemyMonster->GetGunPosition();
+			Vector vecMeCrouched = GetAbsOrigin() + Vector( 0, 0, 36 );
+			UTIL_TraceLine( vecEnemyGun, vecMeCrouched, ignore_monsters, ignore_glass, ENT(pev), &tr );
+			if ( tr.flFraction == 1.0 ) // ainda dá pra me acertar mesmo abaixado, não é seguro
+			{
+				SetConditions( bits_COND_CROUCH_NOT_SAFE );
+			}
+		}
 	}
 
 	Vector vecEnemyPos = pEnemy->GetAbsOrigin();
@@ -2080,6 +2100,14 @@ void CBaseMonster :: StartMonster ( void )
 	if ( LookupActivity ( ACT_MELEE_ATTACK2 ) != ACTIVITY_NOT_AVAILABLE )
 	{
 		m_afCapability |= bits_CAP_MELEE_ATTACK2;
+	}
+
+	// ACT_TWITCH é a animação de abaixar/se encolher atrás de cobertura baixa.
+	// se o modelo tem essa sequência, o monstro ganha a capacidade automaticamente
+	// (monster_leech usa ACT_TWITCH pra outra coisa, então fica de fora)
+	if ( LookupActivity ( ACT_TWITCH ) != ACTIVITY_NOT_AVAILABLE && !FClassnameIs( pev, "monster_leech" ) )
+	{
+		m_afCapability |= bits_CAP_CROUCH_COVER;
 	}
 
 	// Raise monster off the floor one unit, then drop to floor

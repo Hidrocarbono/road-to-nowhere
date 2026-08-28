@@ -73,6 +73,10 @@ int g_fGruntQuestion;				// true if an idle grunt asked a question. Cleared when
 #define GUN_SHOTGUN					1
 #define GUN_NONE					2
 
+// lanterna (env_dynlight anexado ao cano da arma)
+#define SF_GRUNT_HAS_FLASHLIGHT		4096	// este grunt tem lanterna
+#define SF_GRUNT_FLASHLIGHT_ON		8192	// começa ligada (só importa se HAS_FLASHLIGHT também estiver marcado)
+
 //=========================================================
 // Monster's Anim Events Go Here
 //=========================================================
@@ -103,6 +107,7 @@ enum
 	SCHED_GRUNT_WAIT_FACE_ENEMY,
 	SCHED_GRUNT_TAKECOVER_FAILED,// special schedule type that forces analysis of conditions and picks the best possible schedule to recover from this type of failure.
 	SCHED_GRUNT_ELOF_FAIL,
+	SCHED_GRUNT_DUCK_COVER_WAIT, // abaixar e esperar alguns segundos atrás da cobertura atual
 };
 
 //=========================================================
@@ -147,17 +152,24 @@ public:
 	void PrescheduleThink ( void );
 	void GibMonster( void );
 	void SpeakSentence( void );
-	
+
 	CBaseEntity *Kick( void );
 	Schedule_t *GetSchedule( void );
 	Schedule_t *GetScheduleOfType ( int Type );
 	void TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType);
 	int TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType );
+	void Killed( entvars_t *pevAttacker, int iGib );
 
 	int IRelationship ( CBaseEntity *pTarget );
 
 	BOOL FOkToSpeak( void );
 	void JustSpoke( void );
+
+	// altura dos olhos muda quando o grunt está agachado atrás de cobertura (ACT_TWITCH)
+	Vector EyePosition( void );
+
+	// lanterna anexada ao cano da arma (attachment 0), ver SF_GRUNT_HAS_FLASHLIGHT
+	void InitFlashlight( void );
 
 	CUSTOM_SCHEDULES;
 	DECLARE_DATADESC();
@@ -180,6 +192,10 @@ public:
 	int	m_iBrassShell;
 	int	m_iShotgunShell;
 	int	m_iSentence;
+
+	int	m_iLastFireCheckResult; // resultado do último CheckRangeAttack1: 0-atira de qualquer jeito, 1-só agachado, 2-só em pé
+
+	EHANDLE	m_hFlashlight; // env_dynlight anexado à arma, ver InitFlashlight()
 
 	static const char *pGruntSentences[];
 };
