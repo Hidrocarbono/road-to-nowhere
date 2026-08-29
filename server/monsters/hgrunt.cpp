@@ -379,8 +379,36 @@ BOOL CHGrunt :: CheckRangeAttack1 ( float flDot, float flDist )
 }
 
 //=========================================================
+// IsGrenadeSpotSafe - varre algumas direções ao redor da posição
+// atual do grunt procurando obstáculo perto o bastante pra granada
+// quicar de volta nele mesmo (caixa, muro baixo, canto fechado).
+// Só importa pra granada de mão (ShootTimed, tem ricochete de verdade)
+// — a lançada pelo M203 (ShootContact) explode no primeiro toque, não
+// quica, então não precisa dessa checagem.
+//=========================================================
+BOOL CHGrunt :: IsGrenadeSpotSafe ( void )
+{
+	Vector vecOrigin = GetGunPosition();
+	TraceResult tr;
+
+	const int NUM_DIRECTIONS = 8;
+	for ( int i = 0; i < NUM_DIRECTIONS; i++ )
+	{
+		float flYaw = DEG2RAD( i * ( 360.0f / NUM_DIRECTIONS ) );
+		Vector vecDir( cos( flYaw ), sin( flYaw ), 0 );
+
+		UTIL_TraceLine( vecOrigin, vecOrigin + vecDir * GRUNT_GRENADE_MIN_CLEARANCE, ignore_monsters, ignore_glass, ENT(pev), &tr );
+
+		if ( tr.flFraction < 1.0 )
+			return FALSE; // tem parede/caixa/obstáculo perto demais
+	}
+
+	return TRUE;
+}
+
+//=========================================================
 // CheckRangeAttack2 - this checks the Grunt's grenade
-// attack. 
+// attack.
 //=========================================================
 BOOL CHGrunt :: CheckRangeAttack2 ( float flDot, float flDist )
 {
@@ -388,7 +416,17 @@ BOOL CHGrunt :: CheckRangeAttack2 ( float flDot, float flDist )
 	{
 		return FALSE;
 	}
-	
+
+	// granada de mão quica; só arrisca se não tiver nada perto o bastante
+	// pra ela voltar. O M203 (contact, sem munição de mão) fica de fora
+	// dessa checagem porque explode na hora que toca em algo.
+	if ( HasWeapon( HGRUNT_HANDGRENADE ) && !IsGrenadeSpotSafe() )
+	{
+		m_flNextGrenadeCheck = gpGlobals->time + 1;
+		m_fThrowGrenade = FALSE;
+		return m_fThrowGrenade;
+	}
+
 	// if the grunt isn't moving, it's ok to check.
 	if ( m_flGroundSpeed != 0 )
 	{

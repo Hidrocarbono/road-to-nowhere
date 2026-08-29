@@ -58,6 +58,11 @@ int g_fGruntQuestion;				// true if an idle grunt asked a question. Cleared when
 #define HGRUNT_MINIMUM_HEADSHOT_DAMAGE	15 // must do at least this much damage in one shot to head to score a headshot kill
 #define HGRUNT_SENTENCE_VOLUME			(float)0.35 // volume of grunt sentences
 
+// raio mínimo livre de obstáculo ao redor do grunt pra ele se arriscar a
+// jogar granada — evita granada quicando de volta nele mesmo em espaço
+// apertado (atrás de caixa, cantos fechados etc.), ver IsGrenadeSpotSafe()
+#define GRUNT_GRENADE_MIN_CLEARANCE	180
+
 #define HGRUNT_9MMAR			1
 #define HGRUNT_HANDGRENADE			2
 #define HGRUNT_GRENADELAUNCHER		3
@@ -140,6 +145,7 @@ public:
 	BOOL CheckMeleeAttack1 ( float flDot, float flDist );
 	BOOL CheckRangeAttack1 ( float flDot, float flDist );
 	BOOL CheckRangeAttack2 ( float flDot, float flDist );
+	BOOL IsGrenadeSpotSafe ( void ); // false se tem obstáculo perto o bastante da granada quicar de volta
 	void CheckAmmo ( void );
 	void SetActivity ( Activity NewActivity );
 	void StartTask ( Task_t *pTask );
