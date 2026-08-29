@@ -249,6 +249,11 @@ public:
 		virtual BOOL FValidateCover ( const Vector &vecCoverLocation ) { return TRUE; };
 		virtual float CoverRadius( void ) { return 784; } // Default cover radius
 
+		// procura o node mais PERTO DE MIM (não do inimigo) que já tenha linha de tiro
+		// livre até o inimigo — pra não precisar sair andando pro meio do campo aberto
+		// só porque a rota "direto pro inimigo" não passa perto de nenhum ponto coberto.
+		virtual BOOL FindLineOfFire ( Vector vecEnemy, Vector vecViewOffset, float flMinDist, float flMaxDist );
+
 		virtual BOOL FCanCheckAttacks ( void );
 		virtual void CheckAmmo( void ) { return; };
 		virtual int IgnoreConditions ( void );

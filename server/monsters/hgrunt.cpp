@@ -1235,19 +1235,26 @@ Schedule_t	slGruntVictoryDance[] =
 //=========================================================
 // Establish line of fire - move to a position that allows
 // the grunt to attack.
+//
+// Primeiro tenta achar o node mais perto de si mesmo que já resolve
+// (TASK_FIND_LINE_OF_FIRE_FROM_ENEMY) — evita atravessar campo aberto
+// quando existe uma posição de tiro bem mais próxima. Só se isso falhar
+// (sem node graph nesse mapa, ou nenhum node serve) cai pro
+// SCHED_GRUNT_ELOF_BLIND, que é o comportamento antigo (anda reto na
+// direção do inimigo até ter mira, sem noção nenhuma de exposição).
 //=========================================================
-Task_t tlGruntEstablishLineOfFire[] = 
+Task_t tlGruntEstablishLineOfFire[] =
 {
-	{ TASK_SET_FAIL_SCHEDULE,	(float)SCHED_GRUNT_ELOF_FAIL	},
-	{ TASK_GET_PATH_TO_ENEMY,	(float)0						},
-	{ TASK_GRUNT_SPEAK_SENTENCE,(float)0						},
-	{ TASK_RUN_PATH,			(float)0						},
-	{ TASK_WAIT_FOR_MOVEMENT,	(float)0						},
+	{ TASK_SET_FAIL_SCHEDULE,				(float)SCHED_GRUNT_ELOF_BLIND	},
+	{ TASK_FIND_LINE_OF_FIRE_FROM_ENEMY,	(float)0						},
+	{ TASK_GRUNT_SPEAK_SENTENCE,			(float)0						},
+	{ TASK_RUN_PATH,						(float)0						},
+	{ TASK_WAIT_FOR_MOVEMENT,				(float)0						},
 };
 
 Schedule_t slGruntEstablishLineOfFire[] =
 {
-	{ 
+	{
 		tlGruntEstablishLineOfFire,
 		ARRAYSIZE ( tlGruntEstablishLineOfFire ),
 		bits_COND_NEW_ENEMY			|
@@ -1257,9 +1264,41 @@ Schedule_t slGruntEstablishLineOfFire[] =
 		bits_COND_CAN_RANGE_ATTACK2	|
 		bits_COND_CAN_MELEE_ATTACK2	|
 		bits_COND_HEAR_SOUND,
-		
+
 		bits_SOUND_DANGER,
 		"GruntEstablishLineOfFire"
+	},
+};
+
+//=========================================================
+// versão antiga do establish line of fire: anda reto pro inimigo até
+// enxergar, sem noção de cobertura. Só entra como fallback quando o
+// FindLineOfFire (acima) não acha nenhum node que sirva.
+//=========================================================
+Task_t tlGruntEstablishLineOfFireBlind[] =
+{
+	{ TASK_SET_FAIL_SCHEDULE,	(float)SCHED_GRUNT_ELOF_FAIL	},
+	{ TASK_GET_PATH_TO_ENEMY,	(float)0						},
+	{ TASK_GRUNT_SPEAK_SENTENCE,(float)0						},
+	{ TASK_RUN_PATH,			(float)0						},
+	{ TASK_WAIT_FOR_MOVEMENT,	(float)0						},
+};
+
+Schedule_t slGruntEstablishLineOfFireBlind[] =
+{
+	{
+		tlGruntEstablishLineOfFireBlind,
+		ARRAYSIZE ( tlGruntEstablishLineOfFireBlind ),
+		bits_COND_NEW_ENEMY			|
+		bits_COND_ENEMY_DEAD		|
+		bits_COND_CAN_RANGE_ATTACK1	|
+		bits_COND_CAN_MELEE_ATTACK1	|
+		bits_COND_CAN_RANGE_ATTACK2	|
+		bits_COND_CAN_MELEE_ATTACK2	|
+		bits_COND_HEAR_SOUND,
+
+		bits_SOUND_DANGER,
+		"GruntEstablishLineOfFireBlind"
 	},
 };
 
@@ -1818,6 +1857,7 @@ DEFINE_CUSTOM_SCHEDULES( CHGrunt )
 	slGruntRepelAttack,
 	slGruntRepelLand,
 	slGruntDuckAndCoverWait,
+	slGruntEstablishLineOfFireBlind,
 };
 
 IMPLEMENT_CUSTOM_SCHEDULES( CHGrunt, CSquadMonster );
@@ -2251,6 +2291,11 @@ Schedule_t* CHGrunt :: GetScheduleOfType ( int Type )
 	case SCHED_GRUNT_ESTABLISH_LINE_OF_FIRE:
 		{
 			return &slGruntEstablishLineOfFire[ 0 ];
+		}
+		break;
+	case SCHED_GRUNT_ELOF_BLIND:
+		{
+			return &slGruntEstablishLineOfFireBlind[ 0 ];
 		}
 		break;
 	case SCHED_RANGE_ATTACK1:

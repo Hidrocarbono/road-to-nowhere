@@ -108,6 +108,7 @@ enum
 	SCHED_GRUNT_TAKECOVER_FAILED,// special schedule type that forces analysis of conditions and picks the best possible schedule to recover from this type of failure.
 	SCHED_GRUNT_ELOF_FAIL,
 	SCHED_GRUNT_DUCK_COVER_WAIT, // abaixar e esperar alguns segundos atrás da cobertura atual
+	SCHED_GRUNT_ELOF_BLIND, // fallback do establish-line-of-fire quando não acha node com linha de tiro por perto
 };
 
 //=========================================================

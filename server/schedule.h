@@ -157,6 +157,7 @@ typedef enum
 		TASK_FIND_NEAR_NODE_COVER_FROM_ENEMY,// data for this one is the MAXIMUM acceptable distance to the cover.
 		TASK_FIND_FAR_NODE_COVER_FROM_ENEMY,// data for this one is there MINIMUM aceptable distance to the cover.
 		TASK_FIND_COVER_FROM_ORIGIN,
+		TASK_FIND_LINE_OF_FIRE_FROM_ENEMY,// acha o node mais perto de mim (não do inimigo) que já tem linha de tiro livre
 		TASK_EAT,
 		TASK_DIE,
 		TASK_WAIT_FOR_SCRIPT,
