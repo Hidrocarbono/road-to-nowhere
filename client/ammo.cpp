@@ -24,11 +24,15 @@
 #include "ammohistory.h"
 #include "filesystem_utils.h"	// fs::FileExists - icone da barra de selecao e opcional (RTN)
 #include "const.h"		// kRenderTransTexture (DrawSpriteAsPoly)
+#include "triangleapi.h"	// RTN: pTriAPI->RenderMode/Color4f - fallback .tga do icone (mesma tripa do hud_weaponbox.cpp)
+#include "gl_local.h"		// RTN: GL_Bind - idem
 
 // DrawSpriteAsPoly (client/render/tri.cpp) nao tem header proprio - mesmo
 // padrao ja usado em hud_titlefont.cpp/hud_textwindow.cpp pras funcoes
 // "irmas" dela.
 extern void DrawSpriteAsPoly( SpriteHandle hspr, wrect_t *rect, wrect_t *screenpos, int mode, float r, float g, float b, float a );
+// definido em client/hud_textwindow.cpp - desenha uma textura crua em 2D (RTN: fallback .tga do icone)
+extern void OrthoQuad( int x1, int y1, int x2, int y2 );
 
 int		g_weaponselect = 0;
 WEAPON		*gpActiveSel;	// NULL means off, 1 means just the menu bar, otherwise
@@ -53,14 +57,12 @@ int WeaponsResource :: HasAmmo( WEAPON *p )
 #define WEAPON_SELECT_BAR_VISIBLE	7	// quantos itens cabem desenhados por vez (impar - sobra um no centro)
 #define WEAPON_SELECT_BAR_TIMEOUT	2.0f	// segundos parada ate a barra sumir sozinha
 
-// RTN: garante que WEAPON::hBoxSpr esteja carregado (uma vez so por arma).
-// Mesma convencao do CHudWeaponBox (client/hud_weaponbox.cpp) - so que aqui
-// SO o .spr e suportado (sem fallback .tga): o .tga usa um caminho de
-// desenho totalmente diferente (textura crua via TriAPI, um quad por vez),
-// que nao compensa duplicar pra uma fileira inteira de icones. Sem o .spr,
-// o item aparece so com o nome/municao em texto - a barra continua usavel,
-// so sem o icone (o mesmo espirito de "icone e opcional" que o WeaponBox ja
-// segue).
+// RTN: garante que o icone da arma esteja carregado (uma vez so por arma).
+// Mesma convencao/ordem do CHudWeaponBox (client/hud_weaponbox.cpp):
+//   1) sprites/rtn_hud_ammo_<classname>.spr
+//   2) gfx/vgui/ammo/640_<classname>.tga (textura crua, sem conversao pra .spr)
+// Sem os dois, o item aparece so com nome/municao em texto - a barra
+// continua usavel, so sem icone.
 static void RTN_EnsureBoxIcon( WEAPON *p )
 {
 	if( !p || p->bBoxIconLoaded )
@@ -71,6 +73,74 @@ static void RTN_EnsureBoxIcon( WEAPON *p )
 	char szSpr[64];
 	Q_snprintf( szSpr, sizeof( szSpr ), "sprites/rtn_hud_ammo_%s.spr", p->szName );
 	p->hBoxSpr = fs::FileExists( szSpr ) ? LoadSprite( szSpr ) : 0;
+
+	if( !p->hBoxSpr )
+	{
+		char szTga[96];
+		Q_snprintf( szTga, sizeof( szTga ), "gfx/vgui/ammo/640_%s.tga", p->szName );
+		if( fs::FileExists( szTga ))
+			p->hBoxTex = LOAD_TEXTURE( szTga, NULL, 0, TF_CLAMP | TF_IMAGE | TF_HAS_ALPHA );
+	}
+}
+
+// RTN: proporcao largura/altura do icone carregado (spr OU tga - o que tiver),
+// pra nao esticar/achatar o desenho. false se nao ha icone nenhum ainda.
+static bool RTN_GetBoxIconAspect( WEAPON *p, float *outAspect )
+{
+	if( p->hBoxSpr )
+	{
+		int sw = SPR_Width( p->hBoxSpr, 0 );
+		int sh = SPR_Height( p->hBoxSpr, 0 );
+		if( sw > 0 && sh > 0 )
+		{
+			*outAspect = (float)sw / (float)sh;
+			return true;
+		}
+	}
+	else if( p->hBoxTex.Initialized() )
+	{
+		uint32_t tw = p->hBoxTex.GetWidth();
+		uint32_t th = p->hBoxTex.GetHeight();
+		if( tw > 0 && th > 0 )
+		{
+			*outAspect = (float)tw / (float)th;
+			return true;
+		}
+	}
+	return false;
+}
+
+// RTN: desenha o icone da arma no retangulo (x,y,x+w,y+h) - .spr via
+// DrawSpriteAsPoly (client/render/tri.cpp), .tga via textura crua (mesma
+// tripa TriAPI+OrthoQuad que o CHudWeaponBox ja usa, client/hud_weaponbox.cpp).
+// Retorna false se a arma nao tem icone nenhum ainda (chamador cai pro
+// texto do nome).
+static bool RTN_DrawBoxIcon( WEAPON *p, int x, int y, int w, int h, float r, float g, float b, float alpha )
+{
+	if( p->hBoxSpr )
+	{
+		int sw = SPR_Width( p->hBoxSpr, 0 );
+		int sh = SPR_Height( p->hBoxSpr, 0 );
+		if( sw <= 0 ) sw = 1;
+		if( sh <= 0 ) sh = 1;
+
+		wrect_t srcRect = { 0, 0, sw, sh };
+		wrect_t dstRect = { x, y, x + w, y + h };
+		DrawSpriteAsPoly( p->hBoxSpr, &srcRect, &dstRect, kRenderTransTexture, r, g, b, alpha );
+		return true;
+	}
+
+	if( p->hBoxTex.Initialized() )
+	{
+		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
+		gEngfuncs.pTriAPI->Color4f( r, g, b, alpha );
+		GL_Bind( 0, p->hBoxTex );
+		OrthoQuad( x, y, x + w, y + h );
+		gEngfuncs.pTriAPI->RenderMode( kRenderNormal );
+		return true;
+	}
+
+	return false;
 }
 
 // RTN: monta a lista de armas que o jogador tem AGORA, ordenada por peso
@@ -766,6 +836,7 @@ int CHudAmmo::MsgFunc_WeaponList( const char *pszName, int iSize, void *pbuf )
 	// pra arma que o jogador pode nunca pegar).
 	Weapon.iWeight = READ_BYTE();
 	Weapon.hBoxSpr = 0;
+	Weapon.hBoxTex = TextureHandle::Null();
 	Weapon.bBoxIconLoaded = false;
 
 	gWR.AddWeapon( &Weapon );
@@ -1212,13 +1283,9 @@ int CHudAmmo::DrawWeaponSelectBar( float flTime )
 		int w = ( isSelected ? NOMINAL_W * 3 / 2 : NOMINAL_W );
 
 		RTN_EnsureBoxIcon( p );
-		if( p->hBoxSpr )
-		{
-			int sw = SPR_Width( p->hBoxSpr, 0 );
-			int sh = SPR_Height( p->hBoxSpr, 0 );
-			if( sw > 0 && sh > 0 )
-				w = (int)( h * ( (float)sw / (float)sh ) + 0.5f );
-		}
+		float aspect;
+		if( RTN_GetBoxIconAspect( p, &aspect ))
+			w = (int)( h * aspect + 0.5f );
 
 		int k = i - start;
 		itemW[k] = w;
@@ -1245,23 +1312,11 @@ int CHudAmmo::DrawWeaponSelectBar( float flTime )
 		if( !gWR.HasAmmo( p ))
 			UnpackRGB( r, g, b, RGB_REDISH );	// sem municao - mesmo aviso visual do menu antigo
 
-		if( p->hBoxSpr )
+		if( !RTN_DrawBoxIcon( p, x, y, w, h, r / 255.0f, g / 255.0f, b / 255.0f, alpha / 255.0f ))
 		{
-			int sw = SPR_Width( p->hBoxSpr, 0 );
-			int sh = SPR_Height( p->hBoxSpr, 0 );
-			if( sw <= 0 ) sw = 1;
-			if( sh <= 0 ) sh = 1;
-
-			wrect_t srcRect = { 0, 0, sw, sh };
-			wrect_t dstRect = { x, y, x + w, y + h };
-			DrawSpriteAsPoly( p->hBoxSpr, &srcRect, &dstRect, kRenderTransTexture,
-				r / 255.0f, g / 255.0f, b / 255.0f, alpha / 255.0f );
-		}
-		else
-		{
-			// sem icone (.spr rtn_hud_ammo_<classname> ausente) - so um
-			// retangulo discreto com o nome, pra barra continuar legivel
-			// mesmo pra arma que ainda nao ganhou icone proprio.
+			// sem icone (nem .spr nem .tga) - so um retangulo discreto com
+			// o nome, pra barra continuar legivel mesmo pra arma que ainda
+			// nao ganhou icone proprio.
 			FillRGBA( x, y, w, h, 40, 40, 40, alpha / 2 );
 
 			char szShort[24];

@@ -16,6 +16,8 @@
 #ifndef AMMO_H
 #define AMMO_H
 
+#include "texture_handle.h"	// RTN: TextureHandle - fallback .tga do icone da barra de selecao
+
 #define MAX_WEAPON_NAME		128
 #define MAX_WEAPON_SLOTS		5 // hud item selection slots
 #define WEAPON_FLAGS_SELECTONEMPTY	1
@@ -39,12 +41,13 @@ struct WEAPON
 	int	iCount;		// # of itesm in plist
 
 	// RTN: icone da barra de selecao nova (DrawWeaponSelectBar, client/ammo.cpp),
-	// convencao do CHudWeaponBox (sprites/rtn_hud_ammo_<classname>.spr) - so
-	// .spr, sem fallback .tga (o .tga usa um caminho de desenho totalmente
-	// diferente - textura crua via TriAPI - que nao vale a pena duplicar pra
-	// varios icones numa linha; falta de .spr so mostra texto, sem icone).
-	// Carregado uma vez so, na primeira vez que a arma aparece na barra.
+	// mesma convencao/ordem de fallback do CHudWeaponBox:
+	//   1) sprites/rtn_hud_ammo_<classname>.spr
+	//   2) gfx/vgui/ammo/640_<classname>.tga (textura crua, sem precisar converter pra .spr)
+	// Sem os dois, mostra so o nome em texto. Carregado uma vez so, na
+	// primeira vez que a arma aparece na barra.
 	SpriteHandle	hBoxSpr;
+	TextureHandle	hBoxTex;
 	bool	bBoxIconLoaded;
 
 	SpriteHandle	hActive;
