@@ -81,6 +81,7 @@ int g_fGruntQuestion;				// true if an idle grunt asked a question. Cleared when
 // lanterna (env_dynlight anexado ao cano da arma)
 #define SF_GRUNT_HAS_FLASHLIGHT		4096	// este grunt tem lanterna
 #define SF_GRUNT_FLASHLIGHT_ON		8192	// começa ligada (só importa se HAS_FLASHLIGHT também estiver marcado)
+#define SF_GRUNT_NO_WANDER			16384	// não vaguear à toa por node quando ocioso (opt-out, ver WanderRandomly)
 
 //=========================================================
 // Monster's Anim Events Go Here
@@ -146,6 +147,7 @@ public:
 	BOOL CheckRangeAttack1 ( float flDot, float flDist );
 	BOOL CheckRangeAttack2 ( float flDot, float flDist );
 	BOOL IsGrenadeSpotSafe ( void ); // false se tem obstáculo perto o bastante da granada quicar de volta
+	BOOL WanderRandomly ( void ); // sem patrulha no mapa, escolhe um node aleatório por perto e anda até lá
 	void CheckAmmo ( void );
 	void SetActivity ( Activity NewActivity );
 	void StartTask ( Task_t *pTask );
@@ -203,6 +205,8 @@ public:
 	int	m_iLastFireCheckResult; // resultado do último CheckRangeAttack1: 0-atira de qualquer jeito, 1-só agachado, 2-só em pé
 
 	EHANDLE	m_hFlashlight; // env_dynlight anexado à arma, ver InitFlashlight()
+
+	float	m_flNextWanderTime; // cooldown do WanderRandomly() — tanto pra esperar parado quanto pra tentar de novo se falhou
 
 	static const char *pGruntSentences[];
 };

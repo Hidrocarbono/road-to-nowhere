@@ -29,6 +29,7 @@
 
 #include "hgrunt.h"
 #include "env_beam.h"
+#include "nodes.h"
 
 LINK_ENTITY_TO_CLASS( monster_human_grunt, CHGrunt );
 
@@ -44,6 +45,7 @@ BEGIN_DATADESC( CHGrunt )
 	DEFINE_FIELD( m_voicePitch, FIELD_INTEGER ),
 	DEFINE_FIELD( m_iSentence, FIELD_INTEGER ),
 	DEFINE_FIELD( m_hFlashlight, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_flNextWanderTime, FIELD_TIME ),
 //	DEFINE_FIELD( m_iLastFireCheckResult, FIELD_INTEGER ), // não salva, é recalculado a cada CheckRangeAttack1
 END_DATADESC()
 
@@ -404,6 +406,53 @@ BOOL CHGrunt :: IsGrenadeSpotSafe ( void )
 	}
 
 	return TRUE;
+}
+
+//=========================================================
+// WanderRandomly - sem patrulha configurada no mapa (pev->target
+// vazio), escolhe um node alcançável qualquer por perto e manda o
+// grunt andar até lá, em vez de ficar parado que nem estátua o tempo
+// todo em que não tem inimigo. Ver SF_GRUNT_NO_WANDER pra desligar
+// isso num grunt específico (ex.: sentinela que deve ficar fixo).
+//=========================================================
+BOOL CHGrunt :: WanderRandomly ( void )
+{
+	if ( gpGlobals->time < m_flNextWanderTime )
+		return FALSE; // ainda no tempo de espera antes do próximo destino
+
+	if ( !WorldGraph.m_fGraphPresent || !WorldGraph.m_fGraphPointersSet )
+	{
+		m_flNextWanderTime = gpGlobals->time + 5; // sem node graph nesse mapa, não insiste toda hora
+		return FALSE;
+	}
+
+	int iMyNode = WorldGraph.FindNearestNode( GetAbsOrigin(), this );
+	if ( iMyNode == NO_NODE || WorldGraph.m_cNodes <= 1 )
+		return FALSE;
+
+	int iMyHullIndex = WorldGraph.HullIndex( this );
+
+	// tenta alguns nodes sorteados até achar um que tenha rota válida
+	for ( int tries = 0; tries < 5; tries++ )
+	{
+		int iCandidate = RANDOM_LONG( 0, WorldGraph.m_cNodes - 1 );
+		if ( iCandidate == iMyNode )
+			continue;
+
+		float flPathLength = WorldGraph.PathLength( iMyNode, iCandidate, iMyHullIndex, m_afCapability );
+		if ( flPathLength <= 0 )
+			continue; // sem rota até esse node
+
+		if ( MoveToLocation( ACT_WALK, 0, WorldGraph.Node( iCandidate ).m_vecOrigin ) )
+		{
+			// só escolhe o próximo destino depois de chegar e esperar um pouco parado
+			m_flNextWanderTime = gpGlobals->time + RANDOM_FLOAT( 8, 20 );
+			return TRUE;
+		}
+	}
+
+	m_flNextWanderTime = gpGlobals->time + 3; // não achou nada bom agora, tenta de novo daqui a pouco
+	return FALSE;
 }
 
 //=========================================================
@@ -2264,8 +2313,25 @@ Schedule_t *CHGrunt :: GetSchedule( void )
 				return GetScheduleOfType ( SCHED_GRUNT_ESTABLISH_LINE_OF_FIRE );
 			}
 		}
+		break;
+	case MONSTERSTATE_IDLE:
+		{
+			// sem patrulha configurada no mapa (pev->target vazio) e sem rota
+			// em andamento: em vez de ficar parado que nem estátua, escolhe um
+			// node aleatório por perto e vagueia até lá, pelo SCHED_IDLE_WALK
+			// já existente (o mesmo que a patrulha via path_corner usa).
+			if ( !FBitSet( pev->spawnflags, SF_GRUNT_NO_WANDER ) &&
+				 FStringNull( pev->target ) &&
+				 FRouteClear() &&
+				 !HasConditions( bits_COND_HEAR_SOUND ) &&
+				 WanderRandomly() )
+			{
+				return GetScheduleOfType( SCHED_IDLE_WALK );
+			}
+		}
+		break;
 	}
-	
+
 	// no special cases here, call the base class
 	return CSquadMonster :: GetSchedule();
 }

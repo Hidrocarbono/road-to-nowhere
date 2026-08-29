@@ -3418,6 +3418,7 @@
 		1024 : "Don't Drop Wpn" : 0
 		4096 : "Has Flashlight" : 0
 		8192 : "Flashlight Starts On" : 0
+		16384 : "Don't Wander (stay put when idle)" : 0
 	]
 	netname(string) : "Squad Name"
 	weapons(Choices) : "Weapons" : 1 =
