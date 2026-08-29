@@ -22,10 +22,17 @@
 #include "utils.h"
 #include "parsemsg.h"
 #include "ammohistory.h"
+#include "filesystem_utils.h"	// fs::FileExists - icone da barra de selecao e opcional (RTN)
+#include "const.h"		// kRenderTransTexture (DrawSpriteAsPoly)
+
+// DrawSpriteAsPoly (client/render/tri.cpp) nao tem header proprio - mesmo
+// padrao ja usado em hud_titlefont.cpp/hud_textwindow.cpp pras funcoes
+// "irmas" dela.
+extern void DrawSpriteAsPoly( SpriteHandle hspr, wrect_t *rect, wrect_t *screenpos, int mode, float r, float g, float b, float a );
 
 int		g_weaponselect = 0;
 WEAPON		*gpActiveSel;	// NULL means off, 1 means just the menu bar, otherwise
-WEAPON		*gpLastSel;	// Last weapon menu selection 
+WEAPON		*gpLastSel;	// Last weapon menu selection
 static wrect_t	nullRc;
 WeaponsResource	gWR;
 
@@ -38,8 +45,66 @@ int WeaponsResource :: HasAmmo( WEAPON *p )
 	if( p->iMax1 == -1 )
 		return TRUE;
 
-	return (p->iAmmoType == -1) || p->iClip > 0 || CountAmmo( p->iAmmoType ) 
+	return (p->iAmmoType == -1) || p->iClip > 0 || CountAmmo( p->iAmmoType )
 		|| CountAmmo( p->iAmmo2Type ) || ( p->iFlags & WEAPON_FLAGS_SELECTONEMPTY );
+}
+
+#define WEAPON_SELECT_BAR_MAX		16	// mais que suficiente - MAX_WEAPONS e 64, mas ninguem carrega 16+ armas ao mesmo tempo
+#define WEAPON_SELECT_BAR_VISIBLE	7	// quantos itens cabem desenhados por vez (impar - sobra um no centro)
+#define WEAPON_SELECT_BAR_TIMEOUT	2.0f	// segundos parada ate a barra sumir sozinha
+
+// RTN: garante que WEAPON::hBoxSpr esteja carregado (uma vez so por arma).
+// Mesma convencao do CHudWeaponBox (client/hud_weaponbox.cpp) - so que aqui
+// SO o .spr e suportado (sem fallback .tga): o .tga usa um caminho de
+// desenho totalmente diferente (textura crua via TriAPI, um quad por vez),
+// que nao compensa duplicar pra uma fileira inteira de icones. Sem o .spr,
+// o item aparece so com o nome/municao em texto - a barra continua usavel,
+// so sem o icone (o mesmo espirito de "icone e opcional" que o WeaponBox ja
+// segue).
+static void RTN_EnsureBoxIcon( WEAPON *p )
+{
+	if( !p || p->bBoxIconLoaded )
+		return;
+
+	p->bBoxIconLoaded = true;
+
+	char szSpr[64];
+	Q_snprintf( szSpr, sizeof( szSpr ), "sprites/rtn_hud_ammo_%s.spr", p->szName );
+	p->hBoxSpr = fs::FileExists( szSpr ) ? LoadSprite( szSpr ) : 0;
+}
+
+// RTN: monta a lista de armas que o jogador tem AGORA, ordenada por peso
+// (leve -> pesada - campo "weight" do script de arma / ItemInfo::iWeight,
+// enviado ao client no WeaponList - ver server/player.cpp). Sem bucket nem
+// posicao: e so a ordem natural da lista, o que elimina de vez a classe de
+// bug de colisao de slot que o menu antigo (DrawWList/rgSlots) tinha - ver
+// o historico de commits deste arquivo. Inclui armas sem municao tambem
+// (a barra so pinta elas diferente, igual o menu antigo fazia).
+static int BuildOwnedWeaponList( WEAPON *out[], int maxCount )
+{
+	int count = 0;
+
+	for( int i = 1; i < MAX_WEAPONS && count < maxCount; i++ )
+	{
+		WEAPON *p = gWR.GetWeapon( i );
+		if( p && p->iId && gHUD.HasWeapon( p->iId ))
+			out[count++] = p;
+	}
+
+	// insertion sort - poucas armas (dezenas no maximo), nao vale a pena nada mais esperto
+	for( int i = 1; i < count; i++ )
+	{
+		WEAPON *key = out[i];
+		int j = i - 1;
+		while( j >= 0 && out[j]->iWeight > key->iWeight )
+		{
+			out[j + 1] = out[j];
+			j--;
+		}
+		out[j + 1] = key;
+	}
+
+	return count;
 }
 
 // RTN: resolve o caminho de um sprite de HUD listado num manifesto
@@ -309,6 +374,7 @@ void CHudAmmo::Reset( void )
 
 	gpActiveSel = NULL;
 	gHUD.m_iHideHUDDisplay = 0;
+	m_flSelectMenuTime = 0.0f;
 
 	gWR.Reset();
 	gHR.Reset();
@@ -359,6 +425,11 @@ void CHudAmmo::Think( void )
 	{
 		memcpy( gWR.iOldWeaponBits, gHUD.m_iWeaponBits, MAX_WEAPON_BYTES );
 
+		// RTN: mantido so por compatibilidade (rgSlots/PickupWeapon/DropWeapon
+		// nao alimentam mais nenhum desenho - a barra de selecao nova, mais
+		// abaixo, monta a propria lista via BuildOwnedWeaponList a cada
+		// frame). Deixar rodando e mais seguro do que arriscar quebrar algo
+		// que ainda leia gWR.GetWeaponSlot()/rgSlots por fora deste arquivo.
 		for( int i = MAX_WEAPONS - 1; i > 0; i-- )
 		{
 			WEAPON *p = gWR.GetWeapon( i );
@@ -373,25 +444,13 @@ void CHudAmmo::Think( void )
 		}
 	}
 
-	if( !gpActiveSel )
-		return;
-
-	// has the player selected one?
-	if( gHUD.m_iKeyBits & IN_ATTACK )
-	{
-		if( gpActiveSel != (WEAPON *)1 )
-		{
-			ServerCmd( gpActiveSel->szName );
-			g_weaponselect = gpActiveSel->iId;
-		}
-
-		gpLastSel = gpActiveSel;
+	// RTN: a barra de selecao troca de arma NA HORA a cada giro de rodinha
+	// (ver UserCmd_NextWeapon/PrevWeapon) - nao ha mais um estado "destacado
+	// mas nao confirmado" pra confirmar com IN_ATTACK, entao o clique de
+	// ataque nunca mais e interceptado aqui. So sobra apagar a barra sozinha
+	// depois de um tempo parada.
+	if( gpActiveSel && ( gEngfuncs.GetClientTime() - m_flSelectMenuTime ) > WEAPON_SELECT_BAR_TIMEOUT )
 		gpActiveSel = NULL;
-		gHUD.m_iKeyBits &= ~IN_ATTACK;
-
-		PlaySound( "common/wpn_select.wav", 1 );
-	}
-
 }
 
 //
@@ -701,6 +760,13 @@ int CHudAmmo::MsgFunc_WeaponList( const char *pszName, int iSize, void *pbuf )
 	Weapon.iId = READ_CHAR();
 	Weapon.iFlags = READ_BYTE();
 	Weapon.iClip = 0;
+	// RTN: peso (ordena a barra de selecao nova - ver DrawWeaponSelectBar) e
+	// o icone dela (carregado sob demanda, na primeira vez que a arma aparece
+	// na barra - nao aqui, pra nao pagar SPR_Load em toda troca de mapa/nivel
+	// pra arma que o jogador pode nunca pegar).
+	Weapon.iWeight = READ_BYTE();
+	Weapon.hBoxSpr = 0;
+	Weapon.bBoxIconLoaded = false;
 
 	gWR.AddWeapon( &Weapon );
 
@@ -720,9 +786,13 @@ void CHudAmmo::UserCmd_NVG_Toggle( void )
 }
 
 // Slot button pressed
+// RTN: aposentado - a barra de selecao nova nao tem categoria/slot, so a
+// rodinha do mouse move o destaque (ver UserCmd_NextWeapon/PrevWeapon). As
+// teclas slot1..slot10 continuam existindo (bind do jogador pode estar
+// configurado nelas) mas nao fazem mais nada aqui.
 void CHudAmmo::SlotInput( int iSlot )
 {
-	gWR.SelectSlot( iSlot, FALSE, 1 );
+	(void)iSlot;
 }
 
 void CHudAmmo::UserCmd_Slot1( void )
@@ -779,7 +849,6 @@ void CHudAmmo::UserCmd_Close( void )
 {
 	if( gpActiveSel )
 	{
-		gpLastSel = gpActiveSel;
 		gpActiveSel = NULL;
 		PlaySound( "common/wpn_hudoff.wav", 1 );
 	}
@@ -787,89 +856,73 @@ void CHudAmmo::UserCmd_Close( void )
 		ClientCmd( "escape" ); // go into menu
 }
 
-
-// Selects the next item in the weapon menu
+// RTN: barra de selecao nova - troca IMEDIATA a cada giro de rodinha, sem
+// clique de confirmacao (ver o comentario grande em Think()). gpActiveSel
+// so serve pra saber qual item destacar/desenhar (DrawWeaponSelectBar) - no
+// instante em que muda, ja manda o comando pro server, igual apertar attack
+// fazia no menu antigo.
 void CHudAmmo::UserCmd_NextWeapon( void )
 {
 	if( gHUD.m_fPlayerDead || ( gHUD.m_iHideHUDDisplay & ( HIDEHUD_WEAPONS | HIDEHUD_ALL )))
 		return;
 
-	if( !gpActiveSel || gpActiveSel == (WEAPON *)1 )
-		gpActiveSel = m_pWeapon;
+	WEAPON *list[WEAPON_SELECT_BAR_MAX];
+	int count = BuildOwnedWeaponList( list, WEAPON_SELECT_BAR_MAX );
+	if( count == 0 )
+		return;
 
-	int pos = 0;
-	int slot = 0;
+	WEAPON *pCurrent = gpActiveSel ? gpActiveSel : m_pWeapon;
+	int idx = 0;
 
-	if( gpActiveSel )
+	if( pCurrent )
 	{
-		pos = gpActiveSel->iSlotPos + 1;
-		slot = gpActiveSel->iSlot;
-	}
-
-	for( int loop = 0; loop <= 1; loop++ )
-	{
-		for( ; slot < MAX_WEAPON_SLOTS; slot++ )
+		for( int i = 0; i < count; i++ )
 		{
-			for( ; pos < MAX_WEAPON_POSITIONS; pos++ )
+			if( list[i] == pCurrent )
 			{
-				WEAPON *wsp = gWR.GetWeaponSlot( slot, pos );
-
-				if( wsp && gWR.HasAmmo( wsp ))
-				{
-					gpActiveSel = wsp;
-					return;
-				}
+				idx = ( i + 1 ) % count;
+				break;
 			}
-
-			pos = 0;
 		}
-
-		slot = 0;  // start looking from the first slot again
 	}
 
-	gpActiveSel = NULL;
+	gpActiveSel = list[idx];
+	m_flSelectMenuTime = gEngfuncs.GetClientTime();
+	ServerCmd( gpActiveSel->szName );
+	g_weaponselect = gpActiveSel->iId;
+	PlaySound( "common/wpn_moveselect.wav", 1 );
 }
 
-// Selects the previous item in the menu
 void CHudAmmo::UserCmd_PrevWeapon( void )
 {
 	if( gHUD.m_fPlayerDead || ( gHUD.m_iHideHUDDisplay & ( HIDEHUD_WEAPONS | HIDEHUD_ALL )))
 		return;
 
-	if( !gpActiveSel || gpActiveSel == (WEAPON *)1 )
-		gpActiveSel = m_pWeapon;
+	WEAPON *list[WEAPON_SELECT_BAR_MAX];
+	int count = BuildOwnedWeaponList( list, WEAPON_SELECT_BAR_MAX );
+	if( count == 0 )
+		return;
 
-	int pos = MAX_WEAPON_POSITIONS - 1;
-	int slot = MAX_WEAPON_SLOTS - 1;
+	WEAPON *pCurrent = gpActiveSel ? gpActiveSel : m_pWeapon;
+	int idx = 0;
 
-	if( gpActiveSel )
+	if( pCurrent )
 	{
-		pos = gpActiveSel->iSlotPos - 1;
-		slot = gpActiveSel->iSlot;
-	}
-	
-	for( int loop = 0; loop <= 1; loop++ )
-	{
-		for( ; slot >= 0; slot-- )
+		for( int i = 0; i < count; i++ )
 		{
-			for( ; pos >= 0; pos-- )
+			if( list[i] == pCurrent )
 			{
-				WEAPON *wsp = gWR.GetWeaponSlot( slot, pos );
-
-				if( wsp && gWR.HasAmmo( wsp ))
-				{
-					gpActiveSel = wsp;
-					return;
-				}
+				idx = ( i - 1 + count ) % count;
+				break;
 			}
-
-			pos = MAX_WEAPON_POSITIONS - 1;
 		}
-		
-		slot = MAX_WEAPON_SLOTS - 1;
 	}
 
-	gpActiveSel = NULL;
+	gpActiveSel = list[idx];
+	m_flSelectMenuTime = gEngfuncs.GetClientTime();
+	ServerCmd( gpActiveSel->szName );
+	g_weaponselect = gpActiveSel->iId;
+	PlaySound( "common/wpn_moveselect.wav", 1 );
 }
 
 //-------------------------------------------------------------------------
@@ -886,16 +939,23 @@ int CHudAmmo::Draw( float flTime )
 
 	// Draw Weapon Menu
 	//
-	// DrawWList() e o MENU de selecao que aparece ao girar a rodinha do
-	// mouse (ou apertar um slot) - nao e a mesma coisa que o contador de
-	// municao classico la embaixo. O gate de rtn_hud_style ficava ANTES
-	// desta chamada (return 1 direto no topo da funcao), entao ativar o HUD
-	// novo (CHudWeaponBox, canto inferior direito) apagava de brinde o menu
-	// de selecao inteiro - o CHudWeaponBox nunca substituiu essa funcao, so
-	// o contador de municao. O Paranoia2 (cl_dll/ammo.cpp) chama DrawWList()
-	// sem gate nenhum de estilo de HUD, so depois de checar HIDEHUD - e por
-	// isso o menu sempre funcionou la.
-	DrawWList( flTime );
+	// DrawWeaponSelectBar() e a barra de selecao que aparece ao girar a
+	// rodinha do mouse - nao e a mesma coisa que o contador de municao
+	// classico la embaixo. O gate de rtn_hud_style fica DEPOIS desta chamada
+	// (ver abaixo), pra ativar o HUD novo (CHudWeaponBox, canto inferior
+	// direito) nao apagar de brinde a barra de selecao - o CHudWeaponBox
+	// nunca substituiu essa funcao, so o contador de municao.
+	//
+	// Superou o DrawWList()/menu de baldes-e-posicao antigo (que ainda existe
+	// no arquivo, so nunca mais e chamado) - motivo no historico de commits:
+	// PrimeXT tem so 5 slots x 5 posicoes (P2, de onde os scripts de arma sao
+	// portados, tem 10x10), e slots como o de armas pesadas ja vinham lotados
+	// so com as armas classicas do jogo. Toda arma nova de script que caia
+	// ali tinha chance real de colidir com outra e sumir do HUD em silencio.
+	// A barra nova nao tem bucket/posicao nenhum - so lista, em ordem de
+	// peso, as armas que o jogador tem agora - entao essa classe de bug
+	// deixa de poder acontecer.
+	DrawWeaponSelectBar( flTime );
 
 	// Draw ammo pickup history
 	gHR.DrawAmmoHistory( flTime );
@@ -1067,6 +1127,194 @@ void DrawAmmoBar( WEAPON *p, int x, int y, int width, int height )
 			DrawBar( x, y, width, height, f );
 		}
 	}
+}
+
+//
+// RTN: barra de selecao horizontal, sem bucket/posicao - ver o comentario
+// grande em Draw() e em BuildOwnedWeaponList(). Aparece logo abaixo da
+// mira (nao no centro exato da tela, pra nao tampar a visada), controlada
+// so pela rodinha (UserCmd_NextWeapon/PrevWeapon ja trocam a arma na hora -
+// isto aqui so DESENHA o estado atual) e some sozinha depois de parada
+// (Think() zera gpActiveSel apos WEAPON_SELECT_BAR_TIMEOUT).
+//
+int CHudAmmo::DrawWeaponSelectBar( float flTime )
+{
+	if( !gpActiveSel )
+		return 0;
+
+	WEAPON *list[WEAPON_SELECT_BAR_MAX];
+	int count = BuildOwnedWeaponList( list, WEAPON_SELECT_BAR_MAX );
+	if( count == 0 )
+		return 0;
+
+	int selIdx = -1;
+	for( int i = 0; i < count; i++ )
+	{
+		if( list[i] == gpActiveSel )
+		{
+			selIdx = i;
+			break;
+		}
+	}
+	if( selIdx < 0 )
+		return 0;	// a arma destacada sumiu da lista (largada?) entre um frame e outro
+
+	// sumir suavemente depois de um tempo parado, em vez de piscar do nada
+	float elapsed = gEngfuncs.GetClientTime() - m_flSelectMenuTime;
+	const float SELECT_BAR_FADE_TIME = 0.4f;
+	float fade = 1.0f;
+	if( elapsed > ( WEAPON_SELECT_BAR_TIMEOUT - SELECT_BAR_FADE_TIME ))
+		fade = 1.0f - ( elapsed - ( WEAPON_SELECT_BAR_TIMEOUT - SELECT_BAR_FADE_TIME )) / SELECT_BAR_FADE_TIME;
+	fade = bound( 0.0f, fade, 1.0f );
+	if( fade <= 0.0f )
+		return 0;
+
+	// janela visivel: WEAPON_SELECT_BAR_VISIBLE itens, centrada no destaque
+	int half = WEAPON_SELECT_BAR_VISIBLE / 2;
+	int start = selIdx - half;
+	int end = selIdx + half;
+	if( start < 0 )
+	{
+		end += -start;
+		start = 0;
+	}
+	if( end > count - 1 )
+	{
+		start -= ( end - ( count - 1 ));
+		end = count - 1;
+	}
+	if( start < 0 )
+		start = 0;	// lista menor que a janela inteira
+
+	bool moreLeft = start > 0;
+	bool moreRight = end < count - 1;
+
+	// tamanhos: item destacado maior que os outros. Altura fixa por estado,
+	// LARGURA calculada da proporcao real do sprite (icone bem mais largo
+	// que alto, tipo o do MP5 - esticar pra uma caixa quadrada fixa
+	// achatava/distorcia o desenho). Sem icone, usa a largura "nominal" so
+	// pra sobrar espaco decente pro texto do nome.
+	const int NORMAL_H = YRES( 26 );
+	const int SEL_H = YRES( 38 );
+	const int NOMINAL_W = XRES( 56 );	// fallback (sem icone) e ponto de partida antes de saber a proporcao
+	const int GAP = XRES( 8 );
+
+	int visCount = end - start + 1;
+	int itemW[WEAPON_SELECT_BAR_VISIBLE];
+	int itemH[WEAPON_SELECT_BAR_VISIBLE];
+	int totalW = 0;
+
+	for( int i = start; i <= end; i++ )
+	{
+		WEAPON *p = list[i];
+		bool isSelected = ( i == selIdx );
+		int h = isSelected ? SEL_H : NORMAL_H;
+		int w = ( isSelected ? NOMINAL_W * 3 / 2 : NOMINAL_W );
+
+		RTN_EnsureBoxIcon( p );
+		if( p->hBoxSpr )
+		{
+			int sw = SPR_Width( p->hBoxSpr, 0 );
+			int sh = SPR_Height( p->hBoxSpr, 0 );
+			if( sw > 0 && sh > 0 )
+				w = (int)( h * ( (float)sw / (float)sh ) + 0.5f );
+		}
+
+		int k = i - start;
+		itemW[k] = w;
+		itemH[k] = h;
+		totalW += w;
+	}
+	totalW += GAP * ( visCount - 1 );
+
+	int centerX = ScreenWidth / 2;
+	int barY = ScreenHeight / 2 + YRES( 46 );	// logo abaixo da mira, sem tampar a visada
+	int x = centerX - totalW / 2;
+
+	for( int i = start; i <= end; i++ )
+	{
+		WEAPON *p = list[i];
+		bool isSelected = ( i == selIdx );
+		int k = i - start;
+		int w = itemW[k];
+		int h = itemH[k];
+		int y = barY + ( SEL_H - h );	// alinha pela base (itens menores "sentam" na mesma linha)
+
+		int alpha = (int)(( isSelected ? 255 : 150 ) * fade );
+		int r = 255, g = 255, b = 255;
+		if( !gWR.HasAmmo( p ))
+			UnpackRGB( r, g, b, RGB_REDISH );	// sem municao - mesmo aviso visual do menu antigo
+
+		if( p->hBoxSpr )
+		{
+			int sw = SPR_Width( p->hBoxSpr, 0 );
+			int sh = SPR_Height( p->hBoxSpr, 0 );
+			if( sw <= 0 ) sw = 1;
+			if( sh <= 0 ) sh = 1;
+
+			wrect_t srcRect = { 0, 0, sw, sh };
+			wrect_t dstRect = { x, y, x + w, y + h };
+			DrawSpriteAsPoly( p->hBoxSpr, &srcRect, &dstRect, kRenderTransTexture,
+				r / 255.0f, g / 255.0f, b / 255.0f, alpha / 255.0f );
+		}
+		else
+		{
+			// sem icone (.spr rtn_hud_ammo_<classname> ausente) - so um
+			// retangulo discreto com o nome, pra barra continuar legivel
+			// mesmo pra arma que ainda nao ganhou icone proprio.
+			FillRGBA( x, y, w, h, 40, 40, 40, alpha / 2 );
+
+			char szShort[24];
+			const char *pName = p->szName;
+			const char *pUnd = Q_strstr( pName, "_" );
+			if( pUnd && pUnd[1] )
+				pName = pUnd + 1;
+			Q_strncpy( szShort, pName, sizeof( szShort ) - 1 );
+			szShort[sizeof( szShort ) - 1] = '\0';
+			for( char *c = szShort; *c; c++ )
+				*c = toupper( (unsigned char)*c );
+
+			gHUD.DrawHudString( x + 2, y + h / 2 - 4, x + w - 2, szShort, r, g, b );
+		}
+
+		if( isSelected )
+		{
+			char szAmmo[16];
+			if( p->iAmmoType >= 0 )
+				Q_snprintf( szAmmo, sizeof( szAmmo ), "%d / %d", p->iClip, gWR.CountAmmo( p->iAmmoType ));
+			else
+				szAmmo[0] = '\0';
+
+			if( szAmmo[0] )
+			{
+				int tw = 0;
+				for( const char *c = szAmmo; *c; c++ )
+					tw += gHUD.m_scrinfo.charWidths[(unsigned char)*c];
+
+				int tx = x + ( w - tw ) / 2;
+				int ty = y + h + YRES( 2 );
+				gHUD.DrawHudString( tx + 1, ty + 1, tx + tw + 1, szAmmo, 0, 0, 0 );
+				gHUD.DrawHudString( tx, ty, tx + tw, szAmmo, 255, 255, 255 );
+			}
+		}
+
+		x += w + GAP;
+	}
+
+	// indicadores de "tem mais pra ca/pra la" quando a lista nao cabe inteira
+	int arrowAlpha = (int)( 200 * fade );
+	if( moreLeft )
+	{
+		int lx = centerX - totalW / 2 - XRES( 16 );
+		gHUD.DrawHudString( lx, barY + SEL_H / 2 - 6, lx + XRES( 14 ), "<", arrowAlpha, arrowAlpha, arrowAlpha );
+	}
+	if( moreRight )
+	{
+		int rx = centerX + totalW / 2 + XRES( 4 );
+		gHUD.DrawHudString( rx, barY + SEL_H / 2 - 6, rx + XRES( 14 ), ">", arrowAlpha, arrowAlpha, arrowAlpha );
+	}
+
+	return 1;
 }
 
 //

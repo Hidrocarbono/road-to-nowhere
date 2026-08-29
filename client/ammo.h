@@ -34,8 +34,18 @@ struct WEAPON
 	int	iFlags;
 	int	iId;
 	int	iClip;
+	int	iWeight;	// RTN: peso (script "weight" / ItemInfo::iWeight) - ordena a barra de selecao nova (leve->pesada)
 
 	int	iCount;		// # of itesm in plist
+
+	// RTN: icone da barra de selecao nova (DrawWeaponSelectBar, client/ammo.cpp),
+	// convencao do CHudWeaponBox (sprites/rtn_hud_ammo_<classname>.spr) - so
+	// .spr, sem fallback .tga (o .tga usa um caminho de desenho totalmente
+	// diferente - textura crua via TriAPI - que nao vale a pena duplicar pra
+	// varios icones numa linha; falta de .spr so mostra texto, sem icone).
+	// Carregado uma vez so, na primeira vez que a arma aparece na barra.
+	SpriteHandle	hBoxSpr;
+	bool	bBoxIconLoaded;
 
 	SpriteHandle	hActive;
 	wrect_t	rcActive;

@@ -114,7 +114,8 @@ public:
 	int Draw( float flTime );
 	void Think( void );
 	void Reset( void );
-	int DrawWList( float flTime );
+	int DrawWList( float flTime );	// RTN: menu classico de baldes/slots - superado pela barra abaixo, ver DrawWeaponSelectBar()
+	int DrawWeaponSelectBar( float flTime );	// RTN: barra horizontal nova, sem bucket/posicao - ver client/ammo.cpp
 	int MsgFunc_CurWeapon( const char *pszName, int iSize, void *pbuf );
 	int MsgFunc_WeaponList( const char *pszName, int iSize, void *pbuf );
 	int MsgFunc_AmmoPickup( const char *pszName, int iSize, void *pbuf );
@@ -145,6 +146,10 @@ private:
 	int	m_HUD_bucket0;
 	int	m_HUD_selection;
 
+	// RTN: relogio da barra de selecao nova - hora do ultimo movimento de
+	// rodinha, usado so pra decidir quando a barra some (fade) por inatividade.
+	// Ver DrawWeaponSelectBar()/UserCmd_NextWeapon()/UserCmd_PrevWeapon().
+	float	m_flSelectMenuTime;
 };
 
 //
