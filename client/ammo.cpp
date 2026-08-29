@@ -79,7 +79,23 @@ static void RTN_EnsureBoxIcon( WEAPON *p )
 		char szTga[96];
 		Q_snprintf( szTga, sizeof( szTga ), "gfx/vgui/ammo/640_%s.tga", p->szName );
 		if( fs::FileExists( szTga ))
+		{
 			p->hBoxTex = LOAD_TEXTURE( szTga, NULL, 0, TF_CLAMP | TF_IMAGE | TF_HAS_ALPHA );
+
+			// RTN: TextureHandle::Initialized() so confere se existe um
+			// handle (indice != 0), NAO se o arquivo carregou pixels de
+			// verdade - um .tga que o engine aceitou mas nao decodificou
+			// direito (formato/profundidade de cor que o loader nao
+			// entende) pode voltar com handle valido e 0x0 de tamanho.
+			// Desenhar/bindar isso e terreno arriscado (handle "valido"
+			// mas sem textura de verdade por tras) - melhor cair pro
+			// nome em texto do que arriscar.
+			if( p->hBoxTex.Initialized() && ( p->hBoxTex.GetWidth() == 0 || p->hBoxTex.GetHeight() == 0 ))
+			{
+				FREE_TEXTURE( p->hBoxTex );
+				p->hBoxTex = TextureHandle::Null();
+			}
+		}
 	}
 }
 
@@ -132,11 +148,20 @@ static bool RTN_DrawBoxIcon( WEAPON *p, int x, int y, int w, int h, float r, flo
 
 	if( p->hBoxTex.Initialized() )
 	{
+		// RTN: mesmo bracket de estado que DrawSpriteAsPoly ja usa pro
+		// desenho de sprite (CullFace off/on em volta do quad) - o
+		// CHudWeaponBox (unico outro lugar que desenha .tga assim) so
+		// desenha UM icone por frame, entao nunca precisou disso; esta
+		// barra desenha varios .spr/.tga alternados no mesmo frame, e
+		// deixar CullFace fora do estado que o resto do frame espera e
+		// candidato a vazar GL_INVALID_ENUM pro desenho de cena seguinte.
+		gEngfuncs.pTriAPI->CullFace( TRI_NONE );
 		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
 		gEngfuncs.pTriAPI->Color4f( r, g, b, alpha );
 		GL_Bind( 0, p->hBoxTex );
 		OrthoQuad( x, y, x + w, y + h );
 		gEngfuncs.pTriAPI->RenderMode( kRenderNormal );
+		gEngfuncs.pTriAPI->CullFace( TRI_FRONT );
 		return true;
 	}
 
