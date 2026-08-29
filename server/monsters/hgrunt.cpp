@@ -208,6 +208,7 @@ void CHGrunt :: InitFlashlight( void )
 
 	pLight->pev->rendercolor = Vector( 255, 235, 190 ); // tom quente de lanterna
 	pLight->pev->renderamt = 200; // brilho (a entidade já divide isso por 8 internamente)
+	pLight->pev->effects |= EF_LENSFLARE; // sprite/reflexo na origem, pra vender que a luz sai dali
 
 	if ( !FBitSet( pev->spawnflags, SF_GRUNT_FLASHLIGHT_ON ) )
 		pLight->Use( this, this, USE_OFF, 0 ); // nasce desligada
