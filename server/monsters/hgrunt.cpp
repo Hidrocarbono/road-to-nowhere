@@ -2314,16 +2314,25 @@ Schedule_t *CHGrunt :: GetSchedule( void )
 			}
 		}
 		break;
+	case MONSTERSTATE_ALERT:
 	case MONSTERSTATE_IDLE:
 		{
 			// sem patrulha configurada no mapa (pev->target vazio) e sem rota
 			// em andamento: em vez de ficar parado que nem estátua, escolhe um
 			// node aleatório por perto e vagueia até lá, pelo SCHED_IDLE_WALK
 			// já existente (o mesmo que a patrulha via path_corner usa).
+			//
+			// cobre MONSTERSTATE_ALERT também — qualquer som de combate/perigo
+			// por perto (tiro, granada) já joga o grunt de IDLE pra ALERT
+			// (ver GetIdealState em monsterstate.cpp), e sem esse case aqui
+			// ele nunca voltava a andar: ficava preso em SCHED_ALERT_STAND
+			// da classe base, que não sabe vaguear, só ficar parado ou virar
+			// pro som. Os mesmos gates abaixo blindam contra atropelar dano/
+			// som recém-ouvido, que têm prioridade (cobertura, virar, etc.)
 			if ( !FBitSet( pev->spawnflags, SF_GRUNT_NO_WANDER ) &&
 				 FStringNull( pev->target ) &&
 				 FRouteClear() &&
-				 !HasConditions( bits_COND_HEAR_SOUND ) &&
+				 !HasConditions( bits_COND_HEAR_SOUND | bits_COND_LIGHT_DAMAGE | bits_COND_HEAVY_DAMAGE ) &&
 				 WanderRandomly() )
 			{
 				return GetScheduleOfType( SCHED_IDLE_WALK );
