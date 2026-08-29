@@ -55,6 +55,37 @@ isso sozinho:
 O trabalho do mapper é só **onde** colocar o marcador. A topologia de
 conexão (quem liga com quem) é calculada pelo build, não é decisão manual.
 
+## Armadilha: o `.nod` fica em cache e NUNCA se invalida sozinho
+
+Isso já pegou gente na prática, vale destacar: `CNodeEnt::Spawn()`
+(`server/nodes.cpp`) faz isto ao spawnar cada `info_node` do mapa:
+
+```cpp
+if ( WorldGraph.m_fGraphPresent )
+{
+	// graph loaded from disk, so discard all these node ents as soon as they spawn
+	REMOVE_ENTITY( edict() );
+	return;
+}
+```
+
+Ou seja: se já existe um `maps/graphs/<nome_do_mapa>.nod` no disco e ele
+carrega sem erro, **o build inteiro é pulado** — todo `info_node` que você
+acabou de mexer/adicionar/remover no editor é descartado sem aviso nenhum,
+e o servidor roda com o grafo antigo. Não tem checagem de quantidade de
+node, posição, nem nada — só "existe um `.nod` com esse nome e a versão
+bate? então usa ele".
+
+Isso significa que **editar os `info_node` no Hammer e recompilar o `.bsp`
+não é suficiente** pra atualizar o pathing — se o `.nod` antigo continuar
+lá, o jogo nunca percebe que o mapa mudou. Sintoma clássico: você mexe nos
+nodes, testa de novo, e o comportamento continua idêntico (ou muda de
+forma que não bate com o que você esperava da edição).
+
+**Antes de testar qualquer mudança de node**, apague à mão
+`maps/graphs/<nome_do_mapa>.nod` (e o `.nrp` junto, se quiser o relatório
+atualizado) pra forçar o rebuild completo no próximo carregamento do mapa.
+
 ## Resumo prático
 
 - **Não** cubra salas abertas com grade de nodes — desperdiça nodes e tempo
