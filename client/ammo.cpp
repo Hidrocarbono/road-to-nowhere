@@ -84,7 +84,24 @@ static void RTN_EnsureBoxIcon( WEAPON *p )
 
 	char szSpr[64];
 	Q_snprintf( szSpr, sizeof( szSpr ), "sprites/rtn_hud_ammo_%s.spr", p->szName );
-	p->hBoxSpr = fs::FileExists( szSpr ) ? LoadSprite( szSpr ) : 0;
+
+	if( fs::FileExists( szSpr ))
+	{
+		p->hBoxSpr = LoadSprite( szSpr );
+	}
+	else
+	{
+		p->hBoxSpr = 0;
+
+		// RTN: avisa UMA vez por arma (bBoxIconLoaded ja garante isso). Falhar
+		// calado aqui ja custou uma rodada de teste: sem o .spr a barra mostra
+		// so o nome, e quem esta olhando nao tem como saber se o icone sumiu
+		// por asset faltando ou por bug de desenho. O .spr e gerado a partir
+		// do .tga - ele NAO e carregado em jogo (ver o comentario acima).
+		gEngfuncs.Con_Printf( "RTN: icone da barra ausente: %s\n", szSpr );
+		gEngfuncs.Con_Printf( "RTN:   gere com: python3 utils/gen_hudsprites.py"
+			" (le o .tga apontado no script da arma)\n" );
+	}
 }
 
 // RTN: em 0, a barra de selecao nao desenha nenhum icone (so texto) - valvula
