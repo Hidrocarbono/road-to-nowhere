@@ -1,5 +1,7 @@
-4
-weapon	320	sprites/weapon_parafal.spr	0 64 256 64
-weapon	640	sprites/weapon_parafal.spr	0 64 256 64
-weapon_s	320	sprites/weapon_parafal.spr	0 0 256 64
-weapon_s	640	sprites/weapon_parafal.spr	0 0 256 64
+6
+weapon	320	sprites/rtn_hud_ammo_weapon_parafal.spr	0 0 200 62
+weapon	640	sprites/rtn_hud_ammo_weapon_parafal.spr	0 0 200 62
+weapon_s	320	sprites/rtn_hud_ammo_weapon_parafal.spr	0 0 200 62
+weapon_s	640	sprites/rtn_hud_ammo_weapon_parafal.spr	0 0 200 62
+ammo	320	sprites/rtn_hud_ammo_weapon_parafal.spr	0 0 200 62
+ammo	640	sprites/rtn_hud_ammo_weapon_parafal.spr	0 0 200 62
