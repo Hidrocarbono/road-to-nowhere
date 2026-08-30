@@ -463,8 +463,13 @@ int CHudAmmo::Init( void )
 	// sumir com rtn_hud_selectbar_icons 0 e voltar com 1, a origem esta
 	// confirmada no desenho dos icones; se continuar dos dois jeitos, a
 	// origem e outra e nao adianta mexer mais aqui.
+	// NAO usar FCVAR_ARCHIVE aqui. Ja custou uma rodada de teste inteira: o
+	// usuario ligou "rtn_hud_selectbar_icons 0" pra isolar o GL_INVALID_ENUM, o
+	// engine gravou isso no config.cfg, e a barra ficou sem icone em TODAS as
+	// builds seguintes - o que parecia bug de desenho era so o cvar preso em 0.
+	// Chave de diagnostico nao pode persistir: volta em 1 a cada partida.
 	if( !rtn_hud_selectbar_icons )
-		rtn_hud_selectbar_icons = gEngfuncs.pfnRegisterVariable( "rtn_hud_selectbar_icons", "1", FCVAR_ARCHIVE );
+		rtn_hud_selectbar_icons = gEngfuncs.pfnRegisterVariable( "rtn_hud_selectbar_icons", "1", 0 );
 
 	// RTN: instrumentacao pra achar QUAL chamada do desenho de icone suja o
 	// estado de GL (ver o comentario do cvar no topo do arquivo). Default 0 -
