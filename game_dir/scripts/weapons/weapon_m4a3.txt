@@ -83,9 +83,9 @@ SoundData
 	"name"		"weapon"
 	"file"		"gfx/vgui/ammo/640_weapon_m4a3.tga"
 	"x"		"0"
-	"y"		"64"
-	"width"		"256"
-	"height"		"64"
+	"y"		"0"
+	"width"		"200"
+	"height"		"62"
 }
 
 "hudsprite"	
@@ -94,7 +94,7 @@ SoundData
 	"file"		"gfx/vgui/ammo/640_weapon_m4a3.tga"
 	"x"		"0"
 	"y"		"0"
-	"width"		"256"
-	"height"		"64"
+	"width"		"200"
+	"height"		"62"
 }
 
