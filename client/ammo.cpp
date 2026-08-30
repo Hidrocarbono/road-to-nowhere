@@ -91,11 +91,11 @@ static void RTN_EnsureBoxIcon( WEAPON *p )
 			// Desenhar/bindar isso e terreno arriscado (handle "valido"
 			// mas sem textura de verdade por tras) - melhor cair pro
 			// nome em texto do que arriscar.
+			// RTN: so LARGA o handle, nunca FREE_TEXTURE - o CHudWeaponBox
+			// carrega o mesmo arquivo e recebe o mesmo indice do engine
+			// (cache por nome); liberar aqui penduraria o handle do outro.
 			if( p->hBoxTex.Initialized() && ( p->hBoxTex.GetWidth() == 0 || p->hBoxTex.GetHeight() == 0 ))
-			{
-				FREE_TEXTURE( p->hBoxTex );
 				p->hBoxTex = TextureHandle::Null();
-			}
 		}
 	}
 }
@@ -185,7 +185,24 @@ static bool RTN_DrawBoxIcon( WEAPON *p, int x, int y, int w, int h, float r, flo
 		// comentario do cvar la em cima. A primeira checagem DRENA a fila de
 		// erros que ja vinha de tras, pra nao culpar este codigo por erro dos
 		// outros; as seguintes e que apontam de verdade.
+		// RTN: a instrumentacao roda por icone POR FRAME, entao sem freio ela
+		// inunda o console e fica ilegivel (aconteceu em teste). Depois de
+		// algumas passadas ela se autodesliga - o suficiente pra identificar
+		// a chamada culpada, sem tomar a tela.
+		static int dbgBudget = 6;
 		bool dbg = ( rtn_hud_selectbar_gldebug && rtn_hud_selectbar_gldebug->value >= 1.0f );
+		if( dbg )
+		{
+			if( dbgBudget <= 0 )
+			{
+				CVAR_SET_FLOAT( "rtn_hud_selectbar_gldebug", 0.0f );
+				gEngfuncs.Con_Printf( "rtn_hud_selectbar_gldebug: autodesligado (cota esgotada) - role o console pra ler as linhas acima\n" );
+				dbg = false;
+			}
+			else dbgBudget--;
+		}
+		else dbgBudget = 6;	// religar o cvar renova a cota
+
 		if( dbg ) GL_CheckForErrors();	// (dreno) erro anterior, NAO e daqui
 
 		// RTN: NAO mexe em CullFace nem reseta RenderMode aqui - quem chama

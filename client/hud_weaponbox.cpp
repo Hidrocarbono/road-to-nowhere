@@ -68,11 +68,14 @@ int CHudWeaponBox::VidInit( void )
 
 void CHudWeaponBox::Reset( void )
 {
-	if( m_hWeaponTex.Initialized( ))
-	{
-		FREE_TEXTURE( m_hWeaponTex );
-		m_hWeaponTex = TextureHandle::Null();
-	}
+	// RTN: NAO chamar FREE_TEXTURE aqui. O engine cacheia textura POR NOME, e
+	// a barra de selecao (client/ammo.cpp, WEAPON::hBoxTex) carrega o MESMO
+	// arquivo .tga - as duas recebem o mesmo indice. Liberar por aqui deixava
+	// o handle da barra pendurado, e o GL_Bind dele passava a dar
+	// GL_INVALID_ENUM todo frame (ver o comentario grande em ammo.cpp).
+	// Sem free, largar o handle e barato: recarregar pelo nome devolve o
+	// mesmo indice, entao nao duplica textura na GPU.
+	m_hWeaponTex = TextureHandle::Null();
 	m_hWeaponSpr = 0;
 	m_iLastWeaponId = -1;
 	m_iClip = 0;
@@ -112,11 +115,13 @@ int CHudWeaponBox::Draw( float flTime )
 		// funcionava depois de uma conversao manual para .spr - passo que
 		// ninguem lembrava de fazer, deixando a arma sem icone com o arquivo
 		// certo na pasta certa.
-		if( m_hWeaponTex.Initialized( ))
-		{
-			FREE_TEXTURE( m_hWeaponTex );
-			m_hWeaponTex = TextureHandle::Null();
-		}
+		// RTN: idem Reset() - so larga o handle, NUNCA FREE_TEXTURE. Era
+		// exatamente aqui que nascia o GL_INVALID_ENUM da barra de selecao:
+		// trocar de arma liberava a textura que a barra ainda referenciava.
+		// Isso explica a assinatura observada em teste (erro so aparecia ao
+		// GIRAR A RODINHA e so com 2+ armas - com uma arma so nunca havia
+		// troca, logo nunca havia free).
+		m_hWeaponTex = TextureHandle::Null();
 
 		if( !m_hWeaponSpr )
 		{
