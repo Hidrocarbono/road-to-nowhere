@@ -149,17 +149,28 @@ static bool RTN_DrawBoxIcon( WEAPON *p, int x, int y, int w, int h, float r, flo
 	if( p->hBoxTex.Initialized() )
 	{
 		// RTN: mesmo bracket de estado que DrawSpriteAsPoly ja usa pro
-		// desenho de sprite (CullFace off/on em volta do quad) - o
-		// CHudWeaponBox (unico outro lugar que desenha .tga assim) so
-		// desenha UM icone por frame, entao nunca precisou disso; esta
-		// barra desenha varios .spr/.tga alternados no mesmo frame, e
-		// deixar CullFace fora do estado que o resto do frame espera e
-		// candidato a vazar GL_INVALID_ENUM pro desenho de cena seguinte.
+		// desenho de sprite (CullFace off/on em volta do quad).
 		gEngfuncs.pTriAPI->CullFace( TRI_NONE );
 		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
 		gEngfuncs.pTriAPI->Color4f( r, g, b, alpha );
+
+		// RTN: o GL_Bind do render dll e CACHEADO - ele compara com
+		// glState.currentTextures[tmu] e NAO emite glBindTexture se achar
+		// que a textura ja esta ligada. Só que o desenho 2D do proprio
+		// engine (SPR_Draw/DrawHudString/FillRGBA, o menu do VGUI, etc)
+		// liga textura por FORA desse cache. Resultado: o cache diz
+		// "hBoxTex ja esta ligada", o bind vira no-op, e o quad sai
+		// pintado com a ULTIMA textura que o engine ligou de verdade -
+		// e exatamente o sintoma reportado (quadrado branco/cinza que
+		// virou a arte do menu depois de abrir o menu).
+		//
+		// Ligar Null antes forca o cache a mudar de valor, garantindo que
+		// o bind seguinte emita um glBindTexture real.
+		GL_Bind( 0, TextureHandle::Null() );
 		GL_Bind( 0, p->hBoxTex );
+
 		OrthoQuad( x, y, x + w, y + h );
+
 		gEngfuncs.pTriAPI->RenderMode( kRenderNormal );
 		gEngfuncs.pTriAPI->CullFace( TRI_FRONT );
 		return true;
