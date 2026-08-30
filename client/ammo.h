@@ -40,14 +40,17 @@ struct WEAPON
 
 	int	iCount;		// # of itesm in plist
 
-	// RTN: icone da barra de selecao nova (DrawWeaponSelectBar, client/ammo.cpp),
-	// mesma convencao/ordem de fallback do CHudWeaponBox:
-	//   1) sprites/rtn_hud_ammo_<classname>.spr
-	//   2) gfx/vgui/ammo/640_<classname>.tga (textura crua, sem precisar converter pra .spr)
-	// Sem os dois, mostra so o nome em texto. Carregado uma vez so, na
+	// RTN: icone da barra de selecao nova (DrawWeaponSelectBar, client/ammo.cpp):
+	//   sprites/rtn_hud_ammo_<classname>.spr  (.spr v32 truecolor)
+	// Gere com tools/tga2spr.py a partir do .tga em gfx/vgui/ammo/. Sem o
+	// arquivo, a barra mostra so o nome em texto. Carregado uma vez so, na
 	// primeira vez que a arma aparece na barra.
+	//
+	// NAO existe mais fallback pra textura crua (.tga via LOAD_TEXTURE +
+	// GL_Bind): esse caminho gerava GL_INVALID_ENUM todo frame neste engine -
+	// medido com rtn_hud_selectbar_gldebug, o erro saia exatamente no GL_Bind
+	// do handle vindo do LOAD_TEXTURE. Ver CHANGELOG_AGENT.md secao 4.
 	SpriteHandle	hBoxSpr;
-	TextureHandle	hBoxTex;
 	bool	bBoxIconLoaded;
 
 	SpriteHandle	hActive;

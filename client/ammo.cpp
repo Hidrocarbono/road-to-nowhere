@@ -59,11 +59,22 @@ int WeaponsResource :: HasAmmo( WEAPON *p )
 #define WEAPON_SELECT_BAR_TIMEOUT	2.0f	// segundos parada ate a barra sumir sozinha
 
 // RTN: garante que o icone da arma esteja carregado (uma vez so por arma).
-// Mesma convencao/ordem do CHudWeaponBox (client/hud_weaponbox.cpp):
-//   1) sprites/rtn_hud_ammo_<classname>.spr
-//   2) gfx/vgui/ammo/640_<classname>.tga (textura crua, sem conversao pra .spr)
-// Sem os dois, o item aparece so com nome/municao em texto - a barra
+//   sprites/rtn_hud_ammo_<classname>.spr  (.spr v32 truecolor RGBA)
+// Sem o arquivo, o item aparece so com nome/municao em texto - a barra
 // continua usavel, so sem icone.
+//
+// POR QUE SO .spr: o fallback de textura crua (.tga via LOAD_TEXTURE +
+// GL_Bind + OrthoQuad) foi REMOVIDO. Ele gerava GL_INVALID_ENUM todo frame
+// neste engine, e isso foi MEDIDO, nao deduzido: com
+// rtn_hud_selectbar_gldebug 1, o erro saia na checagem imediatamente
+// posterior ao GL_Bind do handle vindo do LOAD_TEXTURE, enquanto o GL_Bind
+// de uma textura do proprio engine (FIND_TEXTURE("*white")), na linha de
+// cima, vinha limpo.
+//
+// O .spr desenha por DrawSpriteAsPoly, que e o MESMO caminho do sistema de
+// fonte do titles.txt (client/hud_titlefont.cpp) - v32 RGBA, mesma
+// RenderMode - e esse comprovadamente funciona neste engine.
+// Gere o .spr a partir do .tga com: python3 tools/tga2spr.py <in.tga> <out.spr>
 static void RTN_EnsureBoxIcon( WEAPON *p )
 {
 	if( !p || p->bBoxIconLoaded )
@@ -74,30 +85,6 @@ static void RTN_EnsureBoxIcon( WEAPON *p )
 	char szSpr[64];
 	Q_snprintf( szSpr, sizeof( szSpr ), "sprites/rtn_hud_ammo_%s.spr", p->szName );
 	p->hBoxSpr = fs::FileExists( szSpr ) ? LoadSprite( szSpr ) : 0;
-
-	if( !p->hBoxSpr )
-	{
-		char szTga[96];
-		Q_snprintf( szTga, sizeof( szTga ), "gfx/vgui/ammo/640_%s.tga", p->szName );
-		if( fs::FileExists( szTga ))
-		{
-			p->hBoxTex = LOAD_TEXTURE( szTga, NULL, 0, TF_CLAMP | TF_IMAGE | TF_HAS_ALPHA );
-
-			// RTN: TextureHandle::Initialized() so confere se existe um
-			// handle (indice != 0), NAO se o arquivo carregou pixels de
-			// verdade - um .tga que o engine aceitou mas nao decodificou
-			// direito (formato/profundidade de cor que o loader nao
-			// entende) pode voltar com handle valido e 0x0 de tamanho.
-			// Desenhar/bindar isso e terreno arriscado (handle "valido"
-			// mas sem textura de verdade por tras) - melhor cair pro
-			// nome em texto do que arriscar.
-			// RTN: so LARGA o handle, nunca FREE_TEXTURE - o CHudWeaponBox
-			// carrega o mesmo arquivo e recebe o mesmo indice do engine
-			// (cache por nome); liberar aqui penduraria o handle do outro.
-			if( p->hBoxTex.Initialized() && ( p->hBoxTex.GetWidth() == 0 || p->hBoxTex.GetHeight() == 0 ))
-				p->hBoxTex = TextureHandle::Null();
-		}
-	}
 }
 
 // RTN: em 0, a barra de selecao nao desenha nenhum icone (so texto) - valvula
@@ -111,135 +98,78 @@ cvar_t *rtn_hud_selectbar_icons = NULL;
 // apenas onde o engine varre a fila; glGetError e sticky e nao aponta origem).
 cvar_t *rtn_hud_selectbar_gldebug = NULL;
 
-// RTN: a arma tem algum icone carregado (spr OU tga)? Serve pra separar o
-// desenho em dois passos: primeiro so os icones (TriAPI), depois so texto e
-// retangulos (2D do engine) - sem intercalar as duas APIs.
+// RTN: a arma tem icone carregado? Serve pra separar o desenho em dois passos:
+// primeiro so os icones (TriAPI), depois so texto e retangulos (2D do engine) -
+// sem intercalar as duas APIs.
 static bool RTN_HasBoxIcon( WEAPON *p )
 {
 	if( rtn_hud_selectbar_icons && rtn_hud_selectbar_icons->value < 1.0f )
 		return false;	// icones desligados: tudo cai no fallback de texto
 
-	return ( p->hBoxSpr != 0 ) || p->hBoxTex.Initialized();
+	return ( p->hBoxSpr != 0 );
 }
 
-// RTN: proporcao largura/altura do icone carregado (spr OU tga - o que tiver),
-// pra nao esticar/achatar o desenho. false se nao ha icone nenhum ainda.
+// RTN: proporcao largura/altura do icone, pra nao esticar/achatar o desenho.
+// false se a arma nao tem icone.
 static bool RTN_GetBoxIconAspect( WEAPON *p, float *outAspect )
 {
 	if( !RTN_HasBoxIcon( p ))
 		return false;	// sem icone: usa a largura nominal do fallback de texto
 
-	if( p->hBoxSpr )
+	int sw = SPR_Width( p->hBoxSpr, 0 );
+	int sh = SPR_Height( p->hBoxSpr, 0 );
+	if( sw > 0 && sh > 0 )
 	{
-		int sw = SPR_Width( p->hBoxSpr, 0 );
-		int sh = SPR_Height( p->hBoxSpr, 0 );
-		if( sw > 0 && sh > 0 )
-		{
-			*outAspect = (float)sw / (float)sh;
-			return true;
-		}
-	}
-	else if( p->hBoxTex.Initialized() )
-	{
-		uint32_t tw = p->hBoxTex.GetWidth();
-		uint32_t th = p->hBoxTex.GetHeight();
-		if( tw > 0 && th > 0 )
-		{
-			*outAspect = (float)tw / (float)th;
-			return true;
-		}
+		*outAspect = (float)sw / (float)sh;
+		return true;
 	}
 	return false;
 }
 
-// RTN: desenha o icone da arma no retangulo (x,y,x+w,y+h) - .spr via
-// DrawSpriteAsPoly (client/render/tri.cpp), .tga via textura crua (mesma
-// tripa TriAPI+OrthoQuad que o CHudWeaponBox ja usa, client/hud_weaponbox.cpp).
-// Retorna false se a arma nao tem icone nenhum ainda (chamador cai pro
-// texto do nome).
+// RTN: desenha o icone da arma no retangulo (x,y,x+w,y+h) via DrawSpriteAsPoly
+// (client/render/tri.cpp) - o MESMO caminho que o sistema de fonte do
+// titles.txt usa (client/hud_titlefont.cpp), com .spr v32 RGBA e a mesma
+// RenderMode. E o unico caminho de desenho de imagem comprovadamente estavel
+// neste engine; o de textura crua (LOAD_TEXTURE + GL_Bind + OrthoQuad) foi
+// removido por gerar GL_INVALID_ENUM todo frame - ver RTN_EnsureBoxIcon.
+// Retorna false se a arma nao tem icone (chamador cai pro texto do nome).
 static bool RTN_DrawBoxIcon( WEAPON *p, int x, int y, int w, int h, float r, float g, float b, float alpha )
 {
 	if( !RTN_HasBoxIcon( p ))
 		return false;	// sem icone, ou icones desligados pelo cvar
 
-	if( p->hBoxSpr )
-	{
-		int sw = SPR_Width( p->hBoxSpr, 0 );
-		int sh = SPR_Height( p->hBoxSpr, 0 );
-		if( sw <= 0 ) sw = 1;
-		if( sh <= 0 ) sh = 1;
+	int sw = SPR_Width( p->hBoxSpr, 0 );
+	int sh = SPR_Height( p->hBoxSpr, 0 );
+	if( sw <= 0 ) sw = 1;
+	if( sh <= 0 ) sh = 1;
 
-		wrect_t srcRect = { 0, 0, sw, sh };
-		wrect_t dstRect = { x, y, x + w, y + h };
-		// NOTA: DrawSpriteAsPoly mexe em CullFace por conta propria (tri.cpp).
-		// Hoje nenhuma arma usa .spr, entao esse caminho nao roda; se voltar a
-		// rodar com varios icones, vale medir se esse churn traz de volta o
-		// GL_INVALID_ENUM - foi ele que motivou o lote unico do .tga abaixo.
-		DrawSpriteAsPoly( p->hBoxSpr, &srcRect, &dstRect, kRenderTransTexture, r, g, b, alpha );
-		return true;
-	}
-
-	if( p->hBoxTex.Initialized() )
+	// RTN: instrumentacao opcional (rtn_hud_selectbar_gldebug 1) - ver o
+	// comentario do cvar la em cima. A primeira checagem DRENA a fila de erros
+	// que ja vinha de tras, pra nao culpar este codigo por erro dos outros.
+	// Tem cota e se autodesliga: rodando por icone por frame, sem freio ela
+	// inunda o console e fica ilegivel (aconteceu em teste).
+	static int dbgBudget = 6;
+	bool dbg = ( rtn_hud_selectbar_gldebug && rtn_hud_selectbar_gldebug->value >= 1.0f );
+	if( dbg )
 	{
-		// RTN: instrumentacao opcional (rtn_hud_selectbar_gldebug 1) - ver o
-		// comentario do cvar la em cima. A primeira checagem DRENA a fila de
-		// erros que ja vinha de tras, pra nao culpar este codigo por erro dos
-		// outros; as seguintes e que apontam de verdade.
-		// RTN: a instrumentacao roda por icone POR FRAME, entao sem freio ela
-		// inunda o console e fica ilegivel (aconteceu em teste). Depois de
-		// algumas passadas ela se autodesliga - o suficiente pra identificar
-		// a chamada culpada, sem tomar a tela.
-		static int dbgBudget = 6;
-		bool dbg = ( rtn_hud_selectbar_gldebug && rtn_hud_selectbar_gldebug->value >= 1.0f );
-		if( dbg )
+		if( dbgBudget <= 0 )
 		{
-			if( dbgBudget <= 0 )
-			{
-				CVAR_SET_FLOAT( "rtn_hud_selectbar_gldebug", 0.0f );
-				gEngfuncs.Con_Printf( "rtn_hud_selectbar_gldebug: autodesligado (cota esgotada) - role o console pra ler as linhas acima\n" );
-				dbg = false;
-			}
-			else dbgBudget--;
+			CVAR_SET_FLOAT( "rtn_hud_selectbar_gldebug", 0.0f );
+			gEngfuncs.Con_Printf( "rtn_hud_selectbar_gldebug: autodesligado (cota esgotada) - role o console pra ler as linhas acima\n" );
+			dbg = false;
 		}
-		else dbgBudget = 6;	// religar o cvar renova a cota
-
-		if( dbg ) GL_CheckForErrors();	// (dreno) erro anterior, NAO e daqui
-
-		// RTN: NAO mexe em CullFace nem reseta RenderMode aqui - quem chama
-		// e que segura o estado em volta do lote inteiro de icones (ver
-		// DrawWeaponSelectBar). Fazer isso por icone era o que escalava com
-		// a quantidade de armas na barra.
-		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
-		if( dbg ) GL_CheckForErrors();	// culpa: TriAPI RenderMode
-
-		gEngfuncs.pTriAPI->Color4f( r, g, b, alpha );
-		if( dbg ) GL_CheckForErrors();	// culpa: TriAPI Color4f
-
-		// RTN: o GL_Bind do render api e CACHEADO (common/render_api.h avisa
-		// que ele existe justamente pra manter o estado sincronizado entre
-		// engine e client). Como o renderer do mod (client/render/) liga
-		// textura direto por pgl* durante a cena, esse cache pode chegar aqui
-		// dessincronizado do GL real: ele acha que hBoxTex ja esta ligada, o
-		// bind vira no-op, e o quad sai pintado com a ultima textura que
-		// ficou ligada de fato - exatamente o sintoma do quadrado que virou a
-		// arte do menu depois de abrir o menu.
-		//
-		// Ligar uma textura conhecida antes forca o cache a mudar de valor,
-		// garantindo que o bind seguinte emita um glBindTexture real. Usa a
-		// "*white" (mesma que o hud_radio.cpp ja usa) em vez de handle nulo.
-		GL_Bind( 0, FIND_TEXTURE( "*white" ));
-		if( dbg ) GL_CheckForErrors();	// culpa: GL_Bind da "*white"
-
-		GL_Bind( 0, p->hBoxTex );
-		if( dbg ) GL_CheckForErrors();	// culpa: GL_Bind do icone (.tga)
-
-		OrthoQuad( x, y, x + w, y + h );
-		if( dbg ) GL_CheckForErrors();	// culpa: OrthoQuad (Begin/TexCoord/Vertex/End)
-
-		return true;
+		else dbgBudget--;
 	}
+	else dbgBudget = 6;	// religar o cvar renova a cota
 
-	return false;
+	if( dbg ) GL_CheckForErrors();	// (dreno) erro anterior, NAO e daqui
+
+	wrect_t srcRect = { 0, 0, sw, sh };
+	wrect_t dstRect = { x, y, x + w, y + h };
+	DrawSpriteAsPoly( p->hBoxSpr, &srcRect, &dstRect, kRenderTransTexture, r, g, b, alpha );
+	if( dbg ) GL_CheckForErrors();	// culpa: DrawSpriteAsPoly (.spr)
+
+	return true;
 }
 
 // RTN: monta a lista de armas que o jogador tem AGORA, ordenada por peso
@@ -950,7 +880,6 @@ int CHudAmmo::MsgFunc_WeaponList( const char *pszName, int iSize, void *pbuf )
 	// pra arma que o jogador pode nunca pegar).
 	Weapon.iWeight = READ_BYTE();
 	Weapon.hBoxSpr = 0;
-	Weapon.hBoxTex = TextureHandle::Null();
 	Weapon.bBoxIconLoaded = false;
 
 	gWR.AddWeapon( &Weapon );
@@ -1436,12 +1365,9 @@ int CHudAmmo::DrawWeaponSelectBar( float flTime )
 	// isolamento honesto.
 	if( anyIcon )
 	{
-		bool dbgBatch = ( rtn_hud_selectbar_gldebug && rtn_hud_selectbar_gldebug->value >= 1.0f );
-
-		if( dbgBatch ) GL_CheckForErrors();	// (dreno) erro de antes da barra
-		GL_Blend( GL_TRUE );	// sem isso o alpha nao e aplicado (mesma nota do hud_radio)
-		if( dbgBatch ) GL_CheckForErrors();	// culpa: GL_Blend(TRUE)
-
+		// RTN: sem GL_Blend/RenderMode manual em volta - o DrawSpriteAsPoly
+		// cuida do proprio estado (RenderMode + CullFace, ver tri.cpp), igual
+		// ao que o hud_titlefont.cpp faz. Mexer por fora so brigaria com ele.
 		int ix = startX;
 		for( int i = start; i <= end; i++ )
 		{
@@ -1461,11 +1387,6 @@ int CHudAmmo::DrawWeaponSelectBar( float flTime )
 			ix += w + GAP;
 		}
 
-		gEngfuncs.pTriAPI->RenderMode( kRenderNormal );
-		if( dbgBatch ) GL_CheckForErrors();	// culpa: RenderMode(kRenderNormal) final
-
-		GL_Blend( GL_FALSE );	// nao vazar blend ligado pro resto do frame
-		if( dbgBatch ) GL_CheckForErrors();	// culpa: GL_Blend(FALSE)
 	}
 
 	// ---- passo 2: retangulos e texto (2D do engine), ja fora da TriAPI ----

@@ -7,14 +7,13 @@
 #include "filesystem_utils.h"  // fs::FileExists - sprite de arma e opcional
 // mesma tripa de includes que hud_textwindow.cpp/hud_radio.cpp usam para
 // desenhar textura crua em 2D. gl_local.h sozinho nao basta: ele declara
-// GL_Bind, mas o tipo de gEngfuncs.pTriAPI so fica completo com triangleapi.h.
+// O tipo de gEngfuncs.pTriAPI so fica completo com triangleapi.h.
 #include "triangleapi.h"       // triangleapi_s completo (pTriAPI->RenderMode/Color4f)
 #include "texture_handle.h"
-#include "gl_local.h"          // GL_Bind
+#include "gl_local.h"
 #include <ctype.h>        // toupper()
 
 // definido em client/hud_textwindow.cpp - desenha uma textura crua em 2D
-extern void OrthoQuad( int x1, int y1, int x2, int y2 );
 
 // RTN F10: HUD de armas (canto inferior direito) estilo Paranoia 2.
 // Silhueta branca da arma + nome + municao "clip / reserva" em Roboto Bold.
@@ -57,7 +56,6 @@ int CHudWeaponBox::VidInit( void )
 	// m_iLastWeaponId = -1 abaixo forca o recarregamento no proximo Draw, entao
 	// o handle antigo (invalido apos troca de modo de video) so precisa ser
 	// esquecido, nao liberado.
-	m_hWeaponTex = TextureHandle::Null();
 	m_hWeaponSpr = 0;
 	m_iLastWeaponId = -1;
 	m_iClip = 0;
@@ -68,14 +66,6 @@ int CHudWeaponBox::VidInit( void )
 
 void CHudWeaponBox::Reset( void )
 {
-	// RTN: NAO chamar FREE_TEXTURE aqui. O engine cacheia textura POR NOME, e
-	// a barra de selecao (client/ammo.cpp, WEAPON::hBoxTex) carrega o MESMO
-	// arquivo .tga - as duas recebem o mesmo indice. Liberar por aqui deixava
-	// o handle da barra pendurado, e o GL_Bind dele passava a dar
-	// GL_INVALID_ENUM todo frame (ver o comentario grande em ammo.cpp).
-	// Sem free, largar o handle e barato: recarregar pelo nome devolve o
-	// mesmo indice, entao nao duplica textura na GPU.
-	m_hWeaponTex = TextureHandle::Null();
 	m_hWeaponSpr = 0;
 	m_iLastWeaponId = -1;
 	m_iClip = 0;
@@ -110,26 +100,12 @@ int CHudWeaponBox::Draw( float flTime )
 		// municao) desenha sem ele.
 		m_hWeaponSpr = fs::FileExists( szSpr ) ? LoadSprite( szSpr ) : 0;
 
-		// Sem .spr, tenta o .tga do VGUI direto. E o arquivo que o script da
-		// arma ja referencia ("hudsprite" name "ammo"), e ate agora ele so
-		// funcionava depois de uma conversao manual para .spr - passo que
-		// ninguem lembrava de fazer, deixando a arma sem icone com o arquivo
-		// certo na pasta certa.
-		// RTN: idem Reset() - so larga o handle, NUNCA FREE_TEXTURE. Era
-		// exatamente aqui que nascia o GL_INVALID_ENUM da barra de selecao:
-		// trocar de arma liberava a textura que a barra ainda referenciava.
-		// Isso explica a assinatura observada em teste (erro so aparecia ao
-		// GIRAR A RODINHA e so com 2+ armas - com uma arma so nunca havia
-		// troca, logo nunca havia free).
-		m_hWeaponTex = TextureHandle::Null();
-
-		if( !m_hWeaponSpr )
-		{
-			char szTga[ 96 ];
-			Q_snprintf( szTga, sizeof( szTga ), "gfx/vgui/ammo/640_%s.tga", pw->szName );
-			if( fs::FileExists( szTga ))
-				m_hWeaponTex = LOAD_TEXTURE( szTga, NULL, 0, TF_CLAMP | TF_IMAGE | TF_HAS_ALPHA );
-		}
+		// RTN: NAO ha mais fallback pra .tga aqui. O caminho de textura crua
+		// (LOAD_TEXTURE + GL_Bind + OrthoQuad) gerava GL_INVALID_ENUM todo
+		// frame neste engine - medido com rtn_hud_selectbar_gldebug, o erro
+		// saia no GL_Bind do handle vindo do LOAD_TEXTURE. Agora o icone e
+		// so .spr v32, gerado com tools/tga2spr.py a partir do .tga.
+		// Ver CHANGELOG_AGENT.md secao 4.
 
 		// nome: mapa de exibicao (weapon_mp5 -> "FN FAL") ou fallback
 		// classname limpo ("weapon_shotgun" -> "SHOTGUN")
@@ -158,13 +134,6 @@ int CHudWeaponBox::Draw( float flTime )
 	// ---- layout vertical (canto inferior direito) ----
 	int w = SPR_Width( m_hWeaponSpr, 0 );
 	int h = SPR_Height( m_hWeaponSpr, 0 );
-	// O .tga nao passa pelo SPR_Width; usa o mesmo tamanho nominal do .spr do
-	// mp5 (96x30 em 640), que e como a arte do VGUI foi desenhada.
-	if( m_hWeaponTex.Initialized( ))
-	{
-		w = XRES( 96 );
-		h = YRES( 30 );
-	}
 	if( w <= 0 ) w = XRES( 96 );
 	if( h <= 0 ) h = YRES( 30 );
 
@@ -179,23 +148,6 @@ int CHudWeaponBox::Draw( float flTime )
 	{
 		SPR_Set( m_hWeaponSpr, 255, 255, 255 );
 		SPR_Draw( 0, wbX, wbY, NULL );
-	}
-	else if( m_hWeaponTex.Initialized( ))
-	{
-		// mesmo caminho que hud_textwindow/hud_radio usam para desenhar
-		// textura crua em 2D
-		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
-		gEngfuncs.pTriAPI->Color4f( 1.0f, 1.0f, 1.0f, 1.0f );
-		GL_Blend( GL_TRUE );
-		// RTN: GL_Bind do render api e cacheado e o renderer do mod liga
-		// textura direto por pgl* durante a cena - sem invalidar antes, o
-		// bind pode virar no-op e o quad sai com a ultima textura ligada de
-		// fato. Ver o comentario longo em client/ammo.cpp::RTN_DrawBoxIcon.
-		GL_Bind( 0, FIND_TEXTURE( "*white" ));
-		GL_Bind( 0, m_hWeaponTex );
-		OrthoQuad( wbX, wbY, wbX + w, wbY + h );
-		gEngfuncs.pTriAPI->RenderMode( kRenderNormal );
-		GL_Blend( GL_FALSE );
 	}
 
 	// nome da arma (pequeno, cinza claro) + municao "00/000" NA MESMA LINHA
