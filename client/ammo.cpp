@@ -26,6 +26,7 @@
 #include "const.h"		// kRenderTransTexture (DrawSpriteAsPoly)
 #include "triangleapi.h"	// RTN: pTriAPI->RenderMode/Color4f - fallback .tga do icone (mesma tripa do hud_weaponbox.cpp)
 #include "gl_local.h"		// RTN: GL_Bind - idem
+#include "gl_debug.h"		// RTN: GL_CheckForErrors (so com rtn_hud_selectbar_gldebug 1)
 
 // DrawSpriteAsPoly (client/render/tri.cpp) nao tem header proprio - mesmo
 // padrao ja usado em hud_titlefont.cpp/hud_textwindow.cpp pras funcoes
@@ -103,6 +104,13 @@ static void RTN_EnsureBoxIcon( WEAPON *p )
 // pra isolar em jogo se o GL_INVALID_ENUM vem do desenho de textura crua.
 cvar_t *rtn_hud_selectbar_icons = NULL;
 
+// RTN: em 1, checa o erro de GL DEPOIS DE CADA chamada do desenho de icone.
+// Cada checagem esta numa linha diferente, e o GL_CheckForErrors imprime
+// "<erro> (at <funcao>:<linha>)" - entao o console passa a dizer exatamente
+// QUAL chamada sujou o estado, em vez de so acusar o R_RenderScene:976 (que e
+// apenas onde o engine varre a fila; glGetError e sticky e nao aponta origem).
+cvar_t *rtn_hud_selectbar_gldebug = NULL;
+
 // RTN: a arma tem algum icone carregado (spr OU tga)? Serve pra separar o
 // desenho em dois passos: primeiro so os icones (TriAPI), depois so texto e
 // retangulos (2D do engine) - sem intercalar as duas APIs.
@@ -173,12 +181,22 @@ static bool RTN_DrawBoxIcon( WEAPON *p, int x, int y, int w, int h, float r, flo
 
 	if( p->hBoxTex.Initialized() )
 	{
+		// RTN: instrumentacao opcional (rtn_hud_selectbar_gldebug 1) - ver o
+		// comentario do cvar la em cima. A primeira checagem DRENA a fila de
+		// erros que ja vinha de tras, pra nao culpar este codigo por erro dos
+		// outros; as seguintes e que apontam de verdade.
+		bool dbg = ( rtn_hud_selectbar_gldebug && rtn_hud_selectbar_gldebug->value >= 1.0f );
+		if( dbg ) GL_CheckForErrors();	// (dreno) erro anterior, NAO e daqui
+
 		// RTN: NAO mexe em CullFace nem reseta RenderMode aqui - quem chama
 		// e que segura o estado em volta do lote inteiro de icones (ver
 		// DrawWeaponSelectBar). Fazer isso por icone era o que escalava com
 		// a quantidade de armas na barra.
 		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
+		if( dbg ) GL_CheckForErrors();	// culpa: TriAPI RenderMode
+
 		gEngfuncs.pTriAPI->Color4f( r, g, b, alpha );
+		if( dbg ) GL_CheckForErrors();	// culpa: TriAPI Color4f
 
 		// RTN: o GL_Bind do render api e CACHEADO (common/render_api.h avisa
 		// que ele existe justamente pra manter o estado sincronizado entre
@@ -193,9 +211,14 @@ static bool RTN_DrawBoxIcon( WEAPON *p, int x, int y, int w, int h, float r, flo
 		// garantindo que o bind seguinte emita um glBindTexture real. Usa a
 		// "*white" (mesma que o hud_radio.cpp ja usa) em vez de handle nulo.
 		GL_Bind( 0, FIND_TEXTURE( "*white" ));
+		if( dbg ) GL_CheckForErrors();	// culpa: GL_Bind da "*white"
+
 		GL_Bind( 0, p->hBoxTex );
+		if( dbg ) GL_CheckForErrors();	// culpa: GL_Bind do icone (.tga)
 
 		OrthoQuad( x, y, x + w, y + h );
+		if( dbg ) GL_CheckForErrors();	// culpa: OrthoQuad (Begin/TexCoord/Vertex/End)
+
 		return true;
 	}
 
@@ -495,6 +518,13 @@ int CHudAmmo::Init( void )
 	// origem e outra e nao adianta mexer mais aqui.
 	if( !rtn_hud_selectbar_icons )
 		rtn_hud_selectbar_icons = gEngfuncs.pfnRegisterVariable( "rtn_hud_selectbar_icons", "1", FCVAR_ARCHIVE );
+
+	// RTN: instrumentacao pra achar QUAL chamada do desenho de icone suja o
+	// estado de GL (ver o comentario do cvar no topo do arquivo). Default 0 -
+	// so liga na mao pra diagnosticar, porque checar erro de GL a cada chamada
+	// e caro (pglGetError sincroniza a pipeline).
+	if( !rtn_hud_selectbar_gldebug )
+		rtn_hud_selectbar_gldebug = gEngfuncs.pfnRegisterVariable( "rtn_hud_selectbar_gldebug", "0", 0 );
 
 	m_iFlags |= HUD_ACTIVE; //!!!
 
@@ -1389,7 +1419,11 @@ int CHudAmmo::DrawWeaponSelectBar( float flTime )
 	// isolamento honesto.
 	if( anyIcon )
 	{
+		bool dbgBatch = ( rtn_hud_selectbar_gldebug && rtn_hud_selectbar_gldebug->value >= 1.0f );
+
+		if( dbgBatch ) GL_CheckForErrors();	// (dreno) erro de antes da barra
 		GL_Blend( GL_TRUE );	// sem isso o alpha nao e aplicado (mesma nota do hud_radio)
+		if( dbgBatch ) GL_CheckForErrors();	// culpa: GL_Blend(TRUE)
 
 		int ix = startX;
 		for( int i = start; i <= end; i++ )
@@ -1411,7 +1445,10 @@ int CHudAmmo::DrawWeaponSelectBar( float flTime )
 		}
 
 		gEngfuncs.pTriAPI->RenderMode( kRenderNormal );
+		if( dbgBatch ) GL_CheckForErrors();	// culpa: RenderMode(kRenderNormal) final
+
 		GL_Blend( GL_FALSE );	// nao vazar blend ligado pro resto do frame
+		if( dbgBatch ) GL_CheckForErrors();	// culpa: GL_Blend(FALSE)
 	}
 
 	// ---- passo 2: retangulos e texto (2D do engine), ja fora da TriAPI ----
