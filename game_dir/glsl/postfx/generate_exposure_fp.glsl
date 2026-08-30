@@ -19,6 +19,14 @@ uniform sampler2D	u_ScreenMap;	// average luminance
 uniform sampler2D	u_NormalMap;	// last frame exposure storage
 uniform float		u_MipLod;
 uniform float 		u_TimeDelta;
+// RTN (visao noturna): o que antes eram consts aqui dentro. Sem NVG o cliente
+// manda (1.0, 1.0, 0.6, 1.6), que sao exatamente os valores antigos - ou seja,
+// comportamento identico ao original. Com NVG ligado, o cliente levanta o teto
+// de exposicao (x): e assim que a amplificacao de luz acontece, em HDR, ANTES
+// do tonemap comprimir a cena. Ver client/render/gl_nvg.cpp.
+//   x = teto de exposicao   y = escala
+//   z = taxa de adaptacao ao escuro   w = taxa de adaptacao ao claro
+uniform vec4		u_NVGParams;
 
 varying vec2		var_TexCoord;
 
@@ -47,10 +55,10 @@ float ConvertEV100ToExposure(float ev100)
 void main()
 {
 	const float exposureMin = 0.01;
-	const float exposureMax = 1.0;
-	const float exposureScale = 1.0;
-	const float adaptRateToDark = 0.6;
-	const float adaptRateToBright = 1.6;
+	float exposureMax = u_NVGParams.x;
+	float exposureScale = u_NVGParams.y;
+	float adaptRateToDark = u_NVGParams.z;
+	float adaptRateToBright = u_NVGParams.w;
 
 	float currentAdaptRate;
 	float avgLuminanceLog = textureLod(u_ScreenMap, vec2(0.5), u_MipLod).r;

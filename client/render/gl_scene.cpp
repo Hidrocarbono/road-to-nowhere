@@ -17,6 +17,7 @@ GNU General Public License for more details.
 #include "utils.h"
 #include "entity_types.h"
 #include "gl_local.h"
+#include "gl_nvg.h"		// RTN: visao noturna
 #include <mathlib.h>
 #include "gl_aurora.h"
 #include "gl_rpart.h"
@@ -540,6 +541,12 @@ qboolean R_AddEntity( struct cl_entity_s *clent, int entityType )
 
 	if (clent->curstate.effects & EF_DIMLIGHT) {
 		R_SetupPlayerFlashlight(clent);
+	}
+
+	// RTN: iluminador IR da visao noturna (so o jogador local, e so quando o
+	// NVG esta ligado - a propria funcao filtra)
+	if (entityType == ET_PLAYER) {
+		RTN_NVG_SetupPlayerLight(clent);
 	}
 
 	if (clent->curstate.effects & EF_SCREENMOVIE)

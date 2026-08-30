@@ -36,7 +36,6 @@
 #include "customentity.h"
 #include "weapons.h"
 #include "weaponinfo.h"
-#include "nvg_controller.h"
 #include "weapons/rpg.h"
 #include "user_messages.h"
 #include "weapon_context.h"
@@ -466,9 +465,11 @@ void ClientCommand( edict_t *pEntity )
 	}
 	else if ( FStrEq(pcmd, "nvg_toggle" ) )
 	{
-		// RTN Fase 8: NVG on/off (tecla N) - comando vem via pfnServerCmd do client
-		// (NAO chega aos pfnAddServerCommand - esse registro so pega console do host)
-		CNVGController::GetInstance().Toggle( GetClassPtr((CBasePlayer *)pev) );
+		// RTN: visao noturna on/off. O comando vem via pfnServerCmd do client
+		// (NAO chega ao pfnAddServerCommand - esse registro so pega console do host).
+		// O estado e por jogador (CBasePlayer), a bateria drena no UpdateClientData
+		// e o efeito visual e client-side (client/render/gl_nvg.cpp).
+		GetClassPtr((CBasePlayer *)pev)->NVGToggle();
 	}
 	else if ( FStrEq(pcmd, "stimulant_use" ) )
 	{
@@ -763,9 +764,6 @@ void StartFrame( void )
 	if ( g_pGameRules )
 		g_pGameRules->Think();
 
-	// RTN F8: NVG battery drain / auto-shutdown (tecla N)
-	CNVGController::GetInstance().Update();
-
 	if ( g_fGameOver )
 		return;
 
@@ -789,6 +787,12 @@ void ClientPrecache( void )
 	PRECACHE_SOUND("player/breath_faster.wav");		// RTN F10: respiracao da corrida/dano (loop)
 	PRECACHE_SOUND("player/breath_low_NOREP.wav");	// RTN F10: respiracao ofegante (toque unico da exaustao)
 	PRECACHE_SOUND("player/gameover.wav");			// RTN F10: som da morte do jogador
+
+	// RTN: sons do liga/desliga da visao noturna. Precachear aqui (e nao so no
+	// item_nvgoggles) porque o jogador atravessa mudanca de nivel com o NVG no
+	// bolso, e o mapa novo pode nao ter nenhum item_nvgoggles dentro.
+	PRECACHE_SOUND("items/9mmclip1.wav");
+	PRECACHE_SOUND("items/suitchargeno1.wav");
 	
 	// PRECACHE_SOUND("player/pl_jumpland2.wav");		// UNDONE: play 2x step sound
 	

@@ -80,10 +80,20 @@ extern CGraph	WorldGraph;
 #define	FLASH_DRAIN_TIME	 1.2 //100 units/3 minutes
 #define	FLASH_CHARGE_TIME	 0.2 // 100 units/20 seconds  (seconds per unit)
 
+// RTN: visao noturna. Mesma mecanica de bateria da lanterna (100 unidades,
+// um tique por unidade), so que com autonomia maior e recarga bem mais lenta:
+// o NVG e para ser racionado, nao para ficar ligado o mapa inteiro.
+#define	NVG_DRAIN_TIME	 1.8 // 100 units/3 minutos de uso continuo
+#define	NVG_CHARGE_TIME	 4.5 // 100 units/7.5 minutos com o aparelho desligado
+
 // Global Savedata for player
 BEGIN_DATADESC( CBasePlayer )
 	DEFINE_FIELD( m_flFlashLightTime, FIELD_TIME ),
 	DEFINE_FIELD( m_iFlashBattery, FIELD_INTEGER ),
+	DEFINE_FIELD( m_bHasNVG, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_bNVGActive, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_iNVGBattery, FIELD_INTEGER ),
+	DEFINE_FIELD( m_flNVGTime, FIELD_TIME ),
 
 	DEFINE_FIELD( m_afButtonLast, FIELD_INTEGER ),
 	DEFINE_FIELD( m_afButtonPressed, FIELD_INTEGER ),
@@ -3172,6 +3182,12 @@ void CBasePlayer::Spawn( void )
 
 	m_iFlashBattery = 99;
 	m_flFlashLightTime = 1; // force first message
+
+	// RTN: o NVG sempre nasce desligado (respawn inclusive). m_bHasNVG e
+	// m_iNVGBattery NAO sao tocados aqui de proposito: sao equipamento, seguem
+	// o jogador por save/mudanca de nivel como o resto do inventario.
+	m_bNVGActive = FALSE;
+	m_flNVGTime = 0.0f;
 	m_iClientSndRoomtype = -1;
 
 // dont let uninitialized value here hurt the player
@@ -3920,6 +3936,108 @@ void CBasePlayer :: FlashlightTurnOff( void )
 
 }
 
+//=========================================================
+// RTN: visao noturna (item_nvgoggles)
+//
+// O servidor e dono APENAS do estado (tem/ligado/bateria). Todo o efeito
+// visual e client-side (client/render/gl_nvg.cpp) - por isso aqui nao ha
+// nenhum postfx, screenfade ou lightstyle: a unica coisa que trafega e
+// gmsgNVG, 2 bytes, e so quando algo muda.
+//=========================================================
+void CBasePlayer :: GiveNVG( void )
+{
+	m_bHasNVG = TRUE;
+	m_iNVGBattery = 100;
+
+	if( !m_flNVGTime )
+		m_flNVGTime = NVG_CHARGE_TIME + gpGlobals->time;
+
+	NVGSendState();
+}
+
+void CBasePlayer :: NVGToggle( void )
+{
+	if( !m_bHasNVG )
+	{
+		// sem o item nao ha o que ligar - avisa e sai
+		ClientPrint( pev, HUD_PRINTCENTER, "You don't have night vision goggles." );
+		return;
+	}
+
+	if( m_bNVGActive )
+	{
+		NVGTurnOff();
+		return;
+	}
+
+	if( m_iNVGBattery <= 0 )
+	{
+		EMIT_SOUND_DYN( ENT(pev), CHAN_ITEM, "items/suitchargeno1.wav", 0.7, ATTN_NORM, 0, PITCH_NORM );
+		return;
+	}
+
+	m_bNVGActive = TRUE;
+	m_flNVGTime = NVG_DRAIN_TIME + gpGlobals->time;
+	EMIT_SOUND_DYN( ENT(pev), CHAN_ITEM, "items/9mmclip1.wav", 0.6, ATTN_NORM, 0, 120 );
+	NVGSendState();
+}
+
+void CBasePlayer :: NVGTurnOff( void )
+{
+	if( !m_bNVGActive )
+		return;
+
+	m_bNVGActive = FALSE;
+	m_flNVGTime = NVG_CHARGE_TIME + gpGlobals->time;
+	EMIT_SOUND_DYN( ENT(pev), CHAN_ITEM, "items/9mmclip1.wav", 0.5, ATTN_NORM, 0, 90 );
+	NVGSendState();
+}
+
+// chamado do UpdateClientData, no mesmo tique da lanterna
+void CBasePlayer :: NVGUpdateBattery( void )
+{
+	if( !m_bHasNVG || !m_flNVGTime || m_flNVGTime > gpGlobals->time )
+		return;
+
+	if( m_bNVGActive )
+	{
+		if( m_iNVGBattery > 0 )
+		{
+			m_flNVGTime = NVG_DRAIN_TIME + gpGlobals->time;
+			m_iNVGBattery--;
+
+			if( !m_iNVGBattery )
+			{
+				NVGTurnOff();	// bateria acabou - ja envia o estado
+				return;
+			}
+		}
+	}
+	else
+	{
+		if( m_iNVGBattery < 100 )
+		{
+			m_flNVGTime = NVG_CHARGE_TIME + gpGlobals->time;
+			m_iNVGBattery++;
+		}
+		else
+		{
+			m_flNVGTime = 0.0f;	// cheia e desligada: para de tiquear
+			return;
+		}
+	}
+
+	NVGSendState();
+}
+
+void CBasePlayer :: NVGSendState( void )
+{
+	MESSAGE_BEGIN( MSG_ONE, gmsgNVG, NULL, pev );
+		WRITE_BYTE( m_bNVGActive ? 1 : 0 );
+		WRITE_BYTE( bound( 0, m_iNVGBattery, 100 ));
+	MESSAGE_END();
+}
+
 /*
 ===============
 ForceClientDllUpdate
@@ -4479,6 +4597,10 @@ void CBasePlayer :: UpdateClientData( void )
 
 		SendRTNItemsHUD( this );  // RTN F9: inicializa contadores laterais
 
+		// RTN: o cliente reseta o estado do NVG no ResetHUD (mudanca de nivel,
+		// load, reconexao). Reenvia para o render voltar ao estado certo.
+		NVGSendState();
+
 		if ( !m_fGameHUDInitialized )
 		{
 			MESSAGE_BEGIN( MSG_ONE, gmsgInitHUD, NULL, pev );
@@ -4637,6 +4759,9 @@ void CBasePlayer :: UpdateClientData( void )
 		WRITE_BYTE(m_iFlashBattery);
 		MESSAGE_END();
 	}
+
+	// RTN: mesma cadencia para a bateria do NVG
+	NVGUpdateBattery();
 
 	// calculate and update rain fading
 	if( m_flRainEndFade > 0.0f )

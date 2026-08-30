@@ -10,6 +10,7 @@ int gmsgFade = 0;
 int gmsgSelAmmo = 0;
 int gmsgFlashlight = 0;
 int gmsgFlashBattery = 0;
+int gmsgNVG = 0;			// RTN: visao noturna (estado + bateria)
 int gmsgResetHUD = 0;
 int gmsgInitHUD = 0;
 int gmsgShowGameTitle = 0;
@@ -76,6 +77,7 @@ void LinkUserMessages()
 	gmsgGeigerRange = REG_USER_MSG("Geiger", 1);
 	gmsgFlashlight = REG_USER_MSG("Flashlight", 2);
 	gmsgFlashBattery = REG_USER_MSG("FlashBat", 1);
+	gmsgNVG = REG_USER_MSG("NVG", 2);		// RTN: [ativo] [bateria 0..100]
 	gmsgHealth = REG_USER_MSG("Health", 1);
 	gmsgDamage = REG_USER_MSG("Damage", 12);
 	gmsgBattery = REG_USER_MSG("Battery", 2);

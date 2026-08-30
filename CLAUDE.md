@@ -108,6 +108,70 @@ não tem parser, o que obriga o servidor a ser autoritativo sobre modelos).
   `HUD_TxferLocalOverrides()` copia para `gHUD.m_iViewModelIndex` — o índice que o
   renderer desenha. Modelo hardcoded no cliente sobrepõe o do servidor.
 
+---
+
+# Visão noturna (NVG) — arquitetura e armadilhas
+
+Item `item_nvgoggles` (server) + efeito 100% client-side. Liga/desliga pelo comando
+de cliente `nvg` (bind `n` no `rtn.cfg`) → `pfnServerCmd("nvg_toggle")` →
+`CBasePlayer::NVGToggle()`.
+
+**Divisão de responsabilidade:** o servidor é dono só do estado (tem o item /
+ligado / bateria 0..100, tudo em `CBasePlayer` com `DEFINE_FIELD`, drenagem no
+`UpdateClientData()` junto com a lanterna) e publica por `gmsgNVG` (2 bytes, só
+quando muda). O render decide sozinho como aquilo aparece — `client/render/gl_nvg.cpp`.
+
+## Por que NÃO é postfx (erro que já custou um ciclo)
+
+A primeira tentativa fazia tudo em `postfx/postprocessing`, que roda **por último**
+(`gl_backend.cpp`: `RenderTonemap` → … → `RenderPostprocessing`). Ali a cena já é
+LDR e a exposição já foi limitada em 1.0 pelo `generate_exposure` — a informação do
+escuro **já foi descartada**. Somado a isso, `u_Brightness` naquele shader é
+**aditivo**: em pixel preto ele só levanta o piso, uniforme, e o tint verde por cima
+vira mancha chapada sem contraste. Não existe valor de `brightness`/`levels` que
+conserte isso. Se alguém pedir "mais verde" ou "mais brilho" no NVG, a resposta
+quase sempre é mexer no ganho de exposição, não no postfx.
+
+## As duas partes que fazem o efeito
+
+1. **Ganho de exposição (o que faz enxergar).** `postfx/generate_exposure_fp.glsl`
+   teve `exposureMax`/`exposureScale`/`adaptRate*` promovidos de `const` para o
+   uniform `u_NVGParams` (vec4). Sem NVG o cliente manda `(1.0, 1.0, 0.6, 1.6)` =
+   exatamente os valores antigos, comportamento idêntico ao original. Com NVG, o
+   teto sobe (`rtn_nvg_gain`, default 12) → amplificação **em HDR, antes** do
+   tonemap comprimir. Custo: nenhum passe novo, só uniforms.
+2. **Iluminador IR (o que resolve o preto absoluto).** Ganho é multiplicativo:
+   lightmap 0 × qualquer coisa = 0. Por isso há uma `CDynLight` `LIGHT_OMNI`
+   presa ao jogador local (`RTN_NVG_SetupPlayerLight`, chamada do `R_AddEntity`).
+
+**Custo do iluminador:** `R_RenderDynLightList` (`gl_world_new.cpp`) faz um passe
+aditivo por luz sobre a geometria dentro do volume dela. Por isso o raio default é
+curto (300) e `DLF_NOSHADOWS` é **obrigatório** — sem ele um `LIGHT_OMNI` aloca as
+6 faces do `depthCubemap` por frame (`gl_dlight.cpp:348`). Não aumente
+`rtn_nvg_ir_radius` sem medir.
+
+**Dependência de pipeline:** o passe de exposição só roda com `gl_hdr` **e**
+`r_tonemap` ligados (`gl_backend.cpp:477/493`). Com qualquer um desligado o NVG cai
+num caminho degradado (só IR + ganho modesto em LDR pelos color levels) e avisa uma
+vez no console.
+
+**Cvars:** `rtn_nvg_gain`, `rtn_nvg_ir`, `rtn_nvg_ir_radius`, `rtn_nvg_ir_intensity`,
+`rtn_nvg_tint`, `rtn_nvg_debug`.
+
+## Sobre a técnica de lightstyle (avaliada e não usada)
+
+`tr.lightstyle[]` é calculado inteiramente no cliente (`R_AnimateLight`,
+`gl_dlight.cpp:187`, chamada em `gl_backend.cpp:422`) e chega aos shaders como
+uniform por frame — dá para sobrescrever localmente de graça, sem rede. Não foi o
+caminho escolhido porque: (a) é multiplicativo, não cria luz onde o lightmap é 0;
+(b) só afeta iluminação baked, não luzes realtime; (c) `gl_slight.cpp` usa `uint`
+com `>>7` e clamp em 255, então **modelos estouram para branco antes do mundo**; e
+(d) o light cache de studio atualiza a cada 0,1s, dando *pop* ao ligar/desligar.
+Se um dia for usado, seria como complemento, com clamp em 550 (`gl_local.h:589`) —
+e nunca pelo servidor (`pfnLightStyle` é broadcast e atropela o flicker do mapa).
+
+---
+
 ## Ainda não portado
 
 Disparo em si (`PrimaryAttack`, som, animação, muzzle flash) continua hardcoded da

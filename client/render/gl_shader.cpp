@@ -314,6 +314,7 @@ static uniformTable_t glsl_uniformTable[] =
 { "u_LightScale",		UT_LIGHTSCALE,		UFL_GLOBAL_PARM },
 { "u_LightThreshold",	UT_LIGHTTHRESHOLD,		UFL_GLOBAL_PARM },
 { "u_NumVisibleModels",	UT_NUMVISIBLEMODELS,	UFL_GLOBAL_PARM },
+{ "u_NVGParams",		UT_NVGPARAMS,		0 },				// RTN: visao noturna
 { "u_Undefined",		UT_UNDEFINED,		0 },
 };
 

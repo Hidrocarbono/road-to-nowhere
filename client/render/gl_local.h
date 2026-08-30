@@ -71,6 +71,7 @@ GNU General Public License for more details.
 #define INVALID_HANDLE	0xFFFF
 
 #define FLASHLIGHT_KEY	-666
+#define NVG_LIGHT_KEY	-777	// RTN: iluminador IR da visao noturna
 #define SUNLIGHT_KEY	-777
 
 #define LM_SAMPLE_SIZE	16

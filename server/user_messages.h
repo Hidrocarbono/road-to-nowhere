@@ -6,6 +6,7 @@ extern int gmsgFade;
 extern int gmsgSelAmmo;
 extern int gmsgFlashlight;
 extern int gmsgFlashBattery;
+extern int gmsgNVG;		// RTN: visao noturna
 extern int gmsgResetHUD;
 extern int gmsgInitHUD;
 extern int gmsgShowGameTitle;
