@@ -1379,7 +1379,11 @@ int CHudAmmo::DrawWeaponSelectBar( float flTime )
 	totalW += GAP * ( visCount - 1 );
 
 	int centerX = ScreenWidth / 2;
-	int barY = ScreenHeight / 2 + YRES( 46 );	// logo abaixo da mira, sem tampar a visada
+	// RTN: distancia da mira. Começou em YRES(46) e o usuario reportou que a
+	// barra ainda cruzava a linha de tiro; dobrou pra YRES(96). Nao descer
+	// muito mais: o texto de municao da barra fica em barY + SEL_H + YRES(2),
+	// e a linha do CHudWeaponBox esta em ScreenHeight - YRES(12).
+	int barY = ScreenHeight / 2 + YRES( 96 );
 	int startX = centerX - totalW / 2;
 
 	// RTN: o desenho vai em DOIS passos, e isso e proposital.
