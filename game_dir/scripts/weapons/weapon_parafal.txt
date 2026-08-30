@@ -62,6 +62,16 @@ SoundData
 	"emptysound"	"weapons/w_empty.wav"	// ammo is out
 }
 
+// PIPELINE DO ICONE - LEIA ANTES DE MEXER
+// O "file" abaixo aponta pro .tga de PROPOSITO, e o jogo NAO abre esse .tga.
+//   autoria   -> gfx/vgui/ammo/640_<arma>.tga   (edite so este)
+//   conversao -> python3 utils/gen_hudsprites.py (roda FORA do jogo; gera o
+//                .spr se faltar e escreve sprites/<arma>.txt)
+//   runtime   -> sprites/rtn_hud_ammo_<arma>.spr (o que o engine carrega)
+// Carregar .tga em jogo foi medido quebrado neste engine: o proprio engine
+// responde "GL_INVALID_ENUM while uploading ...tga [2D]". Por isso o runtime
+// e so .spr. Nao apague os .spr achando que o .tga entra no lugar - sem eles
+// a barra de selecao fica so com o nome da arma (e avisa no console).
 // hud sprites
 "hudsprite"	
 {
