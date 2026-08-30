@@ -784,6 +784,26 @@ void CBaseMonster :: StartTask ( Task_t *pTask )
 			}
 		}
 		break;
+	case TASK_FIND_LINE_OF_FIRE_FROM_ENEMY:
+		{
+			if ( m_hEnemy == NULL )
+			{
+				TaskFail();
+				return;
+			}
+
+			if ( FindLineOfFire( m_hEnemy->GetAbsOrigin(), m_hEnemy->pev->view_ofs, 0, CoverRadius() ) )
+			{
+				TaskComplete();
+			}
+			else
+			{
+				// nenhum node próximo tem linha de tiro livre (ou não tem node graph
+				// nesse mapa) — quem chamou essa task decide o que fazer no fail schedule
+				TaskFail();
+			}
+		}
+		break;
 	case TASK_FIND_COVER_FROM_BEST_SOUND:
 		{
 			CSound *pBestSound;
