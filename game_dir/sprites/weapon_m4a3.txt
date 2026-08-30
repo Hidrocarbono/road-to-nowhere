@@ -1,0 +1,7 @@
+6
+weapon	320	sprites/rtn_hud_ammo_weapon_m4a3.spr	0 0 200 62
+weapon	640	sprites/rtn_hud_ammo_weapon_m4a3.spr	0 0 200 62
+weapon_s	320	sprites/rtn_hud_ammo_weapon_m4a3.spr	0 0 200 62
+weapon_s	640	sprites/rtn_hud_ammo_weapon_m4a3.spr	0 0 200 62
+ammo	320	sprites/rtn_hud_ammo_weapon_m4a3.spr	0 0 200 62
+ammo	640	sprites/rtn_hud_ammo_weapon_m4a3.spr	0 0 200 62
