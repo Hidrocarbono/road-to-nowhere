@@ -86,9 +86,9 @@ SoundData
 "hudsprite"	
 {
 	"name"		"ammo"
-	"file"		"sprites/rtn_hud_ammo_weapon_parafal.spr"
+	"file"		"gfx/vgui/ammo/640_weapon_parafal.tga"
 	"x"		"0"
-	"y"		"0"
-	"width"		"200"
-	"height"		"62"
+	"y"		"72"
+	"width"		"24"
+	"height"		"24"
 }
