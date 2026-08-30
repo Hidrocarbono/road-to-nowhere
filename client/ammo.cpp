@@ -181,8 +181,23 @@ static bool RTN_DrawBoxIcon( WEAPON *p, int x, int y, int w, int h, float r, flo
 
 	if( dbg ) GL_CheckForErrors();	// (dreno) erro anterior, NAO e daqui
 
-	wrect_t srcRect = { 0, 0, sw, sh };
-	wrect_t dstRect = { x, y, x + w, y + h };
+	// ATENCAO: wrect_t e { left, right, top, bottom } (common/wrect.h) - NAO e
+	// {left,top,right,bottom}. Preencher por campo, nunca posicional: eu troquei
+	// os campos aqui e o resultado foi um quad degenerado que nao desenhava nada
+	// (o srcRect saia com right=0, ou seja, largura zero em texcoord). O icone
+	// simplesmente nao aparecia, sem erro nenhum no console.
+	wrect_t srcRect;
+	srcRect.left = 0;
+	srcRect.top = 0;
+	srcRect.right = sw;
+	srcRect.bottom = sh;
+
+	wrect_t dstRect;
+	dstRect.left = x;
+	dstRect.top = y;
+	dstRect.right = x + w;
+	dstRect.bottom = y + h;
+
 	DrawSpriteAsPoly( p->hBoxSpr, &srcRect, &dstRect, kRenderTransTexture, r, g, b, alpha );
 	if( dbg ) GL_CheckForErrors();	// culpa: DrawSpriteAsPoly (.spr)
 
