@@ -99,10 +99,28 @@ static void RTN_EnsureBoxIcon( WEAPON *p )
 	}
 }
 
+// RTN: em 0, a barra de selecao nao desenha nenhum icone (so texto) - valvula
+// pra isolar em jogo se o GL_INVALID_ENUM vem do desenho de textura crua.
+cvar_t *rtn_hud_selectbar_icons = NULL;
+
+// RTN: a arma tem algum icone carregado (spr OU tga)? Serve pra separar o
+// desenho em dois passos: primeiro so os icones (TriAPI), depois so texto e
+// retangulos (2D do engine) - sem intercalar as duas APIs.
+static bool RTN_HasBoxIcon( WEAPON *p )
+{
+	if( rtn_hud_selectbar_icons && rtn_hud_selectbar_icons->value < 1.0f )
+		return false;	// icones desligados: tudo cai no fallback de texto
+
+	return ( p->hBoxSpr != 0 ) || p->hBoxTex.Initialized();
+}
+
 // RTN: proporcao largura/altura do icone carregado (spr OU tga - o que tiver),
 // pra nao esticar/achatar o desenho. false se nao ha icone nenhum ainda.
 static bool RTN_GetBoxIconAspect( WEAPON *p, float *outAspect )
 {
+	if( !RTN_HasBoxIcon( p ))
+		return false;	// sem icone: usa a largura nominal do fallback de texto
+
 	if( p->hBoxSpr )
 	{
 		int sw = SPR_Width( p->hBoxSpr, 0 );
@@ -133,6 +151,9 @@ static bool RTN_GetBoxIconAspect( WEAPON *p, float *outAspect )
 // texto do nome).
 static bool RTN_DrawBoxIcon( WEAPON *p, int x, int y, int w, int h, float r, float g, float b, float alpha )
 {
+	if( !RTN_HasBoxIcon( p ))
+		return false;	// sem icone, ou icones desligados pelo cvar
+
 	if( p->hBoxSpr )
 	{
 		int sw = SPR_Width( p->hBoxSpr, 0 );
@@ -142,37 +163,39 @@ static bool RTN_DrawBoxIcon( WEAPON *p, int x, int y, int w, int h, float r, flo
 
 		wrect_t srcRect = { 0, 0, sw, sh };
 		wrect_t dstRect = { x, y, x + w, y + h };
+		// NOTA: DrawSpriteAsPoly mexe em CullFace por conta propria (tri.cpp).
+		// Hoje nenhuma arma usa .spr, entao esse caminho nao roda; se voltar a
+		// rodar com varios icones, vale medir se esse churn traz de volta o
+		// GL_INVALID_ENUM - foi ele que motivou o lote unico do .tga abaixo.
 		DrawSpriteAsPoly( p->hBoxSpr, &srcRect, &dstRect, kRenderTransTexture, r, g, b, alpha );
 		return true;
 	}
 
 	if( p->hBoxTex.Initialized() )
 	{
-		// RTN: mesmo bracket de estado que DrawSpriteAsPoly ja usa pro
-		// desenho de sprite (CullFace off/on em volta do quad).
-		gEngfuncs.pTriAPI->CullFace( TRI_NONE );
+		// RTN: NAO mexe em CullFace nem reseta RenderMode aqui - quem chama
+		// e que segura o estado em volta do lote inteiro de icones (ver
+		// DrawWeaponSelectBar). Fazer isso por icone era o que escalava com
+		// a quantidade de armas na barra.
 		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
 		gEngfuncs.pTriAPI->Color4f( r, g, b, alpha );
 
-		// RTN: o GL_Bind do render dll e CACHEADO - ele compara com
-		// glState.currentTextures[tmu] e NAO emite glBindTexture se achar
-		// que a textura ja esta ligada. Só que o desenho 2D do proprio
-		// engine (SPR_Draw/DrawHudString/FillRGBA, o menu do VGUI, etc)
-		// liga textura por FORA desse cache. Resultado: o cache diz
-		// "hBoxTex ja esta ligada", o bind vira no-op, e o quad sai
-		// pintado com a ULTIMA textura que o engine ligou de verdade -
-		// e exatamente o sintoma reportado (quadrado branco/cinza que
-		// virou a arte do menu depois de abrir o menu).
+		// RTN: o GL_Bind do render api e CACHEADO (common/render_api.h avisa
+		// que ele existe justamente pra manter o estado sincronizado entre
+		// engine e client). Como o renderer do mod (client/render/) liga
+		// textura direto por pgl* durante a cena, esse cache pode chegar aqui
+		// dessincronizado do GL real: ele acha que hBoxTex ja esta ligada, o
+		// bind vira no-op, e o quad sai pintado com a ultima textura que
+		// ficou ligada de fato - exatamente o sintoma do quadrado que virou a
+		// arte do menu depois de abrir o menu.
 		//
-		// Ligar Null antes forca o cache a mudar de valor, garantindo que
-		// o bind seguinte emita um glBindTexture real.
-		GL_Bind( 0, TextureHandle::Null() );
+		// Ligar uma textura conhecida antes forca o cache a mudar de valor,
+		// garantindo que o bind seguinte emita um glBindTexture real. Usa a
+		// "*white" (mesma que o hud_radio.cpp ja usa) em vez de handle nulo.
+		GL_Bind( 0, FIND_TEXTURE( "*white" ));
 		GL_Bind( 0, p->hBoxTex );
 
 		OrthoQuad( x, y, x + w, y + h );
-
-		gEngfuncs.pTriAPI->RenderMode( kRenderNormal );
-		gEngfuncs.pTriAPI->CullFace( TRI_FRONT );
 		return true;
 	}
 
@@ -464,6 +487,14 @@ int CHudAmmo::Init( void )
 
 	// controls whether or not weapons can be selected in one keypress
 	CVAR_REGISTER( "hud_fastswitch", "0", FCVAR_ARCHIVE );
+
+	// RTN: valvula de diagnostico pro caso do GL_INVALID_ENUM. Em 0, a barra
+	// de selecao desenha SO texto (nenhum quad de textura crua). Se o erro
+	// sumir com rtn_hud_selectbar_icons 0 e voltar com 1, a origem esta
+	// confirmada no desenho dos icones; se continuar dos dois jeitos, a
+	// origem e outra e nao adianta mexer mais aqui.
+	if( !rtn_hud_selectbar_icons )
+		rtn_hud_selectbar_icons = gEngfuncs.pfnRegisterVariable( "rtn_hud_selectbar_icons", "1", FCVAR_ARCHIVE );
 
 	m_iFlags |= HUD_ACTIVE; //!!!
 
@@ -1310,6 +1341,7 @@ int CHudAmmo::DrawWeaponSelectBar( float flTime )
 	int itemW[WEAPON_SELECT_BAR_VISIBLE];
 	int itemH[WEAPON_SELECT_BAR_VISIBLE];
 	int totalW = 0;
+	bool anyIcon = false;	// nenhum item com icone => nao encosta na TriAPI
 
 	for( int i = start; i <= end; i++ )
 	{
@@ -1319,6 +1351,9 @@ int CHudAmmo::DrawWeaponSelectBar( float flTime )
 		int w = ( isSelected ? NOMINAL_W * 3 / 2 : NOMINAL_W );
 
 		RTN_EnsureBoxIcon( p );
+		if( RTN_HasBoxIcon( p ))
+			anyIcon = true;
+
 		float aspect;
 		if( RTN_GetBoxIconAspect( p, &aspect ))
 			w = (int)( h * aspect + 0.5f );
@@ -1332,8 +1367,55 @@ int CHudAmmo::DrawWeaponSelectBar( float flTime )
 
 	int centerX = ScreenWidth / 2;
 	int barY = ScreenHeight / 2 + YRES( 46 );	// logo abaixo da mira, sem tampar a visada
-	int x = centerX - totalW / 2;
+	int startX = centerX - totalW / 2;
 
+	// RTN: o desenho vai em DOIS passos, e isso e proposital.
+	//
+	// Antes era um loop so, intercalando por item: quad de textura crua
+	// (TriAPI) -> FillRGBA/DrawHudString (2D do engine) -> quad de novo, e
+	// ainda ligando/desligando CullFace e RenderMode A CADA icone. Com uma
+	// arma so isso passava batido; com duas ou mais o churn de estado se
+	// repetia e vinha o GL_INVALID_ENUM - que e exatamente a assinatura
+	// reportada em teste ("so aparece com mais de uma arma").
+	//
+	// Os dois lugares do projeto que ja desenhavam VARIAS texturas cruas por
+	// frame sem erro (hud_radio.cpp e hud_textwindow.cpp) fazem o oposto:
+	// setam o estado UMA vez em volta do lote todo, nao encostam em CullFace
+	// e nao intercalam com o 2D do engine. E esse padrao que se segue aqui.
+
+	// ---- passo 1: so os icones (TriAPI), estado setado uma vez ----
+	// Se nenhum item tem icone (ou rtn_hud_selectbar_icons esta em 0), nao se
+	// encosta na TriAPI de jeito nenhum - e o que torna o cvar um teste de
+	// isolamento honesto.
+	if( anyIcon )
+	{
+		GL_Blend( GL_TRUE );	// sem isso o alpha nao e aplicado (mesma nota do hud_radio)
+
+		int ix = startX;
+		for( int i = start; i <= end; i++ )
+		{
+			WEAPON *p = list[i];
+			bool isSelected = ( i == selIdx );
+			int k = i - start;
+			int w = itemW[k];
+			int h = itemH[k];
+			int y = barY + ( SEL_H - h );	// alinha pela base (itens menores "sentam" na mesma linha)
+
+			int alpha = (int)(( isSelected ? 255 : 150 ) * fade );
+			int r = 255, g = 255, b = 255;
+			if( !gWR.HasAmmo( p ))
+				UnpackRGB( r, g, b, RGB_REDISH );	// sem municao - mesmo aviso visual do menu antigo
+
+			RTN_DrawBoxIcon( p, ix, y, w, h, r / 255.0f, g / 255.0f, b / 255.0f, alpha / 255.0f );
+			ix += w + GAP;
+		}
+
+		gEngfuncs.pTriAPI->RenderMode( kRenderNormal );
+		GL_Blend( GL_FALSE );	// nao vazar blend ligado pro resto do frame
+	}
+
+	// ---- passo 2: retangulos e texto (2D do engine), ja fora da TriAPI ----
+	int x = startX;
 	for( int i = start; i <= end; i++ )
 	{
 		WEAPON *p = list[i];
@@ -1341,14 +1423,14 @@ int CHudAmmo::DrawWeaponSelectBar( float flTime )
 		int k = i - start;
 		int w = itemW[k];
 		int h = itemH[k];
-		int y = barY + ( SEL_H - h );	// alinha pela base (itens menores "sentam" na mesma linha)
+		int y = barY + ( SEL_H - h );
 
 		int alpha = (int)(( isSelected ? 255 : 150 ) * fade );
 		int r = 255, g = 255, b = 255;
 		if( !gWR.HasAmmo( p ))
-			UnpackRGB( r, g, b, RGB_REDISH );	// sem municao - mesmo aviso visual do menu antigo
+			UnpackRGB( r, g, b, RGB_REDISH );
 
-		if( !RTN_DrawBoxIcon( p, x, y, w, h, r / 255.0f, g / 255.0f, b / 255.0f, alpha / 255.0f ))
+		if( !RTN_HasBoxIcon( p ))
 		{
 			// sem icone (nem .spr nem .tga) - so um retangulo discreto com
 			// o nome, pra barra continuar legivel mesmo pra arma que ainda

@@ -181,13 +181,16 @@ int CHudWeaponBox::Draw( float flTime )
 		// textura crua em 2D
 		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
 		gEngfuncs.pTriAPI->Color4f( 1.0f, 1.0f, 1.0f, 1.0f );
-		// RTN: GL_Bind do render dll e cacheado e o desenho 2D do engine
-		// liga textura por fora desse cache - sem invalidar antes, o bind
-		// vira no-op e o quad sai com a ultima textura ligada pelo engine.
-		// Ver o comentario longo em client/ammo.cpp::RTN_DrawBoxIcon.
-		GL_Bind( 0, TextureHandle::Null() );
+		GL_Blend( GL_TRUE );
+		// RTN: GL_Bind do render api e cacheado e o renderer do mod liga
+		// textura direto por pgl* durante a cena - sem invalidar antes, o
+		// bind pode virar no-op e o quad sai com a ultima textura ligada de
+		// fato. Ver o comentario longo em client/ammo.cpp::RTN_DrawBoxIcon.
+		GL_Bind( 0, FIND_TEXTURE( "*white" ));
 		GL_Bind( 0, m_hWeaponTex );
 		OrthoQuad( wbX, wbY, wbX + w, wbY + h );
+		gEngfuncs.pTriAPI->RenderMode( kRenderNormal );
+		GL_Blend( GL_FALSE );
 	}
 
 	// nome da arma (pequeno, cinza claro) + municao "00/000" NA MESMA LINHA
