@@ -4805,6 +4805,11 @@ void CBasePlayer :: UpdateClientData( void )
 				WRITE_BYTE(II.iPosition);				// byte		bucket pos
 				WRITE_BYTE(II.iId);						// byte		id (bit index into m_iWeapons)
 				WRITE_BYTE(II.iFlags);					// byte		Flags
+				// RTN: peso (ItemInfo::iWeight, ja existia pra troca automatica -
+				// nunca tinha sido enviado ao client). A barra de selecao nova
+				// (client/ammo.cpp::DrawWeaponSelectBar) ordena por isso em vez
+				// de bucket/posicao - ver o comentario la.
+				WRITE_BYTE(bound(0, II.iWeight, 255));	// byte		peso (ordena a barra de selecao)
 			MESSAGE_END();
 		}
 	}

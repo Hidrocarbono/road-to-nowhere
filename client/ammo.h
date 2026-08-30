@@ -16,6 +16,8 @@
 #ifndef AMMO_H
 #define AMMO_H
 
+#include "texture_handle.h"	// RTN: TextureHandle - fallback .tga do icone da barra de selecao
+
 #define MAX_WEAPON_NAME		128
 #define MAX_WEAPON_SLOTS		5 // hud item selection slots
 #define WEAPON_FLAGS_SELECTONEMPTY	1
@@ -34,8 +36,22 @@ struct WEAPON
 	int	iFlags;
 	int	iId;
 	int	iClip;
+	int	iWeight;	// RTN: peso (script "weight" / ItemInfo::iWeight) - ordena a barra de selecao nova (leve->pesada)
 
 	int	iCount;		// # of itesm in plist
+
+	// RTN: icone da barra de selecao nova (DrawWeaponSelectBar, client/ammo.cpp):
+	//   sprites/rtn_hud_ammo_<classname>.spr  (.spr v32 truecolor)
+	// Gere com tools/tga2spr.py a partir do .tga em gfx/vgui/ammo/. Sem o
+	// arquivo, a barra mostra so o nome em texto. Carregado uma vez so, na
+	// primeira vez que a arma aparece na barra.
+	//
+	// NAO existe mais fallback pra textura crua (.tga via LOAD_TEXTURE +
+	// GL_Bind): esse caminho gerava GL_INVALID_ENUM todo frame neste engine -
+	// medido com rtn_hud_selectbar_gldebug, o erro saia exatamente no GL_Bind
+	// do handle vindo do LOAD_TEXTURE. Ver CHANGELOG_AGENT.md secao 4.
+	SpriteHandle	hBoxSpr;
+	bool	bBoxIconLoaded;
 
 	SpriteHandle	hActive;
 	wrect_t	rcActive;

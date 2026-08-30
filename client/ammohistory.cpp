@@ -143,26 +143,18 @@ int HistoryResource :: DrawAmmoHistory( float flTime )
 			}
 			else if( rgAmmoHistory[i].type == HISTSLOT_WEAP )
 			{
-				WEAPON *weap = gWR.GetWeapon( rgAmmoHistory[i].iId );
-
-				if( !weap )
-					return 1;  // we don't know about the weapon yet, so don't draw anything
-
-				int r, g, b;
-				r = gHUD.m_color.r;
-				g = gHUD.m_color.g;
-				b = gHUD.m_color.b;
-
-				if( !gWR.HasAmmo( weap ))
-					UnpackRGB( r, g, b, RGB_REDISH ); // if the weapon doesn't have ammo, display it as red
-
-				float scale = (rgAmmoHistory[i].DisplayTime - flTime) * 80;
-				ScaleColors( r, g, b, Q_min( scale, 255 ));
-
-				int ypos = ScreenHeight - ( AMMO_PICKUP_PICK_HEIGHT + ( AMMO_PICKUP_GAP * i ));
-				int xpos = ScreenWidth - ( weap->rcInactive.right - weap->rcInactive.left );
-				SPR_Set( weap->hInactive, r, g, b );
-				SPR_DrawAdditive( 0, xpos, ypos, &weap->rcInactive );
+				// RTN: o sprite da arma coletada NAO e mais desenhado, a pedido
+				// do usuario - aparecia grande e alaranjado no canto inferior
+				// direito, brigando com o CHudWeaponBox que ja fica ali.
+				//
+				// A entrada continua entrando no historico (AddToHistory) e
+				// expirando normalmente pelo bloco de tempo la em cima; so o
+				// desenho saiu. Se um dia voltar, era:
+				//   ypos = ScreenHeight - (AMMO_PICKUP_PICK_HEIGHT + AMMO_PICKUP_GAP*i)
+				//   xpos = ScreenWidth - (rcInactive.right - rcInactive.left)
+				//   SPR_Set( weap->hInactive, ... ) + SPR_DrawAdditive( 0, xpos, ypos, &weap->rcInactive )
+				// e a cor vinha de gHUD.m_color (o alaranjado), virando
+				// RGB_REDISH quando a arma estava sem municao.
 			}
 			else if( rgAmmoHistory[i].type == HISTSLOT_ITEM )
 			{
