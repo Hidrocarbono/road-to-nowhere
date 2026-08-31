@@ -1027,9 +1027,16 @@ void R_UpdateFogParameters()
 		if( state->rendercolor.r || state->rendercolor.g || state->rendercolor.b )
 		{
 			// enable global exponential color fog
-			tr.fogColor[0] = state->rendercolor.r / 255.0f;
-			tr.fogColor[1] = state->rendercolor.g / 255.0f;
-			tr.fogColor[2] = state->rendercolor.b / 255.0f;
+			// RTN: faltava o SRGBToLinear que o caminho do fog do worldspawn
+			// (branch abaixo) ja tem - o mapper define rendercolor em sRGB
+			// (a UI de cor do Hammer/editor), igual ao "fog" key. Sem isso, o
+			// fog debaixo d'agua ficava sistematicamente mais claro/lavado
+			// que o fog em terra pra numeros nominalmente iguais - mesma
+			// classe de bug que ja foi corrigida pro fog global, so que aqui
+			// ninguem tinha replicado o fix.
+			tr.fogColor[0] = SRGBToLinear( state->rendercolor.r / 255.0f );
+			tr.fogColor[1] = SRGBToLinear( state->rendercolor.g / 255.0f );
+			tr.fogColor[2] = SRGBToLinear( state->rendercolor.b / 255.0f );
 			tr.fogDensity = state->renderamt * WATER_FOG_DENSITY_FACTOR;
 			tr.fogEnabled = true;
 		}
