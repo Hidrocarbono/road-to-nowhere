@@ -230,5 +230,16 @@ void R_InitializeConVars()
 	// O valor efetivo acompanha gl_fog_density_scale: com o fog no minimo o ceu
 	// quase nao e tocado.
 	gl_fog_sky_blend = CVAR_REGISTER("gl_fog_sky_blend", "0.85", FCVAR_ARCHIVE);
+
+	// RTN: diagnostico do "fog sempre clareia pra branco" - a cor do fog so
+	// muda recompilando o mapa (chave "fog" do worldspawn), entao nao dava pra
+	// testar cor ao vivo. Com gl_fog_debug 1, R_UpdateFogParameters() ignora o
+	// worldspawn inteiro e usa gl_fog_debug_color/density direto - troca
+	// instantanea, sem build nem recompilar mapa. Nao arquivado de proposito
+	// (ferramenta de diagnostico, nao preferencia - mesma logica do
+	// rtn_hud_selectbar_gldebug em client/ammo.cpp).
+	gl_fog_debug = CVAR_REGISTER("gl_fog_debug", "0", 0);
+	gl_fog_debug_color = CVAR_REGISTER("gl_fog_debug_color", "255 0 255", 0);	// magenta: impossivel confundir com o por-do-sol
+	gl_fog_debug_density = CVAR_REGISTER("gl_fog_debug_density", "0.01", 0);
 }
 

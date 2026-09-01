@@ -59,6 +59,9 @@ extern cvar_t *gl_lensdirt_threshold;	// RTN F10: lens dirt - brilho minimo p/ a
 extern cvar_t *gl_lensdirt_debug;	// RTN F10: lens dirt - mostra a textura sem mascara
 extern cvar_t *gl_fog_density_scale;	// RTN: multiplicador da density do fog do mapa
 extern cvar_t *gl_fog_sky_blend;	// RTN: teto de cobertura do fog sobre o skybox
+extern cvar_t *gl_fog_debug;		// RTN: 1 = ignora o worldspawn, usa gl_fog_debug_color/density
+extern cvar_t *gl_fog_debug_color;	// RTN: "R G B" 0-255, so quando gl_fog_debug 1
+extern cvar_t *gl_fog_debug_density;	// RTN: mesma unidade de tr.fogDensity, so quando gl_fog_debug 1
 extern cvar_t *r_dof_fstop;
 extern cvar_t *r_dof_debug;
 extern cvar_t *r_allow_mirrors;

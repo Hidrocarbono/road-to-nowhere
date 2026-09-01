@@ -1073,4 +1073,21 @@ void R_UpdateFogParameters()
 		tr.fogDensity = 0.0f;
 		tr.fogEnabled = false;
 	}
+
+	// RTN: diagnostico "fog sempre clareia" - roda por ULTIMO e ATROPELA tudo
+	// acima (inclusive o branch sem fog), pra testar cor/densidade ao vivo sem
+	// depender do worldspawn (que so muda recompilando o mapa). Ver o
+	// comentario do cvar em gl_cvars.cpp.
+	if( gl_fog_debug && gl_fog_debug->value >= 1.0f )
+	{
+		float r = 255.0f, g = 0.0f, b = 255.0f;
+		if( gl_fog_debug_color )
+			sscanf( gl_fog_debug_color->string, "%f %f %f", &r, &g, &b );
+
+		tr.fogColor[0] = SRGBToLinear( bound( 0.0f, r, 255.0f ) / 255.0f );
+		tr.fogColor[1] = SRGBToLinear( bound( 0.0f, g, 255.0f ) / 255.0f );
+		tr.fogColor[2] = SRGBToLinear( bound( 0.0f, b, 255.0f ) / 255.0f );
+		tr.fogDensity = gl_fog_debug_density ? gl_fog_debug_density->value : 0.01f;
+		tr.fogEnabled = true;
+	}
 }
