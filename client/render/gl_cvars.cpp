@@ -54,6 +54,9 @@ cvar_t *gl_lensdirt_threshold;	// RTN F10
 cvar_t *gl_lensdirt_debug;	// RTN F10
 cvar_t *gl_fog_density_scale;	// RTN: calibragem do fog do mod
 cvar_t *gl_fog_sky_blend;	// RTN: quanto o fog cobre o skybox
+cvar_t *gl_fog_debug;		// RTN: diagnostico - ver comentario no CVAR_REGISTER abaixo
+cvar_t *gl_fog_debug_color;
+cvar_t *gl_fog_debug_density;
 cvar_t *r_dof_fstop;
 cvar_t *r_dof_debug;
 cvar_t *r_pvs_radius;
