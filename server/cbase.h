@@ -1005,6 +1005,12 @@ public:
 // people gib if their health is <= this at the time of death
 #define GIB_HEALTH_VALUE		-30
 
+// RTN: dano de bala num ÚNICO tiro acima disso força DMG_ALWAYSGIB (vira gibs
+// na hora que mata, mesmo sem dano de sobra). Original do HL1 era 16 — quase
+// qualquer arma decente já gibava no tiro que matava. Subido pra 100: só armas
+// realmente pesadas (ou vários tiros empilhados na mesma rajada) gibam.
+#define RTN_BULLET_ALWAYSGIB_DAMAGE	100
+
 #define ROUTE_SIZE			8 // how many waypoints a monster can store at one time
 #define MAX_OLD_ENEMIES		4 // how many old enemies to remember
 
