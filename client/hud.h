@@ -654,6 +654,7 @@ public:
 	int  _cdecl MsgFunc_StudioDecal( const char *pszName, int iSize, void *pbuf );
 	int  _cdecl MsgFunc_SetupBones( const char *pszName, int iSize, void *pbuf );
 	int  _cdecl MsgFunc_PostFxSettings( const char *pszName, int iSize, void *pbuf );
+	int  _cdecl MsgFunc_NVG( const char *pszName, int iSize, void *pbuf );	// RTN: visao noturna
 
 	// Screen information
 	SCREENINFO m_scrinfo;

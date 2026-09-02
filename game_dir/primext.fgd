@@ -2964,6 +2964,15 @@
 	noise(sound) : "Alternative Pick Up Sound"
 ]
 
+// RTN: oculos de visao noturna. Ao pegar, habilita o NVG e enche a bateria.
+// Liga/desliga pelo comando de cliente "nvg" (bind no rtn.cfg).
+@PointClass size(-16 -16 0, 16 16 36) base(Weapon, Parent, Targetx, Reflection) studio("models/w_battery.mdl") = item_nvgoggles : "Night vision goggles (RTN)" 
+[
+	master(target_destination) : "Master" 
+	model(studio) : "Alternative Model"
+	noise(sound) : "Alternative Pick Up Sound"
+]
+
 @PointClass size(-16 -16 0, 16 16 36) base(Weapon, Parent, Targetx, Reflection) studio()= item_generic : "Generic item" 
 [
 	master(target_destination) : "Master" 
@@ -3416,6 +3425,9 @@
 	[
 		32 : "SquadLeader" : 0
 		1024 : "Don't Drop Wpn" : 0
+		4096 : "Has Flashlight" : 0
+		8192 : "Flashlight Starts On" : 0
+		16384 : "Don't Wander (stay put when idle)" : 0
 	]
 	netname(string) : "Squad Name"
 	weapons(Choices) : "Weapons" : 1 =

@@ -58,6 +58,11 @@ int g_fGruntQuestion;				// true if an idle grunt asked a question. Cleared when
 #define HGRUNT_MINIMUM_HEADSHOT_DAMAGE	15 // must do at least this much damage in one shot to head to score a headshot kill
 #define HGRUNT_SENTENCE_VOLUME			(float)0.35 // volume of grunt sentences
 
+// raio mínimo livre de obstáculo ao redor do grunt pra ele se arriscar a
+// jogar granada — evita granada quicando de volta nele mesmo em espaço
+// apertado (atrás de caixa, cantos fechados etc.), ver IsGrenadeSpotSafe()
+#define GRUNT_GRENADE_MIN_CLEARANCE	180
+
 #define HGRUNT_9MMAR			1
 #define HGRUNT_HANDGRENADE			2
 #define HGRUNT_GRENADELAUNCHER		3
@@ -72,6 +77,11 @@ int g_fGruntQuestion;				// true if an idle grunt asked a question. Cleared when
 #define GUN_MP5						0
 #define GUN_SHOTGUN					1
 #define GUN_NONE					2
+
+// lanterna (env_dynlight anexado ao cano da arma)
+#define SF_GRUNT_HAS_FLASHLIGHT		4096	// este grunt tem lanterna
+#define SF_GRUNT_FLASHLIGHT_ON		8192	// começa ligada (só importa se HAS_FLASHLIGHT também estiver marcado)
+#define SF_GRUNT_NO_WANDER			16384	// não vaguear à toa por node quando ocioso (opt-out, ver WanderRandomly)
 
 //=========================================================
 // Monster's Anim Events Go Here
@@ -103,6 +113,8 @@ enum
 	SCHED_GRUNT_WAIT_FACE_ENEMY,
 	SCHED_GRUNT_TAKECOVER_FAILED,// special schedule type that forces analysis of conditions and picks the best possible schedule to recover from this type of failure.
 	SCHED_GRUNT_ELOF_FAIL,
+	SCHED_GRUNT_DUCK_COVER_WAIT, // abaixar e esperar alguns segundos atrás da cobertura atual
+	SCHED_GRUNT_ELOF_BLIND, // fallback do establish-line-of-fire quando não acha node com linha de tiro por perto
 };
 
 //=========================================================
@@ -134,6 +146,8 @@ public:
 	BOOL CheckMeleeAttack1 ( float flDot, float flDist );
 	BOOL CheckRangeAttack1 ( float flDot, float flDist );
 	BOOL CheckRangeAttack2 ( float flDot, float flDist );
+	BOOL IsGrenadeSpotSafe ( void ); // false se tem obstáculo perto o bastante da granada quicar de volta
+	BOOL WanderRandomly ( void ); // sem patrulha no mapa, escolhe um node aleatório por perto e anda até lá
 	void CheckAmmo ( void );
 	void SetActivity ( Activity NewActivity );
 	void StartTask ( Task_t *pTask );
@@ -147,17 +161,24 @@ public:
 	void PrescheduleThink ( void );
 	void GibMonster( void );
 	void SpeakSentence( void );
-	
+
 	CBaseEntity *Kick( void );
 	Schedule_t *GetSchedule( void );
 	Schedule_t *GetScheduleOfType ( int Type );
 	void TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType);
 	int TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType );
+	void Killed( entvars_t *pevAttacker, int iGib );
 
 	int IRelationship ( CBaseEntity *pTarget );
 
 	BOOL FOkToSpeak( void );
 	void JustSpoke( void );
+
+	// altura dos olhos muda quando o grunt está agachado atrás de cobertura (ACT_TWITCH)
+	Vector EyePosition( void );
+
+	// lanterna anexada ao cano da arma (attachment 0), ver SF_GRUNT_HAS_FLASHLIGHT
+	void InitFlashlight( void );
 
 	CUSTOM_SCHEDULES;
 	DECLARE_DATADESC();
@@ -180,6 +201,12 @@ public:
 	int	m_iBrassShell;
 	int	m_iShotgunShell;
 	int	m_iSentence;
+
+	int	m_iLastFireCheckResult; // resultado do último CheckRangeAttack1: 0-atira de qualquer jeito, 1-só agachado, 2-só em pé
+
+	EHANDLE	m_hFlashlight; // env_dynlight anexado à arma, ver InitFlashlight()
+
+	float	m_flNextWanderTime; // cooldown do WanderRandomly() — tanto pra esperar parado quanto pra tentar de novo se falhou
 
 	static const char *pGruntSentences[];
 };

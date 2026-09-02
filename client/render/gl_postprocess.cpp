@@ -13,6 +13,7 @@
 #include "gl_cvars.h"
 #include "gl_debug.h"
 #include "postfx_controller.h"
+#include "gl_nvg.h"		// RTN: visao noturna
 #include "filesystem_utils.h"	// fs::File - le so o cabecalho do lensdirt.tga (dimensoes reais)
 
 static CBasePostEffects	post;
@@ -294,6 +295,15 @@ TextureHandle CBasePostEffects::RenderExposureStorage()
 			case UT_TIMEDELTA: 
 				u->SetValue((float)tr.frametime);
 				break;
+			case UT_NVGPARAMS:
+			{
+				// RTN: sem NVG isto entrega (1.0, 1.0, 0.6, 1.6), que sao os
+				// consts originais do shader - comportamento inalterado.
+				float nvgParams[4];
+				RTN_NVG_GetExposureParams(nvgParams);
+				u->SetValue(nvgParams[0], nvgParams[1], nvgParams[2], nvgParams[3]);
+				break;
+			}
 		}
 	}
 
@@ -521,6 +531,7 @@ void InitPostEffects()
 	// carregou e como ela e. Nao e ARCHIVE: nao deve sobreviver ao restart.
 	gl_lensdirt_debug = CVAR_REGISTER( "gl_lensdirt_debug", "0", 0 );	// RTN F10
 	r_postfx_enable = CVAR_REGISTER("r_postfx_enable", "1.0", 0);
+	RTN_NVG_RegisterCvars();	// RTN: visao noturna
 	r_tonemap = CVAR_REGISTER("r_tonemap", "1", FCVAR_ARCHIVE);
 	r_bloom = CVAR_REGISTER("r_bloom", "1", FCVAR_ARCHIVE);
 	r_bloom_scale = CVAR_REGISTER("r_bloom_scale", "0.7", FCVAR_ARCHIVE);
@@ -775,6 +786,11 @@ void RenderPostprocessing()
 			post.fxParameters.SetSaturation( post.fxParameters.GetSaturation() * ( 1.0f - fGray ));
 		}
 	}
+
+	// RTN: visao noturna - tint/grain/vinheta por cima do estado do frame.
+	// O ganho de luz em si NAO esta aqui (esta no auto-exposure, ver
+	// gl_nvg.cpp): neste ponto a cena ja e LDR e nao ha mais o que amplificar.
+	RTN_NVG_ApplyPostFx( post.fxParameters );
 
 	GL_Setup2D();
 	post.RequestScreenColor();

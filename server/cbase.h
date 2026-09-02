@@ -1024,6 +1024,7 @@ public:
 #define bits_CAP_MELEE_ATTACK1	( 1 << 13) // can do a melee attack 1
 #define bits_CAP_MELEE_ATTACK2	( 1 << 14) // can do a melee attack 2
 #define bits_CAP_FLY		( 1 << 15) // can fly, move all around
+#define bits_CAP_CROUCH_COVER	( 1 << 16) // sabe se abaixar atrás de cobertura baixa (detectado automaticamente se o modelo tem ACT_TWITCH)
 
 #define bits_CAP_DOORS_GROUP		(bits_CAP_USE | bits_CAP_AUTO_DOORS | bits_CAP_OPEN_DOORS)
 

@@ -18,7 +18,6 @@
 #include "game.h"
 #include "cbase.h"
 #include "weaponscript.h"
-#include "nvg_controller.h"
 #include "client.h"
 #include "user_messages.h"
 #include "sv_materials.h"
@@ -519,7 +518,6 @@ void GameDLLInit( void )
 
 	// Brother Hermes - Road to Nowhere: register weapon script system console commands
 	WeaponScript_Init();
-	NVG_Init();
 	CVAR_REGISTER (&displaysoundlist);
 
 	CVAR_REGISTER (&teamplay);

@@ -23,6 +23,7 @@
 #include "r_efx.h"
 #include "gl_studio.h"
 #include "postfx_controller.h"
+#include "gl_nvg.h"		// RTN: visao noturna
 
 // CHud message handlers
 DECLARE_HUDMESSAGE( Logo );
@@ -46,6 +47,7 @@ DECLARE_HUDMESSAGE( CustomDecal );
 DECLARE_HUDMESSAGE( StudioDecal );
 DECLARE_HUDMESSAGE( SetupBones );
 DECLARE_HUDMESSAGE( PostFxSettings );
+DECLARE_HUDMESSAGE( NVG );		// RTN: visao noturna
 
 int CHud :: InitHUDMessages( void )
 {
@@ -56,6 +58,7 @@ int CHud :: InitHUDMessages( void )
 	HOOK_MESSAGE( ViewMode );
 	HOOK_MESSAGE( SetFOV );
 	HOOK_MESSAGE( IronSight );		// RTN F10: mira de ferro (DOF)
+	HOOK_MESSAGE( NVG );			// RTN: visao noturna
 	HOOK_MESSAGE( Concuss );
 	HOOK_MESSAGE( Weapons );
 	HOOK_MESSAGE( Particle );
@@ -126,6 +129,11 @@ int CHud :: MsgFunc_ResetHUD( const char *pszName, int iSize, void *pbuf )
 
 	// reset concussion effect
 	m_iConcussionEffect = 0;
+
+	// RTN: o servidor reenvia o estado do NVG logo em seguida (ver
+	// CBasePlayer::UpdateClientData), entao zerar aqui e seguro e evita
+	// carregar o efeito de um nivel para o outro.
+	RTN_NVG_Reset();
 
 	return 1;
 }
@@ -216,6 +224,22 @@ int CHud :: MsgFunc_IronSight( const char *pszName, int iSize, void *pbuf )
 	// ativa/desativa o DOF (foco no alvo, fundo desfocado com bokeh)
 	extern void RTN_SetIronSightDOF( bool bActive );
 	RTN_SetIronSightDOF( READ_BYTE() != 0 );
+
+	END_READ();
+
+	return 1;
+}
+
+int CHud :: MsgFunc_NVG( const char *pszName, int iSize, void *pbuf )
+{
+	BEGIN_READ( pszName, pbuf, iSize );
+
+	// RTN: estado da visao noturna. O servidor e dono do "tem o item" e da
+	// bateria; aqui so se decide como isso aparece (ganho de exposicao +
+	// iluminador IR + tint) - ver client/render/gl_nvg.cpp.
+	bool bActive = ( READ_BYTE() != 0 );
+	int iBattery = READ_BYTE();
+	RTN_NVG_SetState( bActive, iBattery );
 
 	END_READ();
 

@@ -172,6 +172,7 @@ typedef enum
 	UT_LIGHTSCALE,
 	UT_LIGHTTHRESHOLD,
 	UT_NUMVISIBLEMODELS,
+	UT_NVGPARAMS,		// RTN: visao noturna (parametros do auto-exposure)
 	UT_UNDEFINED,
 } uniformType_t;
 

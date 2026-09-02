@@ -1056,7 +1056,8 @@ int CBaseMonster :: CheckEnemy ( CBaseEntity *pEnemy )
 
 	iUpdatedLKP = FALSE;
 	ClearConditions ( bits_COND_ENEMY_FACING_ME );
-	
+	ClearConditions ( bits_COND_CROUCH_NOT_SAFE );
+
 	if ( !FVisible( pEnemy ) )
 	{
 		ASSERT(!HasConditions(bits_COND_SEE_ENEMY));
@@ -1070,6 +1071,25 @@ int CBaseMonster :: CheckEnemy ( CBaseEntity *pEnemy )
 		SetConditions ( bits_COND_ENEMY_DEAD );
 		ClearConditions( bits_COND_SEE_ENEMY | bits_COND_ENEMY_OCCLUDED );
 		return FALSE;
+	}
+
+	// checa se abaixar aqui mesmo já resolve, ou se o inimigo ainda enxerga
+	// a altura de cobertura (pra decidir entre recarregar/esperar aqui ou
+	// procurar cobertura de verdade)
+	if ( m_afCapability & bits_CAP_CROUCH_COVER )
+	{
+		CBaseMonster *pEnemyMonster = pEnemy->MyMonsterPointer();
+		if ( pEnemyMonster )
+		{
+			TraceResult tr;
+			Vector vecEnemyGun = pEnemyMonster->GetGunPosition();
+			Vector vecMeCrouched = GetAbsOrigin() + Vector( 0, 0, 36 );
+			UTIL_TraceLine( vecEnemyGun, vecMeCrouched, ignore_monsters, ignore_glass, ENT(pev), &tr );
+			if ( tr.flFraction == 1.0 ) // ainda dá pra me acertar mesmo abaixado, não é seguro
+			{
+				SetConditions( bits_COND_CROUCH_NOT_SAFE );
+			}
+		}
 	}
 
 	Vector vecEnemyPos = pEnemy->GetAbsOrigin();
@@ -2082,6 +2102,14 @@ void CBaseMonster :: StartMonster ( void )
 		m_afCapability |= bits_CAP_MELEE_ATTACK2;
 	}
 
+	// ACT_TWITCH é a animação de abaixar/se encolher atrás de cobertura baixa.
+	// se o modelo tem essa sequência, o monstro ganha a capacidade automaticamente
+	// (monster_leech usa ACT_TWITCH pra outra coisa, então fica de fora)
+	if ( LookupActivity ( ACT_TWITCH ) != ACTIVITY_NOT_AVAILABLE && !FClassnameIs( pev, "monster_leech" ) )
+	{
+		m_afCapability |= bits_CAP_CROUCH_COVER;
+	}
+
 	// Raise monster off the floor one unit, then drop to floor
 	if ( pev->movetype != MOVETYPE_FLY && !FBitSet( pev->spawnflags, SF_MONSTER_FALL_TO_GROUND ) )
 	{
@@ -2311,6 +2339,86 @@ BOOL CBaseMonster :: FindCover ( Vector vecThreat, Vector vecViewOffset, float f
 	return FALSE;
 }
 
+//=========================================================
+// FindLineOfFire - o oposto do FindCover: em vez de procurar um
+// node que ESCONDE de um ameaça, procura o node MAIS PERTO DE MIM
+// (não do inimigo) que já tem linha de tiro livre até o inimigo.
+//
+// Existe porque TASK_GET_PATH_TO_ENEMY (o antigo "estabelecer linha
+// de tiro") simplesmente anda reto na direção do inimigo até
+// enxergá-lo, sem nenhuma noção de cobertura — o que faz o monstro
+// atravessar campo aberto até o primeiro ponto que resolve, mesmo
+// quando existiria uma posição bem mais perto (e exposta por menos
+// tempo) que já serviria. Preferindo o node mais barato de alcançar
+// em vez do mais próximo do inimigo, o monstro tende a se expor
+// pelo caminho mais curto possível.
+//=========================================================
+BOOL CBaseMonster :: FindLineOfFire ( Vector vecEnemy, Vector vecViewOffset, float flMinDist, float flMaxDist )
+{
+	if ( !flMaxDist )
+	{
+		flMaxDist = 784;
+	}
+
+	if ( flMinDist > 0.5 * flMaxDist )
+	{
+		flMinDist = 0.5 * flMaxDist;
+	}
+
+	if ( !WorldGraph.m_fGraphPresent || !WorldGraph.m_fGraphPointersSet )
+	{
+		ALERT ( at_aiconsole, "Graph not ready for FindLineOfFire!\n" );
+		return FALSE;
+	}
+
+	int iMyNode = WorldGraph.FindNearestNode( GetAbsOrigin(), this );
+	if ( iMyNode == NO_NODE )
+	{
+		return FALSE;
+	}
+
+	int iMyHullIndex = WorldGraph.HullIndex( this );
+	Vector vecTargetEyes = vecEnemy + vecViewOffset;
+
+	int iBestNode = NO_NODE;
+	float flBestPathLength = 0;
+
+	for ( int i = 0; i < WorldGraph.m_cNodes; i++ )
+	{
+		CNode &node = WorldGraph.Node( i );
+
+		float flDist = ( GetAbsOrigin() - node.m_vecOrigin ).Length();
+		if ( flDist < flMinDist || flDist > flMaxDist )
+			continue;
+
+		// mesma altura de tiro agachado que o CHGrunt usa (GetGunPosition), pra
+		// não escolher um node que só serve pra atirar em pé
+		TraceResult tr;
+		Vector vecFirePos = node.m_vecOrigin + Vector( 0, 0, 40 );
+		UTIL_TraceLine( vecFirePos, vecTargetEyes, ignore_monsters, ignore_glass, ENT(pev), &tr );
+
+		if ( tr.flFraction != 1.0 )
+			continue; // sem linha de tiro livre a partir daqui
+
+		if ( !FValidateCover( node.m_vecOrigin ) ) // reaproveita a mesma validação de solidez que o FindCover usa
+			continue;
+
+		float flPathLength = ( i == iMyNode ) ? 0.0f : WorldGraph.PathLength( iMyNode, i, iMyHullIndex, m_afCapability );
+		if ( i != iMyNode && flPathLength <= 0 )
+			continue; // não tem rota até esse node
+
+		if ( iBestNode == NO_NODE || flPathLength < flBestPathLength )
+		{
+			flBestPathLength = flPathLength;
+			iBestNode = i;
+		}
+	}
+
+	if ( iBestNode == NO_NODE )
+		return FALSE;
+
+	return MoveToLocation( ACT_RUN, 0, WorldGraph.Node( iBestNode ).m_vecOrigin );
+}
 
 //=========================================================
 // BuildNearestRoute - tries to build a route as close to the target

@@ -130,6 +130,14 @@ public:
 	float		m_flFlashLightTime;	// Time until next battery draw/Recharge
 	int		m_iFlashBattery;		// Flashlight Battery Draw
 
+	// RTN: visao noturna (item_nvgoggles). O efeito em si e 100% client-side
+	// (ganho de exposicao + iluminador IR, ver client/render/gl_nvg.cpp); o
+	// servidor so e dono do estado e da bateria, e publica por gmsgNVG.
+	BOOL		m_bHasNVG;		// jogador pegou o item
+	BOOL		m_bNVGActive;		// ligado agora
+	int		m_iNVGBattery;		// 0..100
+	float		m_flNVGTime;		// proximo tique de drenagem/recarga
+
 	int		m_afButtonLast;
 	int		m_afButtonPressed;
 	BOOL	m_bWasRunning;   // RTN F10: jogador corria no frame anterior (p/ o toque unico do breath_low ao parar)
@@ -277,6 +285,15 @@ public:
 	BOOL		FlashlightIsOn( void );
 	void		FlashlightTurnOn( void );
 	void		FlashlightTurnOff( void );
+
+	// RTN: visao noturna
+	BOOL		NVGIsOn( void ) { return m_bNVGActive; }
+	BOOL		HasNVG( void ) { return m_bHasNVG; }
+	void		GiveNVG( void );
+	void		NVGToggle( void );
+	void		NVGTurnOff( void );
+	void		NVGUpdateBattery( void );
+	void		NVGSendState( void );
 	
 	void UpdatePlayerSound ( void );
 	void UpdatePlayerTimers();
