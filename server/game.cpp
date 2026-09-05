@@ -276,6 +276,28 @@ cvar_t	sk_zombie_dmg_both_slash1 = {"sk_zombie_dmg_both_slash1","0"};
 cvar_t	sk_zombie_dmg_both_slash2 = {"sk_zombie_dmg_both_slash2","0"};
 cvar_t	sk_zombie_dmg_both_slash3 = {"sk_zombie_dmg_both_slash3","0"};
 
+// RTN: multiplicador de dano por hitgroup exclusivo do zumbi (porte do
+// Paranoia2_original, mesmos valores-padrão de lá)
+cvar_t	sk_zombie_head1 = {"sk_zombie_head1","2"};
+cvar_t	sk_zombie_head2 = {"sk_zombie_head2","2"};
+cvar_t	sk_zombie_head3 = {"sk_zombie_head3","2"};
+
+cvar_t	sk_zombie_chest1 = {"sk_zombie_chest1","1"};
+cvar_t	sk_zombie_chest2 = {"sk_zombie_chest2","1"};
+cvar_t	sk_zombie_chest3 = {"sk_zombie_chest3","1"};
+
+cvar_t	sk_zombie_stomach1 = {"sk_zombie_stomach1","1"};
+cvar_t	sk_zombie_stomach2 = {"sk_zombie_stomach2","1"};
+cvar_t	sk_zombie_stomach3 = {"sk_zombie_stomach3","1"};
+
+cvar_t	sk_zombie_arm1 = {"sk_zombie_arm1","1"};
+cvar_t	sk_zombie_arm2 = {"sk_zombie_arm2","1"};
+cvar_t	sk_zombie_arm3 = {"sk_zombie_arm3","1"};
+
+cvar_t	sk_zombie_leg1 = {"sk_zombie_leg1","1"};
+cvar_t	sk_zombie_leg2 = {"sk_zombie_leg2","1"};
+cvar_t	sk_zombie_leg3 = {"sk_zombie_leg3","1"};
+
 
 //Turret
 cvar_t	sk_turret_health1 = {"sk_turret_health1","0"};
@@ -763,6 +785,26 @@ void GameDLLInit( void )
 	CVAR_REGISTER ( &sk_zombie_dmg_both_slash1 );// {"sk_zombie_dmg_both_slash1","0"};
 	CVAR_REGISTER ( &sk_zombie_dmg_both_slash2 );// {"sk_zombie_dmg_both_slash2","0"};
 	CVAR_REGISTER ( &sk_zombie_dmg_both_slash3 );// {"sk_zombie_dmg_both_slash3","0"};
+
+	CVAR_REGISTER ( &sk_zombie_head1 );
+	CVAR_REGISTER ( &sk_zombie_head2 );
+	CVAR_REGISTER ( &sk_zombie_head3 );
+
+	CVAR_REGISTER ( &sk_zombie_chest1 );
+	CVAR_REGISTER ( &sk_zombie_chest2 );
+	CVAR_REGISTER ( &sk_zombie_chest3 );
+
+	CVAR_REGISTER ( &sk_zombie_stomach1 );
+	CVAR_REGISTER ( &sk_zombie_stomach2 );
+	CVAR_REGISTER ( &sk_zombie_stomach3 );
+
+	CVAR_REGISTER ( &sk_zombie_arm1 );
+	CVAR_REGISTER ( &sk_zombie_arm2 );
+	CVAR_REGISTER ( &sk_zombie_arm3 );
+
+	CVAR_REGISTER ( &sk_zombie_leg1 );
+	CVAR_REGISTER ( &sk_zombie_leg2 );
+	CVAR_REGISTER ( &sk_zombie_leg3 );
 
 
 	//Turret

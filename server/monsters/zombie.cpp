@@ -1,9 +1,9 @@
 /***
 *
 *	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
 *
 *   This source code contains proprietary and confidential information of
@@ -17,29 +17,32 @@
 //=========================================================
 
 #include	"zombie.h"
+#include	"nodes.h"
+#include	"soundent.h"
+#include	"weapons.h" // SpawnBlood, AddMultiDamage
 
 LINK_ENTITY_TO_CLASS( monster_zombie, CZombie );
 
-const char *CZombie::pAttackHitSounds[] = 
+const char *CZombie::pAttackHitSounds[] =
 {
 	"zombie/claw_strike1.wav",
 	"zombie/claw_strike2.wav",
 	"zombie/claw_strike3.wav",
 };
 
-const char *CZombie::pAttackMissSounds[] = 
+const char *CZombie::pAttackMissSounds[] =
 {
 	"zombie/claw_miss1.wav",
 	"zombie/claw_miss2.wav",
 };
 
-const char *CZombie::pAttackSounds[] = 
+const char *CZombie::pAttackSounds[] =
 {
 	"zombie/zo_attack1.wav",
 	"zombie/zo_attack2.wav",
 };
 
-const char *CZombie::pIdleSounds[] = 
+const char *CZombie::pIdleSounds[] =
 {
 	"zombie/zo_idle1.wav",
 	"zombie/zo_idle2.wav",
@@ -47,21 +50,21 @@ const char *CZombie::pIdleSounds[] =
 	"zombie/zo_idle4.wav",
 };
 
-const char *CZombie::pAlertSounds[] = 
+const char *CZombie::pAlertSounds[] =
 {
 	"zombie/zo_alert10.wav",
 	"zombie/zo_alert20.wav",
 	"zombie/zo_alert30.wav",
 };
 
-const char *CZombie::pPainSounds[] = 
+const char *CZombie::pPainSounds[] =
 {
 	"zombie/zo_pain1.wav",
 	"zombie/zo_pain2.wav",
 };
 
 //=========================================================
-// Classify - indicates this monster's place in the 
+// Classify - indicates this monster's place in the
 // relationship table.
 //=========================================================
 int	CZombie :: Classify ( void )
@@ -90,6 +93,10 @@ void CZombie :: SetYawSpeed ( void )
 
 int CZombie :: TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType )
 {
+	// zumbi não respira - imune a gás nervoso (porte do Paranoia2_original)
+	if ( bitsDamageType & DMG_NERVEGAS )
+		return 0;
+
 	// Take 30% damage from bullets
 	if ( bitsDamageType == DMG_BULLET )
 	{
@@ -106,6 +113,80 @@ int CZombie :: TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, floa
 	return CBaseMonster::TakeDamage( pevInflictor, pevAttacker, flDamage, bitsDamageType );
 }
 
+//=========================================================
+// TraceAttack - overridden pro zumbi ter multiplicador de dano por
+// hitgroup PRÓPRIO (não o genérico mon* compartilhado com todo
+// monstro), decal de "miolos" na cabeça e respeito ao
+// SF_MONSTER_INVINCIBLE (porte do Paranoia2_original).
+//=========================================================
+void CZombie :: TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType )
+{
+	if ( !pev->takedamage )
+		return;
+
+	if ( FBitSet( pev->spawnflags, SF_MONSTER_INVINCIBLE ) )
+	{
+		CBaseEntity *pAttacker = CBaseEntity::Instance( pevAttacker );
+		if ( pAttacker && pAttacker->IsPlayer() )
+			return;
+
+		if ( pevAttacker->owner )
+		{
+			CBaseEntity *pOwner = CBaseEntity::Instance( pevAttacker->owner );
+			if ( pOwner && pOwner->IsPlayer() )
+				return;
+		}
+	}
+
+	m_LastHitGroup = ptr->iHitgroup;
+	TraceBleed( flDamage, vecDir, ptr, bitsDamageType );
+
+	// RTN DEBUG (temporário): se o dano continuar igual em qualquer parte do
+	// corpo, é pra ver aqui se o hitgroup reportado pelo modelo é sempre 0
+	// (HITGROUP_GENERIC) - nesse caso o problema é o .mdl (hitboxes do
+	// zombie.mdl sem grupos distintos), não este código. Remover depois de
+	// confirmado.
+	ALERT( at_aiconsole, "zombie TraceAttack: hitgroup=%d dmg_antes=%.1f\n", ptr->iHitgroup, flDamage );
+
+	switch ( ptr->iHitgroup )
+	{
+	case HITGROUP_GENERIC:
+		break;
+	case HITGROUP_HEAD:
+		{
+			// respinga na parede atrás da cabeça, não no próprio zumbi
+			// (decal só cola em geometria do mapa, não em modelo de monstro)
+			TraceResult btr;
+			UTIL_TraceLine( ptr->vecEndPos, ptr->vecEndPos + vecDir * 172, ignore_monsters, ENT(pev), &btr );
+			UTIL_TraceCustomDecal( &btr, "brains", RANDOM_FLOAT( 0.0f, 360.0f ) );
+			SpawnBlood( ptr->vecEndPos, BloodColor(), flDamage * 4 );
+			flDamage *= gSkillData.zomHead;
+		}
+		break;
+	case HITGROUP_CHEST:
+		flDamage *= gSkillData.zomChest;
+		break;
+	case HITGROUP_STOMACH:
+		flDamage *= gSkillData.zomStomach;
+		break;
+	case HITGROUP_LEFTARM:
+	case HITGROUP_RIGHTARM:
+		flDamage *= gSkillData.zomArm;
+		break;
+	case HITGROUP_LEFTLEG:
+	case HITGROUP_RIGHTLEG:
+		flDamage *= gSkillData.zomLeg;
+		break;
+	default:
+		break;
+	}
+
+	SpawnBlood( ptr->vecEndPos, BloodColor(), flDamage * 2 );
+	// RTN F10: sangue no corpo do monstro, não só na parede
+	UTIL_BloodStudioDecalTrace( ptr, BloodColor() );
+	AddMultiDamage( pevAttacker, this, flDamage, bitsDamageType );
+}
+
 void CZombie :: PainSound( void )
 {
 	int pitch = 95 + RANDOM_LONG(0,9);
@@ -114,11 +195,22 @@ void CZombie :: PainSound( void )
 		EMIT_SOUND_DYN ( ENT(pev), CHAN_VOICE, pPainSounds[ RANDOM_LONG(0,ARRAYSIZE(pPainSounds)-1) ], 1.0, ATTN_NORM, 0, pitch );
 }
 
+//=========================================================
+// AlertSound - toca o grito de "te avistei" e avisa os zumbis
+// próximos por som de combate, pra reagirem em cadeia (nenhum dos
+// dois lados, RTN nem P2, tinha isso - ideia própria pra dar
+// sensação de horda em vez de zumbi isolado).
+//=========================================================
 void CZombie :: AlertSound( void )
 {
 	int pitch = 95 + RANDOM_LONG(0,9);
 
 	EMIT_SOUND_DYN ( ENT(pev), CHAN_VOICE, pAlertSounds[ RANDOM_LONG(0,ARRAYSIZE(pAlertSounds)-1) ], 1.0, ATTN_NORM, 0, pitch );
+
+	// bits_SOUND_COMBAT já está no ISoundMask padrão (CBaseMonster), então
+	// qualquer outro zumbi/monstro por perto já escuta isso sem mudança
+	// nenhuma de mask - só precisa alguém emitindo o som.
+	CSoundEnt::InsertSound ( bits_SOUND_COMBAT, GetAbsOrigin(), 384, 0.3 );
 }
 
 void CZombie :: IdleSound( void )
@@ -272,13 +364,133 @@ void CZombie :: Precache()
 
 	for ( i = 0; i < ARRAYSIZE( pPainSounds ); i++ )
 		PRECACHE_SOUND((char *)pPainSounds[i]);
-}	
+}
 
 //=========================================================
 // AI Schedules Specific to this monster
 //=========================================================
 
+//=========================================================
+// busca por som mais persistente que o padrão: em vez de esperar 10s
+// parado antes de voltar, espera bem mais - zumbi não desiste fácil de
+// um barulho que ouviu (ideia própria, não existe nem no RTN nem no P2)
+//=========================================================
+#define ZOMBIE_INVESTIGATE_WAIT	25
 
+Task_t tlZombieInvestigateSound[] =
+{
+	{ TASK_STOP_MOVING,				(float)0					},
+	{ TASK_STORE_LASTPOSITION,		(float)0					},
+	{ TASK_GET_PATH_TO_BESTSOUND,	(float)0					},
+	{ TASK_FACE_IDEAL,				(float)0					},
+	{ TASK_WALK_PATH,				(float)0					},
+	{ TASK_WAIT_FOR_MOVEMENT,		(float)0					},
+	{ TASK_PLAY_SEQUENCE,			(float)ACT_IDLE				},
+	{ TASK_WAIT,					(float)ZOMBIE_INVESTIGATE_WAIT	},
+	{ TASK_GET_PATH_TO_LASTPOSITION,(float)0					},
+	{ TASK_WALK_PATH,				(float)0					},
+	{ TASK_WAIT_FOR_MOVEMENT,		(float)0					},
+	{ TASK_CLEAR_LASTPOSITION,		(float)0					},
+};
+
+Schedule_t slZombieInvestigateSound[] =
+{
+	{
+		tlZombieInvestigateSound,
+		ARRAYSIZE ( tlZombieInvestigateSound ),
+		bits_COND_NEW_ENEMY			|
+		bits_COND_SEE_FEAR			|
+		bits_COND_LIGHT_DAMAGE		|
+		bits_COND_HEAVY_DAMAGE		|
+		bits_COND_HEAR_SOUND,
+
+		bits_SOUND_DANGER,
+		"ZombieInvestigateSound"
+	},
+};
+
+DEFINE_CUSTOM_SCHEDULES( CZombie )
+{
+	slZombieInvestigateSound,
+};
+
+IMPLEMENT_CUSTOM_SCHEDULES( CZombie, CBaseMonster );
+
+Schedule_t *CZombie :: GetScheduleOfType ( int Type )
+{
+	if ( Type == SCHED_INVESTIGATE_SOUND )
+		return &slZombieInvestigateSound[ 0 ];
+
+	return CBaseMonster :: GetScheduleOfType( Type );
+}
+
+//=========================================================
+// WanderRandomly - mesma receita do CHGrunt (server/monsters/hgrunt.cpp):
+// sem patrulha configurada no mapa, escolhe um node alcançável qualquer
+// por perto e manda o zumbi andar até lá, em vez de ficar parado o
+// tempo todo em que não tem inimigo.
+//=========================================================
+BOOL CZombie :: WanderRandomly ( void )
+{
+	if ( gpGlobals->time < m_flNextWanderTime )
+		return FALSE;
+
+	if ( !WorldGraph.m_fGraphPresent || !WorldGraph.m_fGraphPointersSet )
+	{
+		m_flNextWanderTime = gpGlobals->time + 5;
+		return FALSE;
+	}
+
+	int iMyNode = WorldGraph.FindNearestNode( GetAbsOrigin(), this );
+	if ( iMyNode == NO_NODE || WorldGraph.m_cNodes <= 1 )
+		return FALSE;
+
+	int iMyHullIndex = WorldGraph.HullIndex( this );
+
+	for ( int tries = 0; tries < 5; tries++ )
+	{
+		int iCandidate = RANDOM_LONG( 0, WorldGraph.m_cNodes - 1 );
+		if ( iCandidate == iMyNode )
+			continue;
+
+		float flPathLength = WorldGraph.PathLength( iMyNode, iCandidate, iMyHullIndex, m_afCapability );
+		if ( flPathLength <= 0 )
+			continue;
+
+		if ( MoveToLocation( ACT_WALK, 0, WorldGraph.Node( iCandidate ).m_vecOrigin ) )
+		{
+			m_flNextWanderTime = gpGlobals->time + RANDOM_FLOAT( 8, 20 );
+			return TRUE;
+		}
+	}
+
+	m_flNextWanderTime = gpGlobals->time + 3;
+	return FALSE;
+}
+
+Schedule_t *CZombie :: GetSchedule( void )
+{
+	switch ( m_MonsterState )
+	{
+	case MONSTERSTATE_ALERT:
+	case MONSTERSTATE_IDLE:
+		{
+			// mesmos gates do CHGrunt: sem patrulha, sem rota em andamento,
+			// sem som/dano recente pra reagir primeiro.
+			if ( !FBitSet( pev->spawnflags, SF_ZOMBIE_NO_WANDER ) &&
+				 FStringNull( pev->target ) &&
+				 FRouteClear() &&
+				 !HasConditions( bits_COND_HEAR_SOUND | bits_COND_LIGHT_DAMAGE | bits_COND_HEAVY_DAMAGE ) &&
+				 WanderRandomly() )
+			{
+				return GetScheduleOfType( SCHED_IDLE_WALK );
+			}
+		}
+		break;
+	}
+
+	return CBaseMonster :: GetSchedule();
+}
 
 int CZombie::IgnoreConditions ( void )
 {
@@ -290,7 +502,7 @@ int CZombie::IgnoreConditions ( void )
 		if (pev->health < 20)
 			iIgnore |= (bits_COND_LIGHT_DAMAGE|bits_COND_HEAVY_DAMAGE);
 		else
-#endif			
+#endif
 		if (m_flNextFlinch >= gpGlobals->time)
 			iIgnore |= (bits_COND_LIGHT_DAMAGE|bits_COND_HEAVY_DAMAGE);
 	}
@@ -302,5 +514,5 @@ int CZombie::IgnoreConditions ( void )
 	}
 
 	return iIgnore;
-	
+
 }

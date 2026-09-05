@@ -86,6 +86,15 @@ struct skilldata_t
 	float zombieDmgOneSlash;
 	float zombieDmgBothSlash;
 
+	// RTN: multiplicador de dano por hitgroup exclusivo do zumbi (porte do
+	// Paranoia2_original) - hoje ele usava o mon* genérico, compartilhado
+	// com todo monstro do jogo, sem bônus de headshot próprio.
+	float zomHead;
+	float zomChest;
+	float zomStomach;
+	float zomArm;
+	float zomLeg;
+
 	float turretHealth;
 	float miniturretHealth;
 	float sentryHealth;
