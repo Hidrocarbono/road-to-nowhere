@@ -163,7 +163,11 @@ Vector CServerWeaponLayerImpl::FireBullets(int bullets, Vector origin, matrix3x3
 
 			if ( damage )
 			{
-				pEntity->TraceAttack(player->pev, damage, vecDir, &tr, DMG_BULLET | ((damage > 16) ? DMG_ALWAYSGIB : DMG_NEVERGIB) );
+				// RTN: mesmo teto usado em combat.cpp::FireBullets (ver RTN_BULLET_ALWAYSGIB_DAMAGE
+				// em cbase.h) - esse é um SEGUNDO caminho de tiro (server weapon layer, usado
+				// pelas armas atuais/scriptadas), independente do FireBullets clássico. Ficou
+				// esquecido com o "> 16" original quando subimos o teto pra 100 na outra branch.
+				pEntity->TraceAttack(player->pev, damage, vecDir, &tr, DMG_BULLET | ((damage > RTN_BULLET_ALWAYSGIB_DAMAGE) ? DMG_ALWAYSGIB : DMG_NEVERGIB) );
 				
 				TEXTURETYPE_PlaySound(&tr, origin, vecEnd, bulletType);
 				DecalGunshot( &tr, bulletType, origin, vecEnd );

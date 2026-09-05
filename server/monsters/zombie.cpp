@@ -141,6 +141,13 @@ void CZombie :: TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecD
 	m_LastHitGroup = ptr->iHitgroup;
 	TraceBleed( flDamage, vecDir, ptr, bitsDamageType );
 
+	// RTN DEBUG (temporário): se o dano continuar igual em qualquer parte do
+	// corpo, é pra ver aqui se o hitgroup reportado pelo modelo é sempre 0
+	// (HITGROUP_GENERIC) - nesse caso o problema é o .mdl (hitboxes do
+	// zombie.mdl sem grupos distintos), não este código. Remover depois de
+	// confirmado.
+	ALERT( at_aiconsole, "zombie TraceAttack: hitgroup=%d dmg_antes=%.1f\n", ptr->iHitgroup, flDamage );
+
 	switch ( ptr->iHitgroup )
 	{
 	case HITGROUP_GENERIC:
