@@ -559,12 +559,17 @@ void CStudioModelRenderer :: LoadStudioMaterials( void )
 		{
 			pmaterial->gl_diffuse_id = LOAD_TEXTURE( diffuse, NULL, 0, 0 );
 
-			// semi-transparent textures must have additive flag to invoke renderer insert supposed mesh into translist
+			// RTN: textura additive nao precisa ter canal alpha de verdade no
+			// arquivo pra contar como "tem alpha" - o blending additive
+			// (GL_ONE, GL_ONE) e definido pela flag STUDIO_NF_ADDITIVE do
+			// .mdl, nao pelo canal alpha da imagem. Antes isso so setava
+			// STUDIO_NF_HAS_ALPHA (o bit que AddMeshToDrawList/ShaderSceneForward
+			// usam pra decidir lista translucida vs solida) quando o arquivo
+			// de textura carregado tinha TF_HAS_ALPHA - toda textura additive
+			// em RGB puro (sem canal alpha, o caso mais comum) acabava
+			// classificada como solida e desenhada opaca, sem o efeito.
 			if( FBitSet( pmaterial->flags, STUDIO_NF_ADDITIVE ))
-			{
-				if( pmaterial->gl_diffuse_id.GetFlags() & TF_HAS_ALPHA)
-					SetBits( pmaterial->flags, STUDIO_NF_HAS_ALPHA );
-			}
+				SetBits( pmaterial->flags, STUDIO_NF_HAS_ALPHA );
 
 			if( FBitSet( pmaterial->flags, STUDIO_NF_MASKED ))
 				SetBits( pmaterial->flags, STUDIO_NF_HAS_ALPHA );
