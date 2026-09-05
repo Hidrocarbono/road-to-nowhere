@@ -53,6 +53,7 @@
 #define SF_MONSTER_PREDISASTER		256 //this is a predisaster scientist or barney. Influences how they speak.
 #define SF_MONSTER_FADECORPSE			512 // Fade out corpse after death
 #define SF_MONSTER_NO_WPN_DROP		1024 //LRC- never drop your weapon (player can't pick it up.)
+#define SF_MONSTER_INVINCIBLE			2048 // não recebe dano vindo do jogador (nem de algo que ele disparou) - pra cena scriptada onde não pode morrer ainda
 #define SF_MONSTER_FALL_TO_GROUND		0x80000000
 
 // specialty spawnflags

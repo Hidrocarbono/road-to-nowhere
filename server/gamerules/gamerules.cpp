@@ -217,6 +217,11 @@ void CGameRules::RefreshSkillData ( void )
 	gSkillData.zombieHealth = GetSkillCvar( "sk_zombie_health");
 	gSkillData.zombieDmgOneSlash = GetSkillCvar( "sk_zombie_dmg_one_slash");
 	gSkillData.zombieDmgBothSlash = GetSkillCvar( "sk_zombie_dmg_both_slash");
+	gSkillData.zomHead = GetSkillCvar( "sk_zombie_head" );
+	gSkillData.zomChest = GetSkillCvar( "sk_zombie_chest" );
+	gSkillData.zomStomach = GetSkillCvar( "sk_zombie_stomach" );
+	gSkillData.zomArm = GetSkillCvar( "sk_zombie_arm" );
+	gSkillData.zomLeg = GetSkillCvar( "sk_zombie_leg" );
 
 	//Turret
 	gSkillData.turretHealth = GetSkillCvar( "sk_turret_health");
