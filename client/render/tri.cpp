@@ -57,10 +57,35 @@ void DrawSpriteAsPoly( SpriteHandle hspr, wrect_t *rect, wrect_t *screenpos, int
 	gEngfuncs.pTriAPI->CullFace( TRI_NONE ); //no culling
 	gEngfuncs.pTriAPI->Color4f( r, g, b, a );
 
-	float x = rect->left / (float)SPR_Width(hspr, 0) + 0.01;
-	float x2 = rect->right / (float)SPR_Width(hspr, 0) - 0.01;
-	float y = rect->top / (float)SPR_Height(hspr, 0) + 0.01;
-	float y2 = rect->bottom / (float)SPR_Height(hspr, 0) - 0.01;
+	// RTN FIX: o inset de borda era FIXO em 0.01 - ou seja, 1% do sprite
+	// INTEIRO de cada lado, independente do tamanho do retangulo pedido.
+	//
+	// Pra icone que ocupa o sprite todo (rect = 0..200 num sprite 200x62, que
+	// e o caso dos icones da barra de selecao de arma) isso tira ~2px da borda:
+	// invisivel, e por isso o bug nunca apareceu ate agora.
+	//
+	// Pra amostrar um SUB-RETANGULO de um ATLAS, porem, e fatal. No atlas de
+	// fonte do titles.txt (client/hud_titlefont.cpp, 1840x1776) um glifo ocupa
+	// em media 0.026 de U; o inset come 0.020 - sobra ~24% do glifo, esticado
+	// no quad inteiro (as "faixas"). E em glifo estreito (menos de ~37px: "!",
+	// "I", "i", ".", ",") a faixa fica NEGATIVA (x2 < x), amostrando lixo -
+	// dai os blocos solidos pretos/brancos no lugar das letras.
+	//
+	// O inset correto pra evitar pegar o texel vizinho (bleeding) e MEIO TEXEL,
+	// que escala junto com a textura em vez de ser uma fracao fixa dela.
+	float flWidth = (float)SPR_Width( hspr, 0 );
+	float flHeight = (float)SPR_Height( hspr, 0 );
+
+	if( flWidth <= 0.0f ) flWidth = 1.0f;	// sprite invalido: nao divide por zero
+	if( flHeight <= 0.0f ) flHeight = 1.0f;
+
+	float flHalfTexelU = 0.5f / flWidth;
+	float flHalfTexelV = 0.5f / flHeight;
+
+	float x = rect->left / flWidth + flHalfTexelU;
+	float x2 = rect->right / flWidth - flHalfTexelU;
+	float y = rect->top / flHeight + flHalfTexelV;
+	float y2 = rect->bottom / flHeight - flHalfTexelV;
 
 	gEngfuncs.pTriAPI->Begin(TRI_QUADS); //start our quad
 		gEngfuncs.pTriAPI->TexCoord2f(x, y);

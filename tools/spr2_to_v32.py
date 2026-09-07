@@ -55,11 +55,15 @@ def spr2_to_v32(src, dst):
     print(f'pixels transparentes: {n_alpha0} de {w*h}')
 
     # ---- header v32 ----
+    # RTN FIX: os dois campos depois do boundingradius sao WIDTH e HEIGHT do
+    # sprite (dsprite_q1_t), nao "bounds" - antes gravavam a origem do frame em
+    # ponto-fixo no slot errado. Sem efeito pratico (o engine usa a largura do
+    # FRAME, escrito logo abaixo), mas o header mentia. Ver tools/tga2spr.py.
     boundingradius = int(((w*w + h*h) ** 0.5) / 2)
     header = struct.pack(
         '<iiifiiifi',
         0x50534449, 32, 0, float(boundingradius),
-        int(-(w/2) * 65536), int((w/2) * 65536), 1, 0.0, 0)
+        w, h, 1, 0.0, 0)
     frametype = struct.pack('<i', 0)  # FRAME_SINGLE (obrigatorio)
     frame = struct.pack('<iiii', 0, 0, w, h)
 

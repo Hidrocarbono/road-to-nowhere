@@ -1,5 +1,5 @@
 4
-weapon	320	sprites/rtn_hud_ammo_weapon_stimulant.spr	0 0 200 62
-weapon	640	sprites/rtn_hud_ammo_weapon_stimulant.spr	0 0 200 62
-weapon_s	320	sprites/rtn_hud_ammo_weapon_stimulant.spr	0 0 200 62
-weapon_s	640	sprites/rtn_hud_ammo_weapon_stimulant.spr	0 0 200 62
+weapon	320	sprites/rtn_hud_ammo_item_stimulant.spr	0 0 200 62
+weapon	640	sprites/rtn_hud_ammo_item_stimulant.spr	0 0 200 62
+weapon_s	320	sprites/rtn_hud_ammo_item_stimulant.spr	0 0 200 62
+weapon_s	640	sprites/rtn_hud_ammo_item_stimulant.spr	0 0 200 62

@@ -551,6 +551,22 @@ void ClientCommand( edict_t *pEntity )
 	{
 		GetClassPtr((CBasePlayer *)pev)->SelectItem(pcmd);
 	}
+	// RTN FIX: o filtro acima so aceita comando de selecao que COMECE com
+	// "weapon_". O estimulante e uma arma de verdade (slot 1, aparece na barra
+	// de selecao), mas o classname dele e "item_stimulant" - entao o
+	// ServerCmd(szName) que a barra manda ao confirmar caia no "comando
+	// desconhecido" e era descartado em silencio: o item aparecia no menu, o
+	// jogador selecionava, e nada acontecia. A tecla V funcionava porque o
+	// handler "stimulant_use" chama SelectItem() direto, sem passar por aqui.
+	//
+	// Aceitar "item_" nao afrouxa nada: SelectItem() so equipa item que o
+	// jogador REALMENTE carrega (varre m_rgpPlayerItems por classname), entao
+	// e o mesmo nivel de confianca que "weapon_" ja tinha. Fica DEPOIS dos
+	// FStrEq especificos de propósito, pra nunca engolir um comando nomeado.
+	else if (((pstr = strstr(pcmd, "item_")) != NULL)  && (pstr == pcmd))
+	{
+		GetClassPtr((CBasePlayer *)pev)->SelectItem(pcmd);
+	}
 	else if (FStrEq(pcmd, "lastinv" ))
 	{
 		GetClassPtr((CBasePlayer *)pev)->SelectLastItem();
