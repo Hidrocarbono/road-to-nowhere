@@ -601,6 +601,8 @@ BOOL CHGrunt :: CheckRangeAttack2 ( float flDot, float flDist )
 //=========================================================
 void CHGrunt :: TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType)
 {
+	BOOL bHelmetRicochet = FALSE;
+
 	// check for helmet shot
 	if (ptr->iHitgroup == 11)
 	{
@@ -613,11 +615,20 @@ void CHGrunt :: TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecD
 			{
 				UTIL_Ricochet( ptr->vecEndPos, 1.0 );
 				flDamage = 0.01;
+				bHelmetRicochet = TRUE;
 			}
 		}
 		// it's head shot anyways
 		ptr->iHitgroup = HITGROUP_HEAD;
 	}
+
+	// RTN: headshot é sempre letal, não importa a arma nem a vida restante -
+	// exceto quando o capacete absorveu o tiro por completo (ricochete acima,
+	// flDamage virou só 0.01 de "susto"). Do contrário o capacete não
+	// protegeria nada, contradizendo o próprio propósito dele.
+	if ( !bHelmetRicochet && ptr->iHitgroup == HITGROUP_HEAD && flDamage > 0.0f && flDamage < pev->health + 1 )
+		flDamage = pev->health + 1;
+
 	CSquadMonster::TraceAttack( pevAttacker, flDamage, vecDir, ptr, bitsDamageType );
 }
 
