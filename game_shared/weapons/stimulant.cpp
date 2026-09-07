@@ -51,7 +51,12 @@ bool CStimulantWeaponContext::Deploy()
 	if( player )
 		g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 80\n" );
 #endif
-	bool bResult = DefaultDeploy( "models/v_antidote.mdl", "models/w_antidote.mdl", 2, "medkit" );  // anim 2 = draw
+	// RTN FIX: indice de sequencia conferido contra o QC decompilado de
+	// v_antidote.mdl (ordem dos $sequence, 0-based): 0=idle_1 1=idle_2
+	// 2=idle_3 3=draw 4=hitme_1 5=hitme_2 ... O indice 2 usado antes e
+	// "idle_3" (looping) - visualmente indistinguivel de nao ter acontecido
+	// nada, ja que o viewmodel ja estava em idle. O certo pra saque e 3.
+	bool bResult = DefaultDeploy( "models/v_antidote.mdl", "models/w_antidote.mdl", 3, "medkit" );  // anim 3 = draw
 
 	// RTN FIX (bug critico): DefaultDeploy() faz
 	//   SetPlayerNextAttackTime( GetWeaponTimeBase(UsePredicting()) + 0.5 )
@@ -102,8 +107,12 @@ void CStimulantWeaponContext::PrimaryAttack()
 
 	m_bPendingUse = false;  // consumida
 
-	// play the use animation (hitme_1 = anim 1)
-	SendWeaponAnim( 1 );
+	// RTN FIX: era SendWeaponAnim(1), que no QC decompilado de v_antidote.mdl
+	// e "idle_2" (looping) - nao "hitme_1". Indice 1 de idle pra idle e
+	// visualmente identico a nao tocar animacao nenhuma (o sintoma reportado:
+	// "fica na animacao idle"). hitme_1 e o indice 4 (ver ordem no Deploy()
+	// acima). hitme_2 (indice 5) existe como variante, nao usada aqui.
+	SendWeaponAnim( 4 );
 
 	// play sound immediately
 #ifndef CLIENT_DLL
@@ -112,9 +121,14 @@ void CStimulantWeaponContext::PrimaryAttack()
 		EMIT_SOUND( ENT(player), CHAN_ITEM, "items/smallmedkit1.wav", 1.0, ATTN_NORM );
 #endif
 
-	// effects applied AFTER the animation finishes. A anim hitme_1 do
-	// v_antidote.mdl tem ~1s @30fps; antes usava 0.35s e o flash + troca de
-	// arma (SelectLastItem) cortavam a animacao no meio (bug "flash antes do fim").
+	// effects applied AFTER the animation finishes. NOTA: o QC decompilado
+	// mostra hitme_1 em "fps 90", nao "30fps" como o comentario original
+	// assumia - o QC nao lista contagem de frames, entao a duracao real da
+	// sequencia (frames/fps) nao da pra confirmar so pelo texto do QC. O
+	// 1.0f abaixo e a mesma estimativa antiga; se a animacao terminar antes/
+	// depois disso no jogo, ajustar aqui (idealmente medindo em pxmv/hlmv).
+	// Historico: antes usava 0.35s e o flash + troca de arma (SelectLastItem)
+	// cortavam a animacao no meio (bug "flash antes do fim").
 	m_bUseInProgress = true;
 	m_flUseFinishTime = m_pLayer->GetTime() + 1.0f;
 	m_flNextPrimaryAttack = m_pLayer->GetTime() + 1.1f;
