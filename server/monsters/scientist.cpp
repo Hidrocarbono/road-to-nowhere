@@ -20,6 +20,11 @@
 
 LINK_ENTITY_TO_CLASS( monster_scientist, CScientist );
 
+// RTN: era 3s ("Only cower every 3 seconds or so") - com combate persistindo
+// nas redondezas, o cientista repetia o susto indefinidamente (6-10x num
+// tiroteio de 20-30s). Ver GetSchedule() - gatilho do STARTLE.
+#define SCIENTIST_STARTLE_COOLDOWN		8.0f
+
 BEGIN_DATADESC( CScientist )
 	DEFINE_FIELD( m_painTime, FIELD_TIME ),
 	DEFINE_FIELD( m_healTime, FIELD_TIME ),
@@ -325,6 +330,19 @@ DEFINE_CUSTOM_SCHEDULES( CScientist )
 
 IMPLEMENT_CUSTOM_SCHEDULES( CScientist, CTalkMonster );
 
+
+// RTN: porte do Paranoia2_original - o player travou o caminho do
+// cientista (chamado de server/monsters.cpp, no mesmo bloco que resolve
+// "Failed to move"). Cientista fala pra sair da frente em vez de ficar
+// mudo tentando andar contra o jogador pra sempre.
+void CScientist::BlockedByPlayer( CBasePlayer *pBlocker )
+{
+	if ( FOkToSpeak() )
+	{
+		Talk( 2 );
+		PlaySentence( "SC_BLOCKED", 2, VOL_NORM, ATTN_NORM );
+	}
+}
 
 void CScientist::DeclineFollowing( void )
 {
@@ -846,7 +864,17 @@ Schedule_t *CScientist :: GetSchedule ( void )
 		}
 
 		// Cower when you hear something scary
-		if ( HasConditions( bits_COND_HEAR_SOUND ) )
+		// RTN: era (bits_SOUND_DANGER | bits_SOUND_COMBAT) com cooldown de 3s -
+		// bits_SOUND_COMBAT é emitido por QUALQUER tiro de QUALQUER arma dentro
+		// do raio de alcance do som (mesmo bit do "alerta em cadeia" do
+		// zumbi/hgrunt), então um cientista longe de perigo real reagia a
+		// tiroteio do outro lado do mapa como se fosse ameaça direta, a cada
+		// 3s enquanto o combate continuasse. Deixamos só bits_SOUND_DANGER
+		// (explosão/granada armada - ameaça de verdade) e subimos o cooldown
+		// pra não repetir o susto o tempo todo. SF_SCIENTIST_NO_PANIC pula
+		// isso de vez (cientista "endurecido", ainda foge de inimigo real
+		// via ScientistCover/Hide, só não faz o teatrinho por som ambiente).
+		if ( !FBitSet( pev->spawnflags, SF_SCIENTIST_NO_PANIC ) && HasConditions( bits_COND_HEAR_SOUND ) )
 		{
 			CSound *pSound;
 			pSound = PBestSound();
@@ -854,9 +882,9 @@ Schedule_t *CScientist :: GetSchedule ( void )
 			ASSERT( pSound != NULL );
 			if ( pSound )
 			{
-				if ( pSound->m_iType & (bits_SOUND_DANGER | bits_SOUND_COMBAT) )
+				if ( pSound->m_iType & bits_SOUND_DANGER )
 				{
-					if ( gpGlobals->time - m_fearTime > 3 )	// Only cower every 3 seconds or so
+					if ( gpGlobals->time - m_fearTime > SCIENTIST_STARTLE_COOLDOWN )
 					{
 						m_fearTime = gpGlobals->time;		// Update last fear
 						return GetScheduleOfType( SCHED_STARTLE );	// This will just duck for a second
@@ -896,7 +924,7 @@ Schedule_t *CScientist :: GetSchedule ( void )
 			}
 			else	// UNDONE: When afraid, scientist won't move out of your way.  Keep This?  If not, write move away scared
 			{
-				if ( HasConditions( bits_COND_NEW_ENEMY ) ) // I just saw something new and scary, react
+				if ( !FBitSet( pev->spawnflags, SF_SCIENTIST_NO_PANIC ) && HasConditions( bits_COND_NEW_ENEMY ) ) // I just saw something new and scary, react
 					return GetScheduleOfType( SCHED_FEAR );					// React to something scary
 				return GetScheduleOfType( SCHED_TARGET_FACE_SCARED );	// face and follow, but I'm scared!
 			}
@@ -909,7 +937,7 @@ Schedule_t *CScientist :: GetSchedule ( void )
 		TrySmellTalk();
 		break;
 	case MONSTERSTATE_COMBAT:
-		if ( HasConditions( bits_COND_NEW_ENEMY ) )
+		if ( !FBitSet( pev->spawnflags, SF_SCIENTIST_NO_PANIC ) && HasConditions( bits_COND_NEW_ENEMY ) )
 			return slFear;					// Point and scream!
 		if ( HasConditions( bits_COND_SEE_ENEMY ) )
 			return slScientistCover;		// Take Cover
