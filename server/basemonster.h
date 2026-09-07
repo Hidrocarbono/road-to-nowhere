@@ -339,6 +339,11 @@ public:
 	virtual void AlertSound ( void ) { return; };
 	virtual void IdleSound ( void ) { return; };
 	virtual void PainSound ( void ) { return; };
+	// RTN: chamado quando o monstro tenta andar e quem está bloqueando o
+	// caminho é especificamente o player (porte do Paranoia2_original,
+	// server/monsters.cpp - mesmo bloco de "Failed to move" que localiza
+	// pBlocker). No-op por padrão; CScientist usa pra pedir passagem.
+	virtual void BlockedByPlayer ( CBasePlayer *pBlocker ) { return; };
 	virtual void StepSound( void );
 	
 	virtual void StopFollowing( BOOL clearSchedule ) {}

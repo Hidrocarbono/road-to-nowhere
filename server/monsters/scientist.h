@@ -61,6 +61,15 @@ enum
 #define		SCIENTIST_AE_NEEDLEON	( 2 )
 #define		SCIENTIST_AE_NEEDLEOFF	( 3 )
 
+// RTN: cientista não entra em SCHED_STARTLE/SCHED_FEAR por som ambiente de
+// combate/susto (continua fugindo/escondendo de verdade se virar inimigo
+// de fato - CanHeal/ScientistCover/ScientistHide continuam normais). Pra
+// NPC genérico de mundo aberto, o "susto por qualquer tiro longe" fica
+// irritante rápido. Bit 4096 reaproveitado (escopo por classe, sem colisão
+// com SF_GRUNT_HAS_FLASHLIGHT/SF_ZOMBIE_NO_WANDER - cada monstro interpreta
+// os próprios spawnflags, ver monsters.h).
+#define SF_SCIENTIST_NO_PANIC	4096
+
 //=======================================================
 // Scientist
 //=======================================================
@@ -77,13 +86,16 @@ public:
 	void HandleAnimEvent( MonsterEvent_t *pEvent );
 	void RunTask( Task_t *pTask );
 	void StartTask( Task_t *pTask );
-	int ObjectCaps( void ) { return CTalkMonster :: ObjectCaps() | FCAP_IMPULSE_USE; }
+	int ObjectCaps( void ) { return CTalkMonster :: ObjectCaps() | FCAP_IMPULSE_USE | FCAP_DISTANCE_USE; }
 	int TakeDamage( entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage, int bitsDamageType);
 	virtual int FriendNumber( int arrayNumber );
 	void SetActivity ( Activity newActivity );
 	Activity GetStoppedActivity( void );
 	int ISoundMask( void );
 	void DeclineFollowing( void );
+	// RTN: porte do Paranoia2_original - avisa o player quando ele mesmo
+	// está bloqueando o caminho do cientista (ver server/monsters.cpp).
+	void BlockedByPlayer( CBasePlayer *pBlocker );
 
 	float CoverRadius( void ) { return 1200; }		// Need more room for cover because scientists want to get far away!
 	BOOL DisregardEnemy( CBaseEntity *pEnemy ) { return !pEnemy->IsAlive() || (gpGlobals->time - m_fearTime) > 15; }

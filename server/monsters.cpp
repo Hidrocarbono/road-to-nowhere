@@ -1917,6 +1917,13 @@ void CBaseMonster :: Move ( float flInterval )
 					TaskFail();
 					ALERT( at_aiconsole, "%s Failed to move (%d)!\n", STRING(pev->classname), HasMemory( bits_MEMORY_MOVE_FAILED ) );
 					//ALERT( at_aiconsole, "%f, %f, %f\n", GetAbsOrigin().z, (GetAbsOrigin() + (vecDir * flCheckDist)).z, m_Route[m_iRouteIndex].vecLocation.z );
+
+					// RTN: quem travou o caminho especificamente é o player? avisa
+					// (porte do Paranoia2_original) - sem isso o monstro só fica
+					// mudo tentando andar e falhando, sem dar nenhuma pista pro
+					// jogador de que é ele mesmo quem está no meio do caminho.
+					if ( pBlocker && pBlocker->IsPlayer() )
+						BlockedByPlayer( (CBasePlayer *)pBlocker );
 				}
 				return;
 			}
