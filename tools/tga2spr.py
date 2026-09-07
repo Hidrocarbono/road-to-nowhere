@@ -36,16 +36,27 @@ def tga_to_spr(tga_path, spr_path, white=False):
 
     # boundingradius ~ metade da diagonal
     boundingradius = int(((w*w + h*h) ** 0.5) / 2)
-    mins_b = int(-(w/2) * 65536)
-    maxs_b = int((w/2) * 65536)
 
+    # RTN FIX: estes dois campos do dsprite_q1_t sao WIDTH e HEIGHT do sprite,
+    # nao um "bounds[2]" - a versao anterior gravava aqui um par de valores em
+    # ponto-fixo (-(w/2)*65536, +(w/2)*65536), que sao a ORIGEM do frame, no
+    # slot errado. Resultado: todo .spr gerado por estas ferramentas declarava
+    # largura/altura absurdas no header (ex.: -60293120 x 60293120 num atlas
+    # 1840x1776).
+    #
+    # Na pratica isso nunca quebrou o jogo porque o engine usa a largura/altura
+    # do FRAME (escrito logo abaixo, sempre correto) pra desenhar e pra
+    # SPR_Width/SPR_Height - prova disso e que todos os .spr atuais do mod tem
+    # esse header errado e funcionam. Mas o header ficava mentindo, e a
+    # etiqueta "bounds[2]" ja levou o erro a ser copiado pra outros dois
+    # scripts. Os .spr existentes NAO precisam ser regerados.
     header = struct.pack(
         '<iiifiiifi',
         0x50534449,  # 'IDSP' little-endian
         32,          # version = SPRITE_VERSION_32 (truecolor)
         0,           # type: SPR_FWD_PARALLEL_UPRIGHT
         float(boundingradius),
-        mins_b, maxs_b,  # bounds[2]
+        w, h,        # width, height
         1,           # numframes
         0.0,         # beamlength
         0,           # synctype
