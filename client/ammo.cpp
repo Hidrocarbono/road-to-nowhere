@@ -276,6 +276,7 @@ void CHudAmmo::Reset( void )
 
 	gpActiveSel = NULL;
 	gHUD.m_iHideHUDDisplay = 0;
+	m_bAttackWasDown = false;
 
 	gWR.Reset();
 	gHR.Reset();
@@ -341,10 +342,23 @@ void CHudAmmo::Think( void )
 	}
 
 	if( !gpActiveSel )
+	{
+		// menu fechado: nao ha selecao pendente, so acompanha o botao para
+		// a proxima vez que o menu abrir nao confirmar de cara (ver abaixo).
+		m_bAttackWasDown = ( gHUD.m_iKeyBits & IN_ATTACK ) != 0;
 		return;
+	}
 
 	// has the player selected one?
-	if( gHUD.m_iKeyBits & IN_ATTACK )
+	// RTN: confirma na BORDA (solto -> pressionado), nao no nivel. A checagem
+	// original (so "IN_ATTACK esta ligado") confirma a troca no instante em
+	// que o menu abre se o jogador ja estiver segurando o tiro (comum com
+	// arma automatica: atira e gira a rodinha sem soltar o botao) - a arma
+	// trocava sozinha, sem nenhum clique nesse momento. Exigir a borda faz
+	// precisar de um clique novo enquanto o menu esta aberto.
+	bool bAttackDown = ( gHUD.m_iKeyBits & IN_ATTACK ) != 0;
+
+	if( bAttackDown && !m_bAttackWasDown )
 	{
 		if( gpActiveSel != (WEAPON *)1 )
 		{
@@ -359,6 +373,7 @@ void CHudAmmo::Think( void )
 		PlaySound( "common/wpn_select.wav", 1 );
 	}
 
+	m_bAttackWasDown = bAttackDown;
 }
 
 //
