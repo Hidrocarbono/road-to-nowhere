@@ -39,8 +39,10 @@ da compressao.
 
 static cvar_t *rtn_nvg_gain = NULL;			// teto de exposicao com NVG ligado
 static cvar_t *rtn_nvg_ir = NULL;			// 0/1 - iluminador IR
-static cvar_t *rtn_nvg_ir_radius = NULL;		// alcance do iluminador
+static cvar_t *rtn_nvg_ir_radius = NULL;		// alcance do iluminador (spot)
+static cvar_t *rtn_nvg_ir_fov = NULL;			// abertura do cone do iluminador
 static cvar_t *rtn_nvg_ir_intensity = NULL;		// intensidade do iluminador
+static cvar_t *rtn_nvg_ir_flashlight_boost = NULL;	// multiplicador extra com a lanterna nativa ligada
 static cvar_t *rtn_nvg_tint = NULL;			// 0/1 - tint verde + grain + vinheta
 static cvar_t *rtn_nvg_debug = NULL;
 
@@ -57,11 +59,22 @@ void RTN_NVG_RegisterCvars( void )
 	// isso nao estoura ambiente iluminado - so libera teto para o escuro.
 	rtn_nvg_gain = CVAR_REGISTER( "rtn_nvg_gain", "12.0", FCVAR_ARCHIVE );
 	rtn_nvg_ir = CVAR_REGISTER( "rtn_nvg_ir", "1", FCVAR_ARCHIVE );
-	// raio curto de proposito: cada dlight custa um passe aditivo sobre a
-	// geometria dentro do volume dela (R_RenderDynLightList). 300 unidades
-	// cobrem o corredor a frente sem transformar isso numa segunda cena.
-	rtn_nvg_ir_radius = CVAR_REGISTER( "rtn_nvg_ir_radius", "300.0", FCVAR_ARCHIVE );
+	// e uma SPOT para frente (nao omni): cada dlight custa um passe aditivo
+	// sobre a geometria dentro do volume dela (R_RenderDynLightList), mas o
+	// volume de uma spot e limitado pelo cone, nao pela esfera inteira. Uma
+	// spot de raio 550 com FOV 50 tem caixa de cull MENOR que a omni de raio
+	// 300 que isto substituiu - por isso da pra esticar o alcance sem piorar
+	// o custo. Ver comentario de RTN_NVG_SetupPlayerLight.
+	rtn_nvg_ir_radius = CVAR_REGISTER( "rtn_nvg_ir_radius", "550.0", FCVAR_ARCHIVE );
+	rtn_nvg_ir_fov = CVAR_REGISTER( "rtn_nvg_ir_fov", "50.0", FCVAR_ARCHIVE );
 	rtn_nvg_ir_intensity = CVAR_REGISTER( "rtn_nvg_ir_intensity", "0.35", FCVAR_ARCHIVE );
+	// combo tatico: NVG sozinho ilumina bem o proximo, mas o alcance de
+	// verdade pede a lanterna nativa junto (o cone dela tambem e amplificado
+	// pelo ganho de exposicao - e por isso que "NVG + lanterna" ja resolvia
+	// o escuro distante mesmo antes deste cvar existir). Isto so reforca o
+	// proprio iluminador do NVG quando detecta EF_DIMLIGHT no jogador local -
+	// nao cria luz nova, e de graca.
+	rtn_nvg_ir_flashlight_boost = CVAR_REGISTER( "rtn_nvg_ir_flashlight_boost", "1.4", FCVAR_ARCHIVE );
 	rtn_nvg_tint = CVAR_REGISTER( "rtn_nvg_tint", "1", FCVAR_ARCHIVE );
 	rtn_nvg_debug = CVAR_REGISTER( "rtn_nvg_debug", "0", 0 );
 }
@@ -203,9 +216,26 @@ void RTN_NVG_ApplyPostFx( CPostFxParameters &fx )
 ===============
 RTN_NVG_SetupPlayerLight
 
-Iluminador IR: dlight omni presa ao jogador local. Sem sombra (senao um
-LIGHT_OMNI aloca as 6 faces do depthCubemap por frame) e sem bump - e luz de
-preenchimento, nao precisa de detalhe. Molde: R_SetupPlayerFlashlight.
+Iluminador IR: dlight SPOT presa ao jogador local, apontada para frente -
+mesma geometria de origem/angulo de R_SetupPlayerFlashlight (gl_scene.cpp).
+Sem sombra (senao uma LIGHT_SPOT aloca depthTexture por frame) e sem bump -
+e luz de preenchimento, nao precisa de detalhe.
+
+Por que spot e nao omni: uma omni de raio R tem caixa de cull cubica de lado
+2R (volume ~ R^3, luz espalhada em todas as direcoes, a maioria das quais a
+camera nem olha). Uma spot de raio R e FOV F tem a caixa limitada pelo cone -
+a secao a distancia R tem raio ~R*tan(F/2). Com F=50 isso da ~0.47R, o que
+faz a caixa de uma spot de raio 550 ficar MENOR que a caixa da omni de raio
+300 que isto substituiu. Ou seja: mais alcance pelo mesmo orcamento de
+R_RenderDynLightList, e de quebra fica igual a um iluminador IR de verdade
+(que em NVGs reais e projetado, nao omnidirecional).
+
+Boost com a lanterna nativa (EF_DIMLIGHT): o cone da lanterna ja e amplificado
+pelo ganho de exposicao (parte 1 do NVG) como qualquer luz realtime da cena -
+e por isso "NVG + lanterna" ja resolvia o alcance distante mesmo sem este
+boost. Aqui so reforcamos o proprio iluminador do NVG quando detecta a
+lanterna ligada: nao e luz nova, e reescala radius/intensity de uma luz que
+ja existe - custo extra zero.
 ===============
 */
 void RTN_NVG_SetupPlayerLight( cl_entity_t *ent )
@@ -235,10 +265,21 @@ void RTN_NVG_SetupPlayerLight( cl_entity_t *ent )
 	origin += forward * 4.0f;	// um palmo a frente dos olhos, como o emissor
 
 	float radius = Q_max( 32.0f, rtn_nvg_ir_radius->value );
+	float fov = bound( 5.0f, rtn_nvg_ir_fov->value, 170.0f );
 	float intensity = Q_max( 0.0f, rtn_nvg_ir_intensity->value ) * i;
 
+	// combo com a lanterna nativa - so um multiplicador, mesma logica de
+	// R_AddEntity ao decidir se chama R_SetupPlayerFlashlight
+	if( ent->curstate.effects & EF_DIMLIGHT )
+	{
+		float boost = Q_max( 1.0f, rtn_nvg_ir_flashlight_boost->value );
+		radius *= boost;
+		intensity *= boost;
+	}
+
 	CDynLight *pl = CL_AllocDlight( NVG_LIGHT_KEY - ent->index );
-	R_SetupLightParams( pl, origin, angles, radius, 90.0f, LIGHT_OMNI, DLF_NOSHADOWS|DLF_NOBUMP );
+	R_SetupLightParams( pl, origin, angles, radius, fov, LIGHT_SPOT, DLF_NOSHADOWS|DLF_NOBUMP );
+	R_SetupLightTexture( pl, tr.flashlightTexture );	// reusa o cookie da lanterna nativa
 
 	// levemente esverdeada: o tint do postfx ja faz o resto
 	pl->color = Vector( 0.75f, 1.0f, 0.80f ) * intensity;

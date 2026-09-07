@@ -141,22 +141,42 @@ quase sempre é mexer no ganho de exposição, não no postfx.
    teto sobe (`rtn_nvg_gain`, default 12) → amplificação **em HDR, antes** do
    tonemap comprimir. Custo: nenhum passe novo, só uniforms.
 2. **Iluminador IR (o que resolve o preto absoluto).** Ganho é multiplicativo:
-   lightmap 0 × qualquer coisa = 0. Por isso há uma `CDynLight` `LIGHT_OMNI`
-   presa ao jogador local (`RTN_NVG_SetupPlayerLight`, chamada do `R_AddEntity`).
+   lightmap 0 × qualquer coisa = 0. Por isso há uma `CDynLight` `LIGHT_SPOT`
+   presa ao jogador local, apontada para frente (`RTN_NVG_SetupPlayerLight`,
+   chamada do `R_AddEntity`), no mesmo molde de origem/ângulo de
+   `R_SetupPlayerFlashlight`.
+
+**Por que spot e não omni:** uma omni de raio R tem caixa de cull cúbica de lado
+2R (volume ∝ R³) — a luz é espalhada em todas as direções, a maioria das quais a
+câmera nem olha. Uma spot de raio R e FOV F tem a caixa limitada pelo cone: a
+seção a distância R tem raio ≈ R·tan(F/2). Com F=50° isso dá ≈0.47R, o que faz a
+caixa de uma spot de raio 550 ficar **menor** que a caixa da omni de raio 300 que
+ela substituiu — mais alcance pelo mesmo orçamento de `R_RenderDynLightList`, e
+de quebra fica igual a um iluminador IR de verdade (que em NVGs reais é
+projetado, não omnidirecional). Reusa `tr.flashlightTexture` como cookie —
+nenhum asset novo.
+
+**Combo com a lanterna nativa.** O cone da lanterna (`EF_DIMLIGHT`) já é
+amplificado pelo ganho de exposição como qualquer luz realtime da cena — é por
+isso que "NVG + lanterna" já resolvia o escuro distante mesmo antes de qualquer
+código dedicado. `RTN_NVG_SetupPlayerLight` detecta `EF_DIMLIGHT` no jogador
+local e reforça `radius`/`intensity` do próprio iluminador do NVG
+(`rtn_nvg_ir_flashlight_boost`, default ×1.4) — não é luz nova, é reescala de
+uma luz que já existe, custo extra zero.
 
 **Custo do iluminador:** `R_RenderDynLightList` (`gl_world_new.cpp`) faz um passe
-aditivo por luz sobre a geometria dentro do volume dela. Por isso o raio default é
-curto (300) e `DLF_NOSHADOWS` é **obrigatório** — sem ele um `LIGHT_OMNI` aloca as
-6 faces do `depthCubemap` por frame (`gl_dlight.cpp:348`). Não aumente
-`rtn_nvg_ir_radius` sem medir.
+aditivo por luz sobre a geometria dentro do volume dela. `DLF_NOSHADOWS` é
+**obrigatório** — sem ele uma `LIGHT_SPOT` aloca `depthTexture` por frame
+(`gl_dlight.cpp:348`). Meça FPS antes de subir `rtn_nvg_ir_radius`/`rtn_nvg_ir_fov`
+além do default — o cálculo acima só vale para a razão raio/FOV atual.
 
 **Dependência de pipeline:** o passe de exposição só roda com `gl_hdr` **e**
 `r_tonemap` ligados (`gl_backend.cpp:477/493`). Com qualquer um desligado o NVG cai
 num caminho degradado (só IR + ganho modesto em LDR pelos color levels) e avisa uma
 vez no console.
 
-**Cvars:** `rtn_nvg_gain`, `rtn_nvg_ir`, `rtn_nvg_ir_radius`, `rtn_nvg_ir_intensity`,
-`rtn_nvg_tint`, `rtn_nvg_debug`.
+**Cvars:** `rtn_nvg_gain`, `rtn_nvg_ir`, `rtn_nvg_ir_radius`, `rtn_nvg_ir_fov`,
+`rtn_nvg_ir_intensity`, `rtn_nvg_ir_flashlight_boost`, `rtn_nvg_tint`, `rtn_nvg_debug`.
 
 ## Sobre a técnica de lightstyle (avaliada e não usada)
 

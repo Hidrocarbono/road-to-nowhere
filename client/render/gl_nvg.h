@@ -9,10 +9,14 @@ O NVG do RTN e feito de duas partes, ambas no cliente:
      em HDR ANTES do tonemap comprimir, entao o detalhe do escuro volta com
      contraste. Custo: nenhum passe novo, so uniforms.
 
-  2. ILUMINADOR IR       - uma dlight omni presa ao jogador, sem sombra e sem
-     bump, raio curto. E o que da visibilidade onde o lightmap e literalmente
-     zero (ganho multiplicativo nao cria luz do nada). Custo: um passe aditivo
-     da luz - por isso o raio e curto por padrao.
+  2. ILUMINADOR IR       - uma dlight SPOT presa ao jogador, apontada para
+     frente (mesmo molde da lanterna nativa), sem sombra e sem bump. E o que
+     da visibilidade onde o lightmap e literalmente zero (ganho multiplicativo
+     nao cria luz do nada) - e por ser spot, nao omni, o alcance util fica
+     bem maior pelo mesmo custo: a caixa de cull de uma spot e limitada pelo
+     cone, nao pela esfera inteira. Quando a lanterna nativa do motor tambem
+     esta ligada (EF_DIMLIGHT), o iluminador reforca alcance/intensidade -
+     e o combo "NVG + lanterna" que resolve o escuro distante.
 
 O tint verde/grain/vinheta sai por cima disso modulando os parametros de
 postfx que ja existem (sem tocar no estado global do g_PostFxController).
@@ -49,7 +53,8 @@ float RTN_NVG_GetFallbackGain( void );
 // (nao toca no estado global do g_PostFxController)
 void RTN_NVG_ApplyPostFx( CPostFxParameters &fx );
 
-// iluminador IR - chamado do R_AddEntity para o jogador local
+// iluminador IR (spot para frente, com boost quando a lanterna nativa esta
+// ligada) - chamado do R_AddEntity para o jogador local
 void RTN_NVG_SetupPlayerLight( struct cl_entity_s *ent );
 
 void RTN_NVG_RegisterCvars( void );
