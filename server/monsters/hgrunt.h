@@ -169,6 +169,11 @@ public:
 	int TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType );
 	void Killed( entvars_t *pevAttacker, int iGib );
 
+	// RTN: loot aleatório ao morrer (30% de chance, só em morte normal -
+	// ver Killed()). Munição é escolhida pela arma do player na hora da
+	// morte; o resto (bateria/painkiller/stimulant) é fixo por peso.
+	void DropRandomLoot( entvars_t *pevAttacker );
+
 	int IRelationship ( CBaseEntity *pTarget );
 
 	BOOL FOkToSpeak( void );

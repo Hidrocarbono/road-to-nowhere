@@ -30,6 +30,7 @@
 #include "hgrunt.h"
 #include "env_beam.h"
 #include "nodes.h"
+#include "player.h"
 
 LINK_ENTITY_TO_CLASS( monster_human_grunt, CHGrunt );
 
@@ -219,8 +220,130 @@ void CHGrunt :: InitFlashlight( void )
 }
 
 //=========================================================
+// Loot aleatório (ver DropRandomLoot logo abaixo)
+//=========================================================
+#define HGRUNT_LOOT_DROP_CHANCE		0.30f	// 30% de chance de soltar algo
+
+enum
+{
+	HGRUNT_LOOT_AMMO = 0,
+	HGRUNT_LOOT_BATTERY,
+	HGRUNT_LOOT_PAINKILLER,
+	HGRUNT_LOOT_STIMULANT,
+};
+
+struct HGruntLootEntry_t
+{
+	int iType;
+	int iWeight;
+};
+
+// pesos somam 100 só pra ler como porcentagem relativa entre si - a chance
+// de dropar ALGUMA coisa é o HGRUNT_LOOT_DROP_CHANCE acima, independente.
+static const HGruntLootEntry_t g_HGruntLootTable[] =
+{
+	{ HGRUNT_LOOT_AMMO,        50 },
+	{ HGRUNT_LOOT_BATTERY,     25 },
+	{ HGRUNT_LOOT_PAINKILLER,  15 },
+	{ HGRUNT_LOOT_STIMULANT,   10 },
+};
+
+static int HGrunt_PickWeightedLootType( void )
+{
+	int iTotalWeight = 0;
+	for ( int i = 0; i < ARRAYSIZE( g_HGruntLootTable ); i++ )
+		iTotalWeight += g_HGruntLootTable[i].iWeight;
+
+	int iRoll = RANDOM_LONG( 0, iTotalWeight - 1 );
+	int iAccum = 0;
+
+	for ( int i = 0; i < ARRAYSIZE( g_HGruntLootTable ); i++ )
+	{
+		iAccum += g_HGruntLootTable[i].iWeight;
+		if ( iRoll < iAccum )
+			return g_HGruntLootTable[i].iType;
+	}
+	return g_HGruntLootTable[ ARRAYSIZE( g_HGruntLootTable ) - 1 ].iType; // não deveria chegar aqui
+}
+
+// RTN: descobre a munição certa a partir da arma que o player estava
+// usando na hora da morte (pszAmmo1() já funciona certinho pra armas de
+// script também - mp5.cpp/CMP5WeaponContext reporta o primary_ammo do
+// próprio ammodesc.txt). Fallback genérico (decisão do usuário) pra
+// qualquer coisa não mapeada: granada de mão, satchel, trip mine, snarks,
+// hornet gun, ou um tipo de munição de script novo que a gente ainda não
+// conhece aqui.
+static const char *HGrunt_AmmoClassnameForKiller( entvars_t *pevAttacker )
+{
+	const char *pszAmmoName = NULL;
+
+	if ( pevAttacker )
+	{
+		CBaseEntity *pAttacker = CBaseEntity::Instance( pevAttacker );
+		if ( pAttacker && pAttacker->IsPlayer() )
+		{
+			CBasePlayer *pPlayer = (CBasePlayer *)pAttacker;
+			if ( pPlayer->m_pActiveItem )
+				pszAmmoName = pPlayer->m_pActiveItem->pszAmmo1();
+		}
+	}
+
+	if ( pszAmmoName )
+	{
+		if ( FStrEq( pszAmmoName, "357" ) )		return "ammo_357";
+		if ( FStrEq( pszAmmoName, "buckshot" ) )	return "ammo_buckshot";
+		if ( FStrEq( pszAmmoName, "rockets" ) )	return "ammo_rpgclip";
+		if ( FStrEq( pszAmmoName, "uranium" ) )	return "ammo_gaussclip";
+		if ( FStrEq( pszAmmoName, "bolts" ) )		return "ammo_crossbow";
+		if ( FStrEq( pszAmmoName, "ARgrenades" ) )	return "ammo_mp5grenades";
+		if ( FStrEq( pszAmmoName, "9mm" ) )		return "ammo_9mmclip";
+	}
+
+	return "ammo_9mmclip"; // genérico - sem arma identificada ou tipo desconhecido
+}
+
+//=========================================================
+// DropRandomLoot - solta um item aleatório no chão quando o grunt morre
+// (30% de chance, só chamado em morte normal - ver Killed()).
+//=========================================================
+void CHGrunt :: DropRandomLoot( entvars_t *pevAttacker )
+{
+	if ( RANDOM_FLOAT( 0.0f, 1.0f ) > HGRUNT_LOOT_DROP_CHANCE )
+		return;
+
+	// RTN: corpo espremido contra parede/quina? Cancela o drop em vez de
+	// arriscar o item nascer preso dentro de geometria sólida (impossível
+	// de pegar). human_hull é o mesmo teste de espaço usado pelo node
+	// graph (server/nodes.cpp) pra validar se cabe alguém ali.
+	TraceResult tr;
+	UTIL_TraceHull( Center(), Center(), ignore_monsters, human_hull, ENT( pev ), &tr );
+	if ( tr.fStartSolid )
+		return;
+
+	const char *pszClassname = "ammo_9mmclip";
+
+	switch ( HGrunt_PickWeightedLootType() )
+	{
+	case HGRUNT_LOOT_AMMO:
+		pszClassname = HGrunt_AmmoClassnameForKiller( pevAttacker );
+		break;
+	case HGRUNT_LOOT_BATTERY:
+		pszClassname = "item_battery";
+		break;
+	case HGRUNT_LOOT_PAINKILLER:
+		pszClassname = "item_painkiller";
+		break;
+	case HGRUNT_LOOT_STIMULANT:
+		pszClassname = "item_stimulant";
+		break;
+	}
+
+	CBaseEntity::Create( (char *)pszClassname, GetAbsOrigin(), GetAbsAngles() );
+}
+
+//=========================================================
 // Killed - garante que a lanterna não fica órfã boiando no
-// ar quando o grunt morre.
+// ar quando o grunt morre, e solta loot aleatório.
 //=========================================================
 void CHGrunt :: Killed( entvars_t *pevAttacker, int iGib )
 {
@@ -229,6 +352,13 @@ void CHGrunt :: Killed( entvars_t *pevAttacker, int iGib )
 		UTIL_Remove( m_hFlashlight );
 		m_hFlashlight = NULL;
 	}
+
+	// RTN: loot só em morte "normal" - explosão (GIB_ALWAYS, granada/RPG)
+	// não deixa nada pra trás, por decisão do usuário. Chamado ANTES do
+	// BaseClass::Killed() porque precisamos da origin/angles do grunt
+	// ainda válidos (o corpo pode começar a sumir/fadear logo em seguida).
+	if ( iGib != GIB_ALWAYS )
+		DropRandomLoot( pevAttacker );
 
 	BaseClass::Killed( pevAttacker, iGib );
 }
