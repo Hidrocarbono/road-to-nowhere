@@ -3690,6 +3690,10 @@
 		126 : "crouch"
 		127 : "kneel"
 	]
+	spawnflags(Flags) =
+	[
+		4096 : "No Panic (ignore ambient danger/combat sounds)" : 0
+	]
 ]
 @PointClass base(Reflection, Appearflags, RenderFields, Angles) size(-16 -16 0, 16 16 72) studio("models/scientist.mdl") = monster_scientist_dead : "Dead Scientist" 
 [

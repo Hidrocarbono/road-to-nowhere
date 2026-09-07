@@ -50,7 +50,12 @@ int CItemStimulant::AddDuplicate(CBasePlayerItem *pItem)
 	CBasePlayerWeapon *pWeapon = dynamic_cast<CBasePlayerWeapon *>(pItem);
 	if( pWeapon && pWeapon->m_pWeaponContext )
 	{
-		pWeapon->m_pWeaponContext->m_iClip += 1;  // +1 dose (m_iClip is public)
+		// RTN fix: nao deixa passar do iMaxClip() anunciado (99) - sem o clamp,
+		// pegar doses repetidas passava de 99 e qualquer HUD nativo baseado em
+		// ItemInfoArray (que anuncia 99 como teto) exibiria "N/99" com N > 99.
+		int iMaxDoses = pWeapon->m_pWeaponContext->iMaxClip();
+		if( pWeapon->m_pWeaponContext->m_iClip < iMaxDoses )
+			pWeapon->m_pWeaponContext->m_iClip += 1;  // +1 dose (m_iClip is public)
 		CBasePlayer *pPlayer = dynamic_cast<CBasePlayer *>( CBaseEntity::Instance( pWeapon->pev->owner ) );
 		if( pPlayer )
 			SendRTNItemsHUD( pPlayer );  // RTN F9: atualiza contador lateral

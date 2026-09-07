@@ -501,6 +501,17 @@ void ClientCommand( edict_t *pEntity )
 						pCtx->PrimaryAttack();  // ja equipado: usa direto
 				}
 			}
+			else
+			{
+				// RTN fix: sem doses - feedback de "nao pode usar" (mesmo som do
+				// painkiller em vida cheia), em vez de nao fazer nada em silencio.
+				EMIT_SOUND( ENT( pPlayer ), CHAN_ITEM, "common/wpn_denyselect.wav", 1.0, ATTN_NORM );
+			}
+		}
+		else
+		{
+			// RTN fix: sem o item no inventario - mesmo feedback de "nao pode usar".
+			EMIT_SOUND( ENT( pPlayer ), CHAN_ITEM, "common/wpn_denyselect.wav", 1.0, ATTN_NORM );
 		}
 	}
 	else if ( FStrEq(pcmd, "rtn_query_items" ) )
