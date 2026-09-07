@@ -145,6 +145,11 @@ private:
 	WEAPON	*m_pWeapon;
 	int	m_HUD_bucket0;
 	int	m_HUD_selection;
+	// RTN: confirma a troca de arma na BORDA do +attack (solto->pressionado),
+	// nao no nivel. Sem isso, girar a rodinha enquanto o tiro ja esta
+	// segurado (arma automatica) confirma a selecao na hora, sem clique novo
+	// - ver comentario em CHudAmmo::Think().
+	bool	m_bAttackWasDown;
 
 	// RTN: relogio da barra de selecao nova - hora do ultimo movimento de
 	// rodinha, usado so pra decidir quando a barra some (fade) por inatividade.

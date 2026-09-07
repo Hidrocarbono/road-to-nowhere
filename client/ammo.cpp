@@ -526,6 +526,7 @@ void CHudAmmo::Reset( void )
 	gpActiveSel = NULL;
 	gHUD.m_iHideHUDDisplay = 0;
 	m_flSelectMenuTime = 0.0f;
+	m_bAttackWasDown = false;
 
 	gWR.Reset();
 	gHR.Reset();
@@ -595,13 +596,51 @@ void CHudAmmo::Think( void )
 		}
 	}
 
-	// RTN: a barra de selecao troca de arma NA HORA a cada giro de rodinha
-	// (ver UserCmd_NextWeapon/PrevWeapon) - nao ha mais um estado "destacado
-	// mas nao confirmado" pra confirmar com IN_ATTACK, entao o clique de
-	// ataque nunca mais e interceptado aqui. So sobra apagar a barra sozinha
-	// depois de um tempo parada.
-	if( gpActiveSel && ( gEngfuncs.GetClientTime() - m_flSelectMenuTime ) > WEAPON_SELECT_BAR_TIMEOUT )
+	if( !gpActiveSel )
+	{
+		// menu fechado: nao ha selecao pendente, so acompanha o botao para
+		// a proxima vez que o menu abrir nao confirmar de cara (ver abaixo).
+		m_bAttackWasDown = ( gHUD.m_iKeyBits & IN_ATTACK ) != 0;
+		return;
+	}
+
+	// RTN: volta o clique-pra-confirmar (b0cced0), mas em cima da lista por
+	// peso atual - NextWeapon/PrevWeapon so destacam agora (nao chamam mais
+	// ServerCmd na hora, ver os dois abaixo), entao aqui decide se confirma
+	// ou cancela. Sem clique dentro do tempo, a barra fecha sozinha e a arma
+	// continua a mesma de antes (nao troca nada) - mesmo timeout que ja
+	// existia pra sumir a barra visualmente.
+	if( ( gEngfuncs.GetClientTime() - m_flSelectMenuTime ) > WEAPON_SELECT_BAR_TIMEOUT )
+	{
 		gpActiveSel = NULL;
+		return;
+	}
+
+	// has the player selected one?
+	// RTN: confirma na BORDA (solto -> pressionado), nao no nivel. A checagem
+	// original (so "IN_ATTACK esta ligado") confirma a troca no instante em
+	// que o menu abre se o jogador ja estiver segurando o tiro (comum com
+	// arma automatica: atira e gira a rodinha sem soltar o botao) - a arma
+	// trocava sozinha, sem nenhum clique nesse momento. Exigir a borda faz
+	// precisar de um clique novo enquanto o menu esta aberto.
+	bool bAttackDown = ( gHUD.m_iKeyBits & IN_ATTACK ) != 0;
+
+	if( bAttackDown && !m_bAttackWasDown )
+	{
+		if( gpActiveSel != (WEAPON *)1 )
+		{
+			ServerCmd( gpActiveSel->szName );
+			g_weaponselect = gpActiveSel->iId;
+		}
+
+		gpLastSel = gpActiveSel;
+		gpActiveSel = NULL;
+		gHUD.m_iKeyBits &= ~IN_ATTACK;
+
+		PlaySound( "common/wpn_select.wav", 1 );
+	}
+
+	m_bAttackWasDown = bAttackDown;
 }
 
 //
@@ -1037,10 +1076,11 @@ void CHudAmmo::UserCmd_NextWeapon( void )
 		}
 	}
 
+	// RTN: so destaca - a troca de verdade fica pro clique de confirmacao
+	// em Think() (ver o comentario la), pra "girar a rodinha" nunca mais
+	// trocar de arma sozinho sem o jogador confirmar.
 	gpActiveSel = list[idx];
 	m_flSelectMenuTime = gEngfuncs.GetClientTime();
-	ServerCmd( gpActiveSel->szName );
-	g_weaponselect = gpActiveSel->iId;
 	PlaySound( "common/wpn_moveselect.wav", 1 );
 }
 
@@ -1069,10 +1109,11 @@ void CHudAmmo::UserCmd_PrevWeapon( void )
 		}
 	}
 
+	// RTN: so destaca - a troca de verdade fica pro clique de confirmacao
+	// em Think() (ver o comentario la), pra "girar a rodinha" nunca mais
+	// trocar de arma sozinho sem o jogador confirmar.
 	gpActiveSel = list[idx];
 	m_flSelectMenuTime = gEngfuncs.GetClientTime();
-	ServerCmd( gpActiveSel->szName );
-	g_weaponselect = gpActiveSel->iId;
 	PlaySound( "common/wpn_moveselect.wav", 1 );
 }
 
