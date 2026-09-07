@@ -8,11 +8,14 @@
 // RTN F9/F10: contadores laterais de estimulante (V) e painkiller (H).
 // v4 (build #99 fix): SEM quadrado de fundo (o user pediu p/ eliminar os
 // quadrados verde/azul). So o ICONE .spr (sólido, SPR_Draw) + quantidade
-// em fonte ROBOTO (DrawHudString -> pfnDrawCharacter -> cls.creditsFont,
-// que e a creditsfont_cp125X.fnt = Roboto) ao lado DIREITO do icone.
+// ao lado DIREITO do icone.
 //
 // v3 (build #94): usava .spr nativo + SPR_DrawAdditive (ficava translucido).
 // v4: SPR_Draw (normal, nao additive) p/ o icone ficar solido.
+// v5: numero na mesma fonte/cor das mensagens de aquisicao de municao
+// (DrawHudString -> creditsFont do engine, cor gHUD.m_color dinamica em vez
+// de RGB fixo #cc812b), sem contorno - ver HistoryResource::DrawAmmoHistory
+// em client/ammohistory.cpp.
 
 #define RTN_ITEMS_X		10
 #define RTN_STIM_Y		300	// estimulante (verde)
@@ -26,8 +29,13 @@ DECLARE_MESSAGE( m_RTNItems, RTNItems );  // gera __MsgFunc_RTNItems -> gHUD.m_R
 static SpriteHandle g_hStimIcon = 0;
 static SpriteHandle g_hPainIcon = 0;
 
-// desenha o icone (solido) + quantidade em Roboto ao lado direito
-static void RTN_DrawItemSlot( int y, int r, int g, int b, SpriteHandle hSpr, int iDoses )
+// desenha o icone (solido) + quantidade, no mesmo estilo (fonte + cor) das
+// mensagens de aquisicao de municao (ver HistoryResource::DrawAmmoHistory,
+// client/ammohistory.cpp) - mesma chamada de fonte (DrawHudString ->
+// TextMessageDrawChar -> creditsFont do engine) que ja era usada aqui, mas
+// agora com a cor DINAMICA do HUD (gHUD.m_color, cvars hud_color_red/green/
+// blue) em vez de um RGB fixo, e sem contorno - igual ao toast de municao.
+static void RTN_DrawItemSlot( int y, SpriteHandle hSpr, int iDoses )
 {
 	if( hSpr )
 	{
@@ -43,17 +51,13 @@ static void RTN_DrawItemSlot( int y, int r, int g, int b, SpriteHandle hSpr, int
 		return;
 	}
 
-	// quantidade em fonte ROBOTO (DrawHudString usa pfnDrawCharacter ->
-	// cls.creditsFont = Roboto). Cor #cc812b (204,129,43) fixa, separada
-	// da cor do icone. O fundo do contorno e preto (0,0,0).
 	char szDoses[8];
 	Q_snprintf( szDoses, sizeof( szDoses ), "%d", iDoses );
 	int tx = RTN_TEXT_X;  // +14px do icone (nao colado)
 	int ty = y + RTN_ICON_SIZE / 2 - 4;  // centraliza verticalmente aprox.
-	// contorno escuro p/ legibilidade sobre o cenario
-	gHUD.DrawHudString( tx + 1, ty + 1, tx + 60, szDoses, 0, 0, 0 );
-	// numero em #cc812b, area de 60px p/ caber 2 digitos sem cortar
-	gHUD.DrawHudString( tx, ty, tx + 60, szDoses, 204, 129, 43 );
+	// numero na cor do HUD (mesma fonte de gHUD.m_color que health/ammo/
+	// battery/ammo-pickup usam), area de 60px p/ caber 2 digitos sem cortar
+	gHUD.DrawHudString( tx, ty, tx + 60, szDoses, gHUD.m_color.r, gHUD.m_color.g, gHUD.m_color.b );
 }
 
 int CHudRTNItems::Init( void )
@@ -112,16 +116,16 @@ int CHudRTNItems::Draw( float flTime )
 		// jogador ainda nao spawnou: tenta de novo no proximo frame
 	}
 
-	// --- Estimulante (verde) ---
+	// --- Estimulante ---
 	if( m_iStimDoses > 0 )
 	{
-		RTN_DrawItemSlot( RTN_STIM_Y, 30, 160, 60, g_hStimIcon, m_iStimDoses );
+		RTN_DrawItemSlot( RTN_STIM_Y, g_hStimIcon, m_iStimDoses );
 	}
 
-	// --- Painkiller (azul) ---
+	// --- Painkiller ---
 	if( m_iPainDoses > 0 )
 	{
-		RTN_DrawItemSlot( RTN_PAIN_Y, 60, 120, 200, g_hPainIcon, m_iPainDoses );
+		RTN_DrawItemSlot( RTN_PAIN_Y, g_hPainIcon, m_iPainDoses );
 	}
 
 	return 1;
