@@ -161,6 +161,12 @@ void CZombie :: TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecD
 			UTIL_TraceCustomDecal( &btr, "brains", RANDOM_FLOAT( 0.0f, 360.0f ) );
 			SpawnBlood( ptr->vecEndPos, BloodColor(), flDamage * 4 );
 			flDamage *= gSkillData.zomHead;
+
+			// RTN: headshot é sempre letal, não importa a arma nem a vida
+			// restante (SF_MONSTER_INVINCIBLE já foi checado no topo da
+			// função - isso aqui só roda se o dano realmente vai passar).
+			if ( flDamage < pev->health + 1 )
+				flDamage = pev->health + 1;
 		}
 		break;
 	case HITGROUP_CHEST:
