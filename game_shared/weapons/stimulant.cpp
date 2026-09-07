@@ -51,7 +51,48 @@ bool CStimulantWeaponContext::Deploy()
 	if( player )
 		g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 80\n" );
 #endif
-	return DefaultDeploy( "models/v_antidote.mdl", "models/w_antidote.mdl", 2, "medkit" );  // anim 2 = draw
+	bool bResult = DefaultDeploy( "models/v_antidote.mdl", "models/w_antidote.mdl", 2, "medkit" );  // anim 2 = draw
+
+	// RTN FIX (bug critico): DefaultDeploy() faz
+	//   SetPlayerNextAttackTime( GetWeaponTimeBase(UsePredicting()) + 0.5 )
+	// Para UsePredicting()==true (toda outra arma), GetWeaponTimeBase() e sempre 0.0f,
+	// entao isso grava um valor RELATIVO pequeno (0.5) em CBasePlayer::m_flNextAttack.
+	// CBasePlayer::UpdatePlayerTimers() (player.cpp) trata esse campo como CONTAGEM
+	// REGRESSIVA relativa (-= frametime a cada frame).
+	// O estimulante e a UNICA arma de jogador com UsePredicting()==false (ver .h), entao
+	// GetWeaponTimeBase(false) retorna gpGlobals->time (timestamp ABSOLUTO, ex: 400.5 se o
+	// servidor esta de pe ha 400s). Gravar isso em m_flNextAttack faz CBasePlayer::
+	// ItemPostFrame()/ItemPreFrame() (que fazem "if (m_flNextAttack > 0.0f) return;")
+	// ficarem bloqueados por ~gpGlobals->time SEGUNDOS, nao 0.5s -- e enquanto isso o
+	// WeaponIdle() do estimulante (que dispara o uso pendente e fecha a animacao) nunca
+	// roda. Sintoma: item equipa mas "V"/tiro nao fazem nada, so volta a funcionar minutos
+	// depois, e quando finalmente destrava aplica cura/consumo de uma vez sem animar.
+	// Corrige sobrescrevendo com o valor relativo pequeno que UpdatePlayerTimers espera.
+	m_pLayer->SetPlayerNextAttackTime( 0.5f );
+
+	return bResult;
+}
+
+void CStimulantWeaponContext::Holster()
+{
+	CBaseWeaponContext::Holster();
+
+#ifndef CLIENT_DLL
+	CBasePlayer *player = m_pLayer->GetWeaponEntity()->m_pPlayer;
+	if( player )
+		// RTN FIX: restaura o FOV padrao do viewmodel (90 = default de cl_viewmodel_fov,
+		// ver gl_studio_init.cpp). Sem isso o 80 setado no Deploy() vazava pra qualquer
+		// arma seguinte que nao mexe nessa cvar (a MP5 se auto-corrige no proprio Deploy,
+		// mas crowbar/python/etc nao tocam nela e ficavam com a viewmodel afastada pra sempre).
+		g_engfuncs.pfnClientCommand( player->edict(), "cl_viewmodel_fov 90\n" );
+#endif
+
+	// RTN FIX: cancela o uso em progresso ao trocar de arma no meio da animacao. Sem
+	// isso, m_bUseInProgress/m_flUseFinishTime ficavam presos e, ao reequipar depois do
+	// tempo da animacao ja ter passado, o WeaponIdle() aplicava cura+consumo+remocao de
+	// uma vez so, sem tocar a animacao de novo (efeito "fantasma").
+	m_bUseInProgress = false;
+	m_bPendingUse = false;
 }
 
 void CStimulantWeaponContext::PrimaryAttack()

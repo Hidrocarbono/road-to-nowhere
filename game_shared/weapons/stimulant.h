@@ -27,6 +27,7 @@ public:
 	float m_flUseFinishTime = 0.0f;
 	int GetItemInfo(ItemInfo *p) const override;
 	bool Deploy() override;
+	void Holster() override;
 	void PrimaryAttack() override;
 	void WeaponIdle() override;
 };
