@@ -63,10 +63,9 @@ except ImportError:
     print("Precisa do Pillow: pip install Pillow", file=sys.stderr)
     sys.exit(1)
 
-BAKE_SIZE = 128        # px - tamanho INICIAL tentado (encolhe sozinho, ver fit_bake_size)
+BAKE_SIZE = 128        # px - tamanho IDEAL tentado (encolhe sozinho, ver fit_bake_size)
 PADDING = 4             # px de margem em volta de cada glifo no atlas (evita sangramento)
 CHARSET = list(range(0x20, 0x7F)) + list(range(0xA0, 0x100))
-COLS = 16
 
 # RTN FIX: o atlas E' um sprite .spr comum, e Image_LoadSPR() (engine,
 # common/imagelib/img_wad.c) valida QUALQUER .spr - inclusive truecolor v32 -
@@ -77,18 +76,27 @@ COLS = 16
 # de acentos latin-1) falha em Image_LumpValidSize, o engine rejeita o
 # sprite ("dims out of range") e o glifo desenhado (client/hud_titlefont.cpp,
 # via DrawSpriteAsPoly) acaba amostrando textura nenhuma - os "blocos" e
-# "faixas" no lugar das letras. Nao tem como contornar reduzindo padding/
-# rearranjando a grade sozinho garantidamente com fonte desconhecida; a
-# forma robusta e medir de verdade e diminuir o bake ate caber.
+# "faixas" no lugar das letras. A forma robusta e medir de verdade e
+# encolher ate caber, em vez de confiar numa conta de cabeca.
 MAX_ATLAS_DIM = 1024   # == LUMP_MAXWIDTH == LUMP_MAXHEIGHT no engine
+
+# RTN: 16 colunas fixas era arbitrario - pra um charset "alto" (Latin-1 tem
+# muito glifo estreito tipo acento e pontuacao ao lado de letra larga), uma
+# grade mais quadrada (menos colunas, mais linhas) desperdica menos espaco e
+# permite um bake MAIOR ainda cabendo em MAX_ATLAS_DIM. Testado com o
+# kirkwood: 16 colunas so cabia bake=44px; 12 colunas cabe bake=65px - texto
+# nitidamente mais nitido pro $fontsize 96 usado no titulo de episodio.
+# fit_bake_size() testa uma faixa e fica com a combinacao de maior bake.
+CANDIDATE_COLS = range(6, 25)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def _measure( ttf_path, bake_size ):
+def _measure( ttf_path, bake_size, cols ):
     """Mede todos os glifos do CHARSET num tamanho de bake e devolve
-    (font, metrics, lineheight, atlas_w, atlas_h) - sem desenhar nada ainda,
-    so pra decidir se este bake_size cabe no limite do engine."""
+    (font, metrics, lineheight, atlas_w, atlas_h) pra uma grade de 'cols'
+    colunas - sem desenhar nada ainda, so pra decidir se cabe no limite do
+    engine."""
     font = ImageFont.truetype( ttf_path, bake_size )
     metrics = {}
     max_w = max_h = 0
@@ -112,32 +120,45 @@ def _measure( ttf_path, bake_size ):
 
     cell_w = max_w + PADDING * 2
     cell_h = max_h + PADDING * 2
-    rows = (len( CHARSET ) + COLS - 1) // COLS
+    rows = (len( CHARSET ) + cols - 1) // cols
 
-    return font, metrics, lineheight, COLS * cell_w, rows * cell_h
+    return font, metrics, lineheight, cols * cell_w, rows * cell_h
 
 
 def fit_bake_size( ttf_path, requested_size ):
-    """Acha o maior tamanho de bake <= requested_size cujo atlas caiba em
-    MAX_ATLAS_DIM x MAX_ATLAS_DIM. Comeca no pedido e vai reduzindo - as
-    metricas de uma fonte real nao escalam perfeitamente linear (hinting),
-    entao mede de verdade a cada tentativa em vez de so fazer uma conta e
-    confiar nela."""
-    size = requested_size
-    while size > 8:
-        font, metrics, lineheight, atlas_w, atlas_h = _measure( ttf_path, size )
-        if atlas_w <= MAX_ATLAS_DIM and atlas_h <= MAX_ATLAS_DIM:
-            if size != requested_size:
-                print( f"aviso: bake pedido ({requested_size}px) gerava atlas "
-                       f"maior que {MAX_ATLAS_DIM}x{MAX_ATLAS_DIM} (limite do "
-                       f".spr no engine - Image_LumpValidSize) - usando {size}px", file=sys.stderr )
-            return font, metrics, lineheight, atlas_w, atlas_h
-        size -= 4
+    """Testa varias contagens de coluna (CANDIDATE_COLS) e, pra cada uma,
+    acha o maior bake <= requested_size cujo atlas caiba em MAX_ATLAS_DIM x
+    MAX_ATLAS_DIM - devolve a combinacao com o MAIOR bake entre todas (texto
+    mais nitido). Mede de verdade a cada tentativa (metricas de fonte real
+    nao escalam perfeitamente linear com hinting), em vez de confiar numa
+    conta so."""
+    best = None  # (bake_size, cols, font, metrics, lineheight, atlas_w, atlas_h)
 
-    raise RuntimeError(
-        f"nao consegui caber o atlas em {MAX_ATLAS_DIM}x{MAX_ATLAS_DIM} nem "
-        f"em bake tao pequeno quanto {size}px - fonte tem glifo(s) anormalmente "
-        f"largo(s)/alto(s), ou o charset precisa ser reduzido" )
+    for cols in CANDIDATE_COLS:
+        size = requested_size
+        while size > 8:
+            font, metrics, lineheight, atlas_w, atlas_h = _measure( ttf_path, size, cols )
+            if atlas_w <= MAX_ATLAS_DIM and atlas_h <= MAX_ATLAS_DIM:
+                if best is None or size > best[0]:
+                    best = (size, cols, font, metrics, lineheight, atlas_w, atlas_h)
+                break
+            size -= 1
+
+    if best is None:
+        raise RuntimeError(
+            f"nao consegui caber o atlas em {MAX_ATLAS_DIM}x{MAX_ATLAS_DIM} "
+            f"em nenhuma combinacao de colunas/bake testada - fonte tem "
+            f"glifo(s) anormalmente largo(s)/alto(s), ou o charset precisa "
+            f"ser reduzido" )
+
+    size, cols, font, metrics, lineheight, atlas_w, atlas_h = best
+    if size != requested_size:
+        print( f"aviso: bake pedido ({requested_size}px) gerava atlas maior "
+               f"que {MAX_ATLAS_DIM}x{MAX_ATLAS_DIM} (limite do .spr no "
+               f"engine - Image_LumpValidSize) - usando {size}px em grade de "
+               f"{cols} colunas (melhor entre {CANDIDATE_COLS.start}-{CANDIDATE_COLS.stop - 1} testadas)", file=sys.stderr )
+
+    return font, metrics, lineheight, atlas_w, atlas_h, cols
 
 
 def main():
@@ -147,10 +168,11 @@ def main():
 
     ttf_path, name = sys.argv[1], sys.argv[2]
 
-    font, metrics, lineheight, atlas_w, atlas_h = fit_bake_size( ttf_path, BAKE_SIZE )
+    font, metrics, lineheight, atlas_w, atlas_h, cols = fit_bake_size( ttf_path, BAKE_SIZE )
     bake_size = font.size
-    cell_w = atlas_w // COLS
-    cell_h = atlas_h // ((len( CHARSET ) + COLS - 1) // COLS)
+    rows = (len( CHARSET ) + cols - 1) // cols
+    cell_w = atlas_w // cols
+    cell_h = atlas_h // rows
 
     # RGBA, comeca transparente; glifos desenhados em BRANCO (a cor real vem
     # de $color/$color2 no titles.txt, aplicada como tint no draw - o mesmo
@@ -160,7 +182,7 @@ def main():
 
     glyphs = []  # (code, atlasX, atlasY, atlasW, atlasH, advance)
     for i, code in enumerate(CHARSET):
-        col, row = i % COLS, i // COLS
+        col, row = i % cols, i // cols
         cellX, cellY = col * cell_w, row * cell_h
         x0, y0, w, h, advance = metrics[code]
 
