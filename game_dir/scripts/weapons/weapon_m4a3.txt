@@ -23,7 +23,7 @@ WeaponData
 	"bucket_position"	"4"			// slot position
 	"clip_size"	"30"			// clip size
 	"defaultammo"	"30"			// default ammo give print "random" for random choose
-	"primary_ammo"	"m16"			// FIXME: need to use single ammo type for aks, ak74 and groza
+	"primary_ammo"	"5.56"			// FIXME: need to use single ammo type for aks, ak74 and groza
 	"secondary_ammo" 	"none"			// secondary ammo type
 	"weight"		"15"			// autoswitch weight
 	"SpreadTime"	"0.3"			// time to back to normal spread

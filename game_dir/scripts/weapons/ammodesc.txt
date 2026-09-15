@@ -15,10 +15,15 @@ GNU General Public License for more details.
 
 ammoinfo					// begin ammo definition
 {
-	name		"barret"		// unique name of ammotype
+	// RTN: era "barret" (nome herdado do Paranoia2 original - confirmado em
+	// dlls/hgrunt.cpp de la, nao e erro deste port) para o 9mm comum da Glock.
+	// Renomeado pro calibre real (9x19mm Parabellum) e dano recalibrado por
+	// energia de boca real (~500J, o mais fraco da tabela) - estava em 17/12,
+	// quase nivel de fuzil, o mais alto entre os calibres de pistola.
+	name		"9mm"		// unique name of ammotype
 	MaxCarry		60		// max carry for players
-	PlayerDamage	17		// damage if bullet was fired by player (affected to monsters)
-	MonsterDamage	12		// damage if bullet was fired by monster (affected to client in singleplayer) 
+	PlayerDamage	12		// damage if bullet was fired by player (affected to monsters)
+	MonsterDamage	7		// damage if bullet was fired by monster (affected to client in singleplayer)
 	ShellModel	"models/glock_shell.mdl"
 }
 
@@ -42,19 +47,28 @@ ammoinfo					// begin ammo definition
 
 ammoinfo					// begin ammo definition
 {
-	name		"m16"		// unique name of ammotype
+	// RTN: era "m16" (nome de arma, nao de calibre) - renomeado pro calibre
+	// real (5.56x45mm NATO). Dano recalibrado por energia de boca real
+	// (~1750J) relativo ao 5.45 (~1350J, abaixo) e ao 7.62 (~2050J, acima) -
+	// antes "m16" e "ak" tinham dano IDENTICO (20/12), o que nao diferenciava
+	// os dois fuzis mais usados do jogo.
+	name		"5.56"		// unique name of ammotype
 	MaxCarry		200		// max carry for players
-	PlayerDamage	20		// damage if bullet was fired by player (affected to monsters)
-	MonsterDamage	12		// damage if bullet was fired by monster (affected to client in singleplayer) 
+	PlayerDamage	18		// damage if bullet was fired by player (affected to monsters)
+	MonsterDamage	11		// damage if bullet was fired by monster (affected to client in singleplayer)
 	ShellModel	"models/aks_shell.mdl"
 }
 
 ammoinfo					// begin ammo definition
 {
-	name		"ak"		// unique name of ammotype
+	// RTN: era "ak" (nome herdado do Paranoia2 original - confirmado em
+	// dlls/hgrunt.cpp de la, nao e erro deste port). Renomeado pro calibre
+	// real (7.62x39mm) e dano recalibrado pra ficar o mais forte dos tres
+	// fuzis (reputacao real do 7.62x39 de bater mais forte por tiro).
+	name		"7.62"		// unique name of ammotype
 	MaxCarry		120		// max carry for players
-	PlayerDamage	20		// damage if bullet was fired by player (affected to monsters)
-	MonsterDamage	12		// damage if bullet was fired by monster (affected to client in singleplayer) 
+	PlayerDamage	22		// damage if bullet was fired by player (affected to monsters)
+	MonsterDamage	13		// damage if bullet was fired by monster (affected to client in singleplayer)
 	ShellModel	"models/aks_shell.mdl"
 }
 
@@ -150,27 +164,40 @@ ammoinfo					// begin ammo definition
 
 
 
+// RTN: ammo_9mmclip tem entidade C++ propria (CGlockAmmo, server/entities/
+// ammo_9mmclip.cpp, LINK_ENTITY_TO_CLASS) que da municao "9mm" hardcoded -
+// este bloco NUNCA roda, e letra morta. So existe pra documentar o tipo
+// (ver PS abaixo sobre ammo_glock/ammo_glockbox, que rodavam de verdade e
+// estavam quebrados por causa disso).
 ammo_9mmclip
 {
 	model	"models/w_glockammo.mdl"	// model in world
 	sound	"items/default.wav"	// sound when added
-	type	"barret"			// ammo type what will be added to player
+	type	"9mm"			// ammo type what will be added to player
 	count	17			// count of ammo
 }
 
+// RTN: DIFERENTE do ammo_9mmclip acima, este classname NAO tem entidade C++
+// propria - roda pelo parser de script de verdade. Antes dava municao tipo
+// "barret", mas weapon_glock.cpp (a arma) pede pszAmmo1() == "9mm" - ou seja,
+// pegar este item no mapa dava municao que a Glock nao reconhecia (pickup
+// morto em silencio). Renomear "barret" -> "9mm" aqui CONSERTA esse bug de
+// quebra, alem de arrumar o nome.
 ammo_glock
 {
 	model	"models/w_glockammo.mdl"	// model in world
 	sound	"items/default.wav"	// sound when added
-	type	"barret"			// ammo type what will be added to player
+	type	"9mm"			// ammo type what will be added to player
 	count	17			// count of ammo
 }
 
+// RTN: mesmo bug do ammo_glock acima (nao tem entidade C++ propria, dava
+// "barret" que a Glock nao reconhecia) - mesma correcao.
 ammo_glockbox
 {
 	model	"models/w_glockammobox.mdl"	// model in world
 	sound	"items/default.wav"	// sound when added
-	type	"barret"			// ammo type what will be added to player
+	type	"9mm"			// ammo type what will be added to player
 	count	200			// count of ammo
 }
 
@@ -211,7 +238,7 @@ ammo_ak74
 {
 	model	"models/w_ak74ammo.mdl"	// model in world
 	sound	"items/default.wav"	// sound when added
-	type	"ak"			// ammo type what will be added to player
+	type	"7.62"			// ammo type what will be added to player
 	count	30			// count of ammo
 }
 
@@ -227,7 +254,7 @@ ammo_m16box
 {
 	model	"models/w_m4a1ammobox.mdl"	// model in world
 	sound	"items/default.wav"	// sound when added
-	type	"m16"			// ammo type what will be added to player
+	type	"5.56"			// ammo type what will be added to player
 	count	60			// count of ammo
 }
 
@@ -235,7 +262,7 @@ ammo_m16
 {
 	model	"models/w_m4a1ammo.mdl"	// model in world
 	sound	"items/default.wav"	// sound when added
-	type	"m16"			// ammo type what will be added to player
+	type	"5.56"			// ammo type what will be added to player
 	count	30			// count of ammo
 }
 
@@ -243,7 +270,7 @@ ammo_ak74box
 {
 	model	"models/w_ak74ammobox.mdl"	// model in world
 	sound	"items/default.wav"	// sound when added
-	type	"ak"			// ammo type what will be added to player
+	type	"7.62"			// ammo type what will be added to player
 	count	90			// count of ammo
 }
 

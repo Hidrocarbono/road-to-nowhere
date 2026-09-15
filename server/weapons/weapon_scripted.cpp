@@ -225,7 +225,7 @@ int CWeaponScripted::GetItemInfo( ItemInfo *p ) const
 	// inventory behaviour), so they stay in m_pInfo for the weapon logic to read
 	// and this reports the same inventory behaviour as the classic MP5.
 	p->iFlags = ITEM_FLAG_SELECTONEMPTY;
-	// max carry comes from the ammo type's MaxCarry in ammodesc.txt (e.g. "ak"
+	// max carry comes from the ammo type's MaxCarry in ammodesc.txt (e.g. "7.62"
 	// -> 120). Was MAX_WEAPON_NAME (64) - a string-buffer size constant that has
 	// nothing to do with ammo counts, it just happened to be a plausible number.
 	const ammoinfo_t *ammo1 = m_pInfo->primary_ammo[0] ? WeaponScript_FindAmmo( m_pInfo->primary_ammo ) : NULL;
