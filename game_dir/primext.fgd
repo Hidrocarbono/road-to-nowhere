@@ -843,6 +843,31 @@
 @PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_gaussammo.mdl") = ammo_gaussclip : "Gauss Gun Ammo" []
 @PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_crossbow_clip.mdl") = ammo_crossbow : "Crossbow Ammo" []
 
+//
+// ammo (RTN weaponscript - game_dir/scripts/weapons/ammodesc.txt)
+//
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_glockammo.mdl") = ammo_glock : "9mm Pistol Ammo (Glock)" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_glockammobox.mdl") = ammo_glockbox : "9mm Pistol Ammo Box (Glock)" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_apsammo.mdl") = ammo_aps : "APS Ammo (9x18mm)" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_apsammobox.mdl") = ammo_apsbox : "APS Ammo Box (9x18mm)" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/ammo_aks_clip.mdl") = ammo_aks : "AKS Ammo (5.45x39mm)" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/ammo_aks_box.mdl") = ammo_aksbox : "AKS Ammo Box (5.45x39mm)" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_ak74ammo.mdl") = ammo_ak74 : "AK-74 Ammo (7.62x39mm)" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_ak74ammobox.mdl") = ammo_ak74box : "AK-74 Ammo Box (7.62x39mm)" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/ammo_mp5_box.mdl") = ammo_mp5 : "MP5 Ammo (9x19mm)" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_m4a1ammo.mdl") = ammo_m16 : "M4A3 Ammo (5.56x45mm)" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_m4a1ammobox.mdl") = ammo_m16box : "M4A3 Ammo Box (5.56x45mm)" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_valammo.mdl") = ammo_vss : "VSS Ammo (9x39mm)" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_valammobox.mdl") = ammo_vssbox : "VSS Ammo Box (9x39mm)" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_rpkammo.mdl") = ammo_rpk : "RPK Ammo" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_rpkammobox.mdl") = ammo_rpkbox : "RPK Ammo Box" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_grammo.mdl") = ammo_groza : "Groza Ammo (9x39mm)" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_grammobox.mdl") = ammo_grozabox : "Groza Ammo Box (9x39mm)" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_vog25ammo.mdl") = ammo_vog25 : "VOG-25 Grenade Ammo" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_tt33ammo.mdl") = ammo_tt33 : "TT-33 Ammo" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_tt33ammobox.mdl") = ammo_tt33box : "TT-33 Ammo Box" []
+@PointClass base(Weapon, Targetx, Parent, Reflection) studio("models/w_antidote.mdl") = ammo_painkillers : "Painkillers" []
+
 @SolidClass base(Target, Parent, Reflection, ZHLT) = button_target : "Target Button"
 [
 	spawnflags(flags) =
