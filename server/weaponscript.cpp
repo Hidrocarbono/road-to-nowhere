@@ -82,6 +82,17 @@ ammoinfo_t *WeaponScript_FindAmmo( const char *name )
 	return NULL;
 }
 
+ammopickup_t *WeaponScript_FindAmmoPickup( const char *classname )
+{
+	int i;
+	for( i = 0; i < gNumAmmoPickups; i++ )
+	{
+		if( !WS_stricmp( gAmmoPickups[i].classname, classname ) )
+			return &gAmmoPickups[i];
+	}
+	return NULL;
+}
+
 static void WS_StripTxt( char *dst, const char *src, size_t n )
 {
 	WS_strncpy( dst, src, n );
@@ -911,6 +922,11 @@ void WeaponScript_Init( void )
 	// parseada, o que e o que faz CreateEntityByName("weapon_m4") parar de
 	// responder "unknown entity type" sem um LINK_ENTITY_TO_CLASS por arma.
 	WeaponScript_RegisterEntities();
+	// Mesma logica, lado da municao (server/entities/ammo_scripted.cpp) -
+	// sem isto, "ammo_aks"/"ammo_m16"/etc. (qualquer ammo_ do ammodesc.txt sem
+	// LINK_ENTITY_TO_CLASS proprio) batia em "unknown entity type" e nunca
+	// aparecia no mapa, mesmo com modelo e .fgd corretos.
+	AmmoScript_RegisterEntities();
 	WS_Printf( "WeaponScript: auto-loaded %d weapons at startup\n", gNumWeaponInfo );
 }
 

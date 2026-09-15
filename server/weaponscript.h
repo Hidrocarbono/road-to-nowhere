@@ -160,6 +160,10 @@ void WeaponScript_LoadAll( void );
 ammoinfo_t *WeaponScript_FindAmmo( const char *name );
 weaponinfo_t *WeaponScript_FindWeapon( const char *name );
 weaponinfo_t *WeaponScript_FindWeaponByName( const char *scriptname );
+// Procura em gAmmoPickups[] por classname (ex: "ammo_aks") - usado por
+// CAmmoScripted::Spawn() (server/entities/ammo_scripted.cpp) pra achar o
+// bloco "ammo_<nome> { model, sound, type, count }" que o descreve.
+ammopickup_t *WeaponScript_FindAmmoPickup( const char *classname );
 void WeaponScript_Init( void );
 
 // Registers every ammo type parsed from ammodesc.txt (gAmmoInfo) into the
@@ -215,5 +219,12 @@ int WeaponScript_GetWeaponID( weaponinfo_t *info );
 // escrito a mao para cada uma - ver o comentario grande em
 // server/weapons/weapon_scripted.cpp. Chamada uma vez, logo apos o parse.
 void WeaponScript_RegisterEntities( void );
+
+// Mesma logica do lado da MUNICAO (server/entities/ammo_scripted.cpp) -
+// registra cada classname de gAmmoPickups[] que ainda nao tem
+// LINK_ENTITY_TO_CLASS proprio (as tres entidades classicas hardcoded -
+// ammo_9mmclip/ammo_buckshot/ammo_rpgclip - ficam de fora, quem manda nelas
+// e o C++). Chamada uma vez, logo apos WeaponScript_RegisterEntities().
+void AmmoScript_RegisterEntities( void );
 
 #endif // WEAPONSCRIPT_H
