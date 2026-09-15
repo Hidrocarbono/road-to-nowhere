@@ -21,6 +21,14 @@
 #define ITEM_FLAG_NOAUTOSWITCHEMPTY	4
 #define ITEM_FLAG_LIMITINWORLD		8
 #define ITEM_FLAG_EXHAUSTIBLE		16 // A player can totally exhaust their ammo supply and lose this weapon
+// RTN weaponscript (port dos 13 item_flags do Paranoia2 original, dlls/weapons.h):
+// os 4 abaixo sao os que so importam pro lado SERVIDOR (gamerules, drop, pickup) -
+// nunca precisam viajar pro cliente, entao ficam neste enum sem risco de estourar
+// o orcamento de rede (ao contrario dos que ficam em WIF_*, ver weaponscript.h).
+#define ITEM_FLAG_NODUPLICATE		32  // player can't be given this weapon a second time (RTN: server/weapons/weapon_scripted.cpp AddDuplicate())
+#define ITEM_FLAG_SCOPE			64  // informational only - usa o mesmo zoom_fov do IronSight, sem comportamento proprio ainda
+#define ITEM_FLAG_NODROP			128 // player can't drop this weapon (RTN: server/player.cpp DropPlayerItem())
+#define ITEM_FLAG_ALLOWFIREMODE		256 // RESERVADO: RTN nao tem sistema de troca de modo de disparo ainda - parseado, sem consumidor
 
 #define WEAPON_NOCLIP			-1
 #define WEAPON_ALLWEAPONS		(~(1<<WEAPON_SUIT))

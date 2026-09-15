@@ -34,9 +34,25 @@ changing their script files.
 #define MAX_SOUND_PATH		64
 #define MAX_HUDSPRITE_NAME	32
 
-#define WIF_IRONSIGHT	(1<<0)
-#define WIF_AUTOAIM		(1<<1)
-#define WIF_AUTOFIRE	(1<<2)
+// RTN weaponscript: bits de item_flags que PRECISAM ser identicos nos dois
+// lados (cliente prediz a arma sem ter o parser - ver o comentario grande em
+// mp5.h sobre m_pScriptInfo). Por isso viajam pela rede dentro de
+// weapon_data_t.iuser2 (m_iScriptFlags), que e DT_SIGNED de 10 bits no
+// delta.lst (game_dir/delta.lst) - faixa segura de valores POSITIVOS e
+// 0..511 (bit 8 e o ultimo garantido). So ganhe um bit novo aqui se o
+// comportamento precisar ser identico durante a predicao (ex: bloquear tiro
+// debaixo d'agua muda o que o cliente prediz na hora). Comportamento que so
+// importa pro SERVIDOR (drop, respawn no mundo, duplicata) vai no OUTRO
+// enum, ITEM_FLAG_* de game_shared/item_info.h, guardado em
+// weaponinfo_t::inventory_flags - NUNCA misturar os dois (colidem em valor
+// de proposito, ver aviso completo mais abaixo e em mp5.h).
+#define WIF_IRONSIGHT		(1<<0)	// 1   - mira de ferro (CMP5WeaponContext::HasIronSight)
+#define WIF_AUTOAIM			(1<<1)	// 2   - crosshair de auto-mira cosmetico (WeaponIdle) - NUNCA usado em FireBullets, ver F10 fix em mp5.cpp
+#define WIF_AUTOFIRE		(1<<2)	// 4   - parseado, sem efeito de disparo ainda (RTN nao tem semi-auto pra distinguir de - ver DEVKIT_WEAPONS.md)
+#define WIF_SELECTONEMPTY	(1<<3)	// 8   - reservado; SelectOnEmpty hoje e sempre ligado pra arma de script (ver mp5.cpp GetItemInfo)
+#define WIF_NOAUTORELOAD	(1<<4)	// 16  - suprime o auto-reload de CBaseWeaponContext (weapon_context.cpp)
+#define WIF_NOAUTOSWITCH	(1<<5)	// 32  - suprime a troca automatica de arma ao zerar municao (weapon_context.cpp)
+#define WIF_UNDERWATER		(1<<6)	// 64  - permite atirar debaixo d'agua (mp5.cpp PrimaryAttack, por padrao bloqueado)
 
 typedef struct ammoinfo_s
 {
@@ -108,7 +124,8 @@ typedef struct weaponinfo_s
 	char	secondary_ammo[MAX_AMMO_NAME];
 	int	weight;
 	float	SpreadTime;
-	int	item_flags;
+	int	item_flags;		// WIF_* (weaponscript.h) - bits que precisam de predicao identica nos dois lados
+	int	inventory_flags;	// ITEM_FLAG_* (item_info.h) - bits so-servidor (drop/respawn/duplicata), NUNCA misturar com item_flags
 	float	MaxSpeed;
 	float	MaxSpeedIS;
 	int	zoom_fov;			// RTN F10: FOV da mira de ferro (0 = sem mira)

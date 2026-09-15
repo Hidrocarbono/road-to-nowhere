@@ -5292,6 +5292,17 @@ void CBasePlayer::DropPlayerItem ( char *pszItemName )
 		// item we want to drop and hit a BREAK;  pWeapon is the item.
 		if ( pWeapon )
 		{
+			// RTN weaponscript: item_flags "NoDrop" (ITEM_FLAG_NODROP, item_info.h) -
+			// recusa o drop inteiro, sem tirar a arma do inventario nem gerar a
+			// weaponbox. Consultado via iFlags() (CWeaponScripted::ComputeIFlags(),
+			// server/weapons/weapon_scripted.cpp) - so-servidor, sem implicacao de
+			// predicao (o comando "drop" so existe no servidor mesmo).
+			if ( pWeapon->iFlags() & ITEM_FLAG_NODROP )
+			{
+				ClientPrint( pev, HUD_PRINTCONSOLE, UTIL_VarArgs( "Nao e possivel largar %s\n", STRING( pWeapon->pev->classname ) ) );
+				return;
+			}
+
 			g_pGameRules->GetNextBestWeapon( this, pWeapon );
 
 			UTIL_MakeVectors ( GetAbsAngles() ); 

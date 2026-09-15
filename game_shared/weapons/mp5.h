@@ -38,9 +38,13 @@
 // NOAUTOSWITCHEMPTY (1|2|4, game_shared/item_info.h) e nao tem NADA a ver com
 // eles - nunca atribuir um no outro.
 #ifndef WIF_IRONSIGHT
-#define WIF_IRONSIGHT	(1<<0)
-#define WIF_AUTOAIM	(1<<1)
-#define WIF_AUTOFIRE	(1<<2)
+#define WIF_IRONSIGHT		(1<<0)
+#define WIF_AUTOAIM			(1<<1)
+#define WIF_AUTOFIRE		(1<<2)
+#define WIF_SELECTONEMPTY	(1<<3)
+#define WIF_NOAUTORELOAD	(1<<4)
+#define WIF_NOAUTOSWITCH	(1<<5)
+#define WIF_UNDERWATER		(1<<6)
 #endif
 
 #define MP5_WEIGHT			15

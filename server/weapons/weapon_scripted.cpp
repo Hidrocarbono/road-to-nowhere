@@ -201,6 +201,56 @@ int CWeaponScripted::iMaxAmmo1( void )
 	return ( ammo1 && ammo1->MaxCarry > 0 ) ? Q_min( ammo1->MaxCarry, 254 ) : 1;
 }
 
+// RTN: fonte unica pra iFlags()/GetItemInfo() nao divergirem (eram dois
+// hardcodes separados antes, e so davam a mesma resposta por coincidencia).
+//
+// item_flags (m_pInfo, bits WIF_*) e inventory_flags (m_pInfo, bits
+// ITEM_FLAG_*) sao campos DIFERENTES de proposito - ver o comentario grande
+// em weaponscript.h. Os bits WIF_ que tambem tem equivalente ITEM_FLAG_
+// (NoAutoReload/NoAutoSwitch) precisam ser traduzidos aqui, um a um - NUNCA
+// atribuir w->item_flags direto num campo ITEM_FLAG_ (foi exatamente esse
+// bug, achatando "IronSight|AutoAim|AutoFire" em NOAUTORELOAD|
+// NOAUTOSWITCHEMPTY por coincidencia de valor, que motivou a separacao).
+//
+// SelectOnEmpty fica sempre ligado (nao le WIF_SELECTONEMPTY): e o
+// comportamento classico da MP5, e nenhum script ainda pediu para desligar -
+// manter fixo evita ter que migrar weapon_m4a3.txt/weapon_parafal.txt/
+// weapon_aps.txt so para preservar o que ja funcionava.
+int CWeaponScripted::ComputeIFlags( void ) const
+{
+	if( !m_pInfo ) return ITEM_FLAG_SELECTONEMPTY;
+
+	int flags = ITEM_FLAG_SELECTONEMPTY;
+
+	if( m_pInfo->item_flags & WIF_NOAUTORELOAD ) flags |= ITEM_FLAG_NOAUTORELOAD;
+	if( m_pInfo->item_flags & WIF_NOAUTOSWITCH ) flags |= ITEM_FLAG_NOAUTOSWITCHEMPTY;
+
+	// inventory_flags ja usa os bits ITEM_FLAG_ diretamente (mesmo enum,
+	// preenchido por WS_FlagsFromString em weaponscript.cpp) - so os tres que
+	// tem consumidor de verdade hoje (LimitInWorld/Exhaustible/NoDrop; ver
+	// gamerules/player.cpp). NoDuplicate e Scope/AllowFireMode nao passam por
+	// aqui - NoDuplicate tem hook proprio (AddDuplicate() abaixo), os outros
+	// dois nao tem consumidor de iFlags() ainda.
+	flags |= ( m_pInfo->inventory_flags & ( ITEM_FLAG_LIMITINWORLD | ITEM_FLAG_EXHAUSTIBLE | ITEM_FLAG_NODROP ) );
+
+	return flags;
+}
+
+// RTN: ITEM_FLAG_NODUPLICATE do script. GoldSrc chama isto quando o jogador
+// toca numa copia da arma que ele ja tem (server/player.cpp AddPlayerItem);
+// retornar FALSE sem chamar a base faz a segunda copia nao dar NADA (nem
+// municao) e continuar largada no chao - "nao pode dar essa arma de novo",
+// igual ao comentario do Paranoia2 original (dlls/weapons.h: "e.g. knife,
+// crowbar"). Sem a flag, cai no padrao de CBasePlayerWeapon::AddDuplicate()
+// (top de municao/clip da arma nova, some do mapa).
+int CWeaponScripted::AddDuplicate( CBasePlayerItem *pOriginal )
+{
+	if( m_pInfo && ( m_pInfo->inventory_flags & ITEM_FLAG_NODUPLICATE ) )
+		return FALSE;
+
+	return CBasePlayerWeapon::AddDuplicate( pOriginal );
+}
+
 int CWeaponScripted::GetItemInfo( ItemInfo *p ) const
 {
 	if( !m_pInfo ) return 0;
@@ -215,16 +265,7 @@ int CWeaponScripted::GetItemInfo( ItemInfo *p ) const
 	p->iSlot = m_pInfo->bucket;
 	p->iPosition = m_pInfo->bucket_position;
 	p->iWeight = m_pInfo->weight;
-	// NOT m_pInfo->item_flags: that field holds WIF_IRONSIGHT|WIF_AUTOAIM|
-	// WIF_AUTOFIRE (1|2|4, weaponscript.h), while this field is read as
-	// ITEM_FLAG_SELECTONEMPTY|NOAUTORELOAD|NOAUTOSWITCHEMPTY (1|2|4,
-	// game_shared/item_info.h) - same bits, completely unrelated meanings.
-	// weapon_parafal.txt's "IronSight|AutoAim|AutoFire" was silently turning
-	// into NOAUTORELOAD|NOAUTOSWITCHEMPTY, disabling auto-reload. The WIF_*
-	// flags have no ITEM_FLAG_* equivalent (they describe firing behaviour, not
-	// inventory behaviour), so they stay in m_pInfo for the weapon logic to read
-	// and this reports the same inventory behaviour as the classic MP5.
-	p->iFlags = ITEM_FLAG_SELECTONEMPTY;
+	p->iFlags = ComputeIFlags();
 	// max carry comes from the ammo type's MaxCarry in ammodesc.txt (e.g. "7.62"
 	// -> 120). Was MAX_WEAPON_NAME (64) - a string-buffer size constant that has
 	// nothing to do with ammo counts, it just happened to be a plausible number.

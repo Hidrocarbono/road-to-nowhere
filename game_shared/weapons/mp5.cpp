@@ -88,7 +88,13 @@ int CMP5WeaponContext::GetItemInfo(ItemInfo *p) const
 		p->iMaxClip = m_pScriptInfo->clip_size > 0 ? m_pScriptInfo->clip_size : MP5_MAX_CLIP;
 		p->iSlot = m_pScriptInfo->bucket > 0 ? m_pScriptInfo->bucket : 3;
 		p->iPosition = m_pScriptInfo->bucket_position;
+		// RTN: traduz os bits WIF_ (predicao) pros ITEM_FLAG_ equivalentes -
+		// mesma logica de CWeaponScripted::ComputeIFlags() (weapon_scripted.cpp),
+		// tem que bater com aquela pro lado servidor concordar consigo mesmo.
+		// SelectOnEmpty fica sempre ligado (mesmo motivo documentado la).
 		p->iFlags = ITEM_FLAG_SELECTONEMPTY;
+		if( m_iScriptFlags & WIF_NOAUTORELOAD ) p->iFlags |= ITEM_FLAG_NOAUTORELOAD;
+		if( m_iScriptFlags & WIF_NOAUTOSWITCH ) p->iFlags |= ITEM_FLAG_NOAUTOSWITCHEMPTY;
 		p->iId = m_iId;
 		p->iWeight = m_pScriptInfo->weight > 0 ? m_pScriptInfo->weight : MP5_WEIGHT;
 		return 1;
@@ -102,7 +108,14 @@ int CMP5WeaponContext::GetItemInfo(ItemInfo *p) const
 	p->iMaxClip = MP5_MAX_CLIP;
 	p->iSlot = 3;        // consistente com server/weapon_mp5.cpp (slot 3)
 	p->iPosition = 1;    // pos 1 (padrao HL; pos 6 quebrava o scroll)
+	// RTN: mesma traducao WIF_ -> ITEM_FLAG_ do branch acima. Esta e a que roda
+	// no CLIENTE pra arma de script (m_pScriptInfo e sempre null la, mas
+	// m_iScriptFlags chega pela rede - ver client/weapon_predicting_context.cpp)
+	// e tambem a MP5 classica dos dois lados (m_iScriptFlags fica 0 sempre pra
+	// ela, entao o resultado e identico ao ITEM_FLAG_SELECTONEMPTY de sempre).
 	p->iFlags = ITEM_FLAG_SELECTONEMPTY;
+	if( m_iScriptFlags & WIF_NOAUTORELOAD ) p->iFlags |= ITEM_FLAG_NOAUTORELOAD;
+	if( m_iScriptFlags & WIF_NOAUTOSWITCH ) p->iFlags |= ITEM_FLAG_NOAUTOSWITCHEMPTY;
 	p->iId = m_iId;
 	p->iWeight = MP5_WEIGHT;
 	return 1;
@@ -202,8 +215,12 @@ bool CMP5WeaponContext::Deploy()
 
 void CMP5WeaponContext::PrimaryAttack()
 {
-	// don't fire underwater
-	if (m_pLayer->GetPlayerWaterlevel() == 3)
+	// RTN weaponscript: item_flags "UnderWater" (ITEM_FLAG_SHOOT_UNDERWATER no
+	// Paranoia2 original) libera o tiro debaixo d'agua - ex: Glock real. Le
+	// m_iScriptFlags direto (nao iFlags()/ItemInfoArray) porque esse campo ja
+	// e o neutro-de-lado que chega identico nos dois lados via weapon_data_t -
+	// ver o comentario grande em mp5.h. Sem a flag, comportamento igual a antes.
+	if (m_pLayer->GetPlayerWaterlevel() == 3 && !(m_iScriptFlags & WIF_UNDERWATER))
 	{
 		PlayEmptySound();
 		m_flNextPrimaryAttack = GetNextPrimaryAttackDelay(0.15f);
@@ -481,7 +498,17 @@ void CMP5WeaponContext::Reload()
 void CMP5WeaponContext::WeaponIdle()
 {
 	ResetEmptySound();
-	m_pLayer->GetAutoaimVector(AUTOAIM_5DEGREES);
+	// RTN weaponscript: item_flags "AutoAim" agora liga de verdade o auto-mira
+	// cosmetico (so a snap de crosshair - SET_CROSSHAIRANGLE - nunca a direcao
+	// real do tiro). NAO reintroduzir GetAutoaimVector() em PrimaryAttack/
+	// FireBullets: foi exatamente isso que puxava o tiro ate 25 graus pra
+	// grudar em qualquer entidade (aliado incluido) - ver o comentario "RTN F10
+	// fix" em PrimaryAttack() acima.
+	// m_iScriptFlags == 0 (MP5 classica, sem script) preserva o comportamento de
+	// sempre - mesmo idioma de HasIronSight() logo abaixo. Arma de script SO
+	// ganha o crosshair-snap se pedir AutoAim explicitamente.
+	if( m_iScriptFlags == 0 || ( m_iScriptFlags & WIF_AUTOAIM ) )
+		m_pLayer->GetAutoaimVector(AUTOAIM_5DEGREES);
 
 	// Transicao suave de FOV entre quadril e mira. Roda todo frame (o
 	// ShouldWeaponIdle() desta arma devolve true justamente para isso) e e

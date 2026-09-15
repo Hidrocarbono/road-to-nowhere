@@ -22,13 +22,18 @@ public:
 	virtual int iWeight( void ) override { return m_pInfo ? m_pInfo->weight : 0; }
 	virtual int iItemSlot( void ) override { return m_pInfo ? m_pInfo->bucket : 3; }
 	virtual int iItemPosition( void ) override { return m_pInfo ? m_pInfo->bucket_position : 0; }
-	// NOT m_pInfo->item_flags - see the long comment in GetItemInfo() (.cpp):
-	// those are WIF_* bits, this is read as ITEM_FLAG_*; same bit values, unrelated
-	// meanings. Kept in sync with what GetItemInfo() reports.
-	virtual int iFlags( void ) override { return ITEM_FLAG_SELECTONEMPTY; }
+	// NOT m_pInfo->item_flags - ver o comentario grande em GetItemInfo() (.cpp):
+	// aquele campo e WIF_* (predicao), este e ITEM_FLAG_* (so-servidor) - fonte e
+	// m_pInfo->inventory_flags, computado por ComputeIFlags(). Kept in sync with
+	// what GetItemInfo() reports (mesma funcao, chamada dos dois lugares).
+	virtual int iFlags( void ) override { return ComputeIFlags(); }
+	// RTN: ITEM_FLAG_NODUPLICATE do script - ver item_info.h. Sem a flag, cai no
+	// comportamento padrao de CBasePlayerWeapon (top de municao/clip).
+	virtual int AddDuplicate( CBasePlayerItem *pOriginal ) override;
 private:
 	// Precacha um modelo do script so se o arquivo existir - ver o .cpp.
 	bool PrecacheScriptModel( const char *path );
+	int ComputeIFlags( void ) const;
 
 	weaponinfo_t *m_pInfo;
 };

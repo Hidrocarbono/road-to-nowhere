@@ -74,6 +74,10 @@ Port do formato do Uncle Mike (Paranoia 2): `game_dir/scripts/weapons/ammodesc.t
 e `weapon_*.txt`, parseados por `server/weaponscript.cpp` (**server-only** — o cliente
 não tem parser, o que obriga o servidor a ser autoritativo sobre modelos).
 
+Referência completa (todo campo do `.txt`, os 13 `item_flags` — quais funcionam de
+verdade e quais são gap conhecido — e por que `anim_prefix` não faz nada):
+`game_dir/devkit/GUIA_ARMAS_SCRIPT.md`.
+
 ## Diferenças estruturais Paranoia 2 → PrimeXT já descobertas
 
 - **`MAX_WEAPON_SLOTS`: P2 = 10, PrimeXT = 5** (e o cliente define
@@ -83,9 +87,14 @@ não tem parser, o que obriga o servidor a ser autoritativo sobre modelos).
 - **Ids de arma:** o P2 gera id único por arma (`GenerateID()`/`FindWeaponID()`,
   contador incremental) — não existe classe C++ por arma lá. Aqui cada arma clássica
   tem `WEAPON_*` fixo, e as de script recebem id dinâmico na faixa 31..62.
-- **`item_flags` do script são `WIF_*`** (IronSight/AutoAim/AutoFire = 1|2|4), que
-  colidem em valor com `ITEM_FLAG_*` (SELECTONEMPTY/NOAUTORELOAD/NOAUTOSWITCHEMPTY
-  = 1|2|4) mas **não têm nada a ver**. Nunca atribuir um no outro.
+- **`item_flags` do script viram DOIS grupos de bits, não um.** `WIF_*`
+  (`weaponscript.h`, precisam de predição idêntica nos dois lados — viajam em
+  `weapon_data_t.iuser2`) e `ITEM_FLAG_*` (`item_info.h`, só servidor —
+  drop/respawn/duplicata). Os dois **colidem em valor de propósito**
+  (`WIF_IRONSIGHT` = 1 = `ITEM_FLAG_SELECTONEMPTY`) — nunca atribuir um campo
+  no outro. Os 13 valores do Paranoia2 original (`IronSight` até `NoDrop`) já
+  estão todos portados — tabela completa com o que cada um faz de verdade em
+  `game_dir/devkit/GUIA_ARMAS_SCRIPT.md`.
 
 ## Armadilhas do PrimeXT que já custaram caro
 

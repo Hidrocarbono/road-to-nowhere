@@ -302,21 +302,42 @@ static void WS_ApplyAmmoPickup( void *out, const char *key, const char *val, cha
 	else if( !WS_stricmp( key, "count" ) ) p->count = atoi( val );
 }
 
-static int WS_FlagsFromString( const char *val )
+// RTN: port dos 13 item_flags do Paranoia2 original (dlls/weapons.cpp,
+// ParseItemFlags()). La e um enum so (ITEM_FLAG_*, sem separacao); aqui
+// continua dividido em dois destinos por causa da rede - ver o comentario
+// grande em weaponscript.h. Preenche AMBOS os out-params na mesma passada
+// pelo texto, entao "IronSight|LimitInWorld" funciona junto sem problema
+// mesmo indo pra campos diferentes.
+static void WS_FlagsFromString( const char *val, int *pItemFlags, int *pInventoryFlags )
 {
-	int f = 0;
-	// format: "IronSight|AutoAim|AutoFire"
-	char buf[128];
+	int wif = 0, inv = 0;
+	// format: "IronSight|AutoAim|AutoFire|SelectOnEmpty|..." (qualquer combinacao dos 13)
+	char buf[256];
 	WS_strncpy( buf, val, sizeof( buf ) );
 	char *tok = strtok( buf, "|" );
 	while( tok )
 	{
-		if( !WS_stricmp( tok, "IronSight" ) ) f |= WIF_IRONSIGHT;
-		else if( !WS_stricmp( tok, "AutoAim" ) ) f |= WIF_AUTOAIM;
-		else if( !WS_stricmp( tok, "AutoFire" ) ) f |= WIF_AUTOFIRE;
+		// bits que precisam de predicao identica nos dois lados (viajam em
+		// item_flags/m_iScriptFlags, ver weaponscript.h)
+		if( !WS_stricmp( tok, "IronSight" ) ) wif |= WIF_IRONSIGHT;
+		else if( !WS_stricmp( tok, "AutoAim" ) ) wif |= WIF_AUTOAIM;
+		else if( !WS_stricmp( tok, "AutoFire" ) ) wif |= WIF_AUTOFIRE;
+		else if( !WS_stricmp( tok, "SelectOnEmpty" ) ) wif |= WIF_SELECTONEMPTY;
+		else if( !WS_stricmp( tok, "NoAutoReload" ) ) wif |= WIF_NOAUTORELOAD;
+		else if( !WS_stricmp( tok, "NoAutoSwitch" ) ) wif |= WIF_NOAUTOSWITCH;
+		else if( !WS_stricmp( tok, "UnderWater" ) ) wif |= WIF_UNDERWATER;
+		// bits so-servidor (drop/respawn-no-mundo/duplicata), ver item_info.h
+		else if( !WS_stricmp( tok, "LimitInWorld" ) ) inv |= ITEM_FLAG_LIMITINWORLD;
+		else if( !WS_stricmp( tok, "Exhaustible" ) ) inv |= ITEM_FLAG_EXHAUSTIBLE;
+		else if( !WS_stricmp( tok, "NoDuplicate" ) ) inv |= ITEM_FLAG_NODUPLICATE;
+		else if( !WS_stricmp( tok, "Scope" ) ) inv |= ITEM_FLAG_SCOPE;
+		else if( !WS_stricmp( tok, "NoDrop" ) ) inv |= ITEM_FLAG_NODROP;
+		else if( !WS_stricmp( tok, "AllowFireMode" ) ) inv |= ITEM_FLAG_ALLOWFIREMODE;
+		else WS_Printf( "item_flags: valor desconhecido [%s] ignorado\n", tok );
 		tok = strtok( NULL, "|" );
 	}
-	return f;
+	*pItemFlags = wif;
+	*pInventoryFlags = inv;
 }
 
 static void WS_ApplyWeaponData( void *out, const char *key, const char *val, char **pp )
@@ -334,7 +355,7 @@ static void WS_ApplyWeaponData( void *out, const char *key, const char *val, cha
 	else if( !WS_stricmp( key, "secondary_ammo" ) ) WS_strncpy( w->secondary_ammo, val, sizeof( w->secondary_ammo ) );
 	else if( !WS_stricmp( key, "weight" ) ) w->weight = atoi( val );
 	else if( !WS_stricmp( key, "SpreadTime" ) ) w->SpreadTime = atof( val );
-	else if( !WS_stricmp( key, "item_flags" ) ) w->item_flags = WS_FlagsFromString( val );
+	else if( !WS_stricmp( key, "item_flags" ) ) WS_FlagsFromString( val, &w->item_flags, &w->inventory_flags );
 	else if( !WS_stricmp( key, "MaxSpeed" ) ) w->MaxSpeed = atof( val );
 	else if( !WS_stricmp( key, "MaxSpeedIS" ) ) w->MaxSpeedIS = atof( val );
 	else if( !WS_stricmp( key, "zoom_fov" ) ) w->zoom_fov = atoi( val );	// RTN F10
