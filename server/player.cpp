@@ -4196,32 +4196,33 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 		Create( "monster_human_grunt", GetAbsOrigin() + gpGlobals->v_forward * 128, GetAbsAngles( ));
 		break;
 	case 101:
-		gEvilImpulse101 = TRUE;
-		GiveNamedItem( "item_suit" );
-		GiveNamedItem( "item_battery" );
-		GiveNamedItem( "weapon_crowbar" );
-		GiveNamedItem( "weapon_9mmhandgun" );
-		GiveNamedItem( "ammo_9mmclip" );
-		GiveNamedItem( "weapon_shotgun" );
-		GiveNamedItem( "ammo_buckshot" );
-		GiveNamedItem( "weapon_9mmAR" );
-		GiveNamedItem( "ammo_9mmAR" );
-		GiveNamedItem( "ammo_ARgrenades" );
-		GiveNamedItem( "weapon_handgrenade" );
-		GiveNamedItem( "weapon_tripmine" );
-		GiveNamedItem( "weapon_357" );
-		GiveNamedItem( "ammo_357" );
-		GiveNamedItem( "weapon_crossbow" );
-		GiveNamedItem( "ammo_crossbow" );
-		GiveNamedItem( "weapon_egon" );
-		GiveNamedItem( "weapon_gauss" );
-		GiveNamedItem( "ammo_gaussclip" );
-		GiveNamedItem( "weapon_rpg" );
-		GiveNamedItem( "ammo_rpgclip" );
-		GiveNamedItem( "weapon_satchel" );
-		GiveNamedItem( "weapon_snark" );
-		GiveNamedItem( "weapon_hornetgun" );
-		gEvilImpulse101 = FALSE;
+		{
+			// RTN: era lista fixa em C++ (so as armas classicas da HL, nunca
+			// incluia M4A3/Parafal/APS/stimulant/nvg). Port do Paranoia2
+			// original (dlls/player.cpp) - le a lista de scripts/weapons/
+			// impulse101.txt e chama GiveNamedItem() por token, um por linha
+			// ou separado por espaco (COM_ParseFile). Adicionar/tirar item do
+			// cheat agora e so editar o .txt, sem recompilar.
+			gEvilImpulse101 = TRUE;
+			char *afile = (char *)LOAD_FILE( "scripts/weapons/impulse101.txt", NULL );
+			char *pfile = afile;
+			char token[256];
+
+			if( !afile )
+			{
+				ALERT( at_console, "impulse 101: scripts/weapons/impulse101.txt nao encontrado\n" );
+			}
+
+			while( pfile != NULL )
+			{
+				pfile = COM_ParseFile( pfile, token );
+				if( !Q_strlen( token )) continue;
+				GiveNamedItem( token );
+			}
+
+			if( afile ) FREE_FILE( afile );
+			gEvilImpulse101 = FALSE;
+		}
 		break;
 	case 102:
 		// Gibbage!!!

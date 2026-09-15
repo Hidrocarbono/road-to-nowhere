@@ -1,0 +1,46 @@
+// impulse101.txt - itens dados pelo cheat "impulse 101" (sv_cheats 1)
+// Port do Paranoia2 original (dlls/player.cpp, case 101): em vez de lista
+// fixa em C++, o servidor le este arquivo e chama GiveNamedItem() pra cada
+// token - um classname por linha (// comenta a linha inteira). Editar este
+// arquivo NAO precisa recompilar o server.dll nem reiniciar o mapa, so
+// digitar "impulse 101" de novo no console.
+
+// HEV
+item_suit
+item_battery
+
+// armas classicas da HL
+weapon_crowbar
+weapon_glock
+ammo_9mmclip
+weapon_shotgun
+ammo_buckshot
+weapon_mp5
+ammo_9mmAR
+ammo_ARgrenades
+weapon_handgrenade
+weapon_tripmine
+weapon_357
+ammo_357
+weapon_crossbow
+ammo_crossbow
+weapon_egon
+weapon_gauss
+ammo_gaussclip
+weapon_rpg
+ammo_rpgclip
+weapon_satchel
+weapon_snark
+weapon_hornetgun
+
+// armas de script do RTN (server/weaponscript.cpp, weapon_*.txt)
+weapon_aps
+ammo_aps
+weapon_m4a3
+ammo_m16
+weapon_parafal
+ammo_ak74
+
+// itens proprios do RTN
+item_stimulant
+item_nvgoggles
