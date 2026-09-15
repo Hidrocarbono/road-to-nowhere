@@ -220,7 +220,7 @@ ammo_apsbox
 
 ammo_aks
 {
-	model	"models/ammo_aks_clip.mdl"	// model in world
+	model	"models/w_aksammo.mdl"	// model in world
 	sound	"items/default.wav"	// sound when added
 	type	"5.45"			// ammo type what will be added to player
 	count	30			// count of ammo
@@ -228,7 +228,7 @@ ammo_aks
 
 ammo_aksbox
 {
-	model	"models/ammo_aks_box.mdl"	// model in world
+	model	"models/w_aksammobox.mdl"	// model in world
 	sound	"items/default.wav"	// sound when added
 	type	"5.45"			// ammo type what will be added to player
 	count	120			// count of ammo
@@ -236,7 +236,7 @@ ammo_aksbox
 
 ammo_ak74
 {
-	model	"models/w_ak74ammo.mdl"	// model in world
+	model	"models/w_762ammo.mdl"	// model in world
 	sound	"items/default.wav"	// sound when added
 	type	"7.62"			// ammo type what will be added to player
 	count	30			// count of ammo
@@ -252,7 +252,7 @@ ammo_mp5
 
 ammo_m16box
 {
-	model	"models/w_m4a1ammobox.mdl"	// model in world
+	model	"models/w_556ammobox.mdl"	// model in world
 	sound	"items/default.wav"	// sound when added
 	type	"5.56"			// ammo type what will be added to player
 	count	60			// count of ammo
@@ -260,7 +260,7 @@ ammo_m16box
 
 ammo_m16
 {
-	model	"models/w_m4a1ammo.mdl"	// model in world
+	model	"models/w_556ammo.mdl"	// model in world
 	sound	"items/default.wav"	// sound when added
 	type	"5.56"			// ammo type what will be added to player
 	count	30			// count of ammo
@@ -268,7 +268,7 @@ ammo_m16
 
 ammo_ak74box
 {
-	model	"models/w_ak74ammobox.mdl"	// model in world
+	model	"models/w_762ammobox.mdl"	// model in world
 	sound	"items/default.wav"	// sound when added
 	type	"7.62"			// ammo type what will be added to player
 	count	90			// count of ammo
@@ -366,7 +366,7 @@ ammo_rpgclip
 
 ammo_painkillers
 {
-	model	"models/w_antidote.mdl"
+	model	"models/w_painkiller.mdl"
 	sound	"items/smallmedkit1.wav"
 	type	"painkillers"
 	count	1
