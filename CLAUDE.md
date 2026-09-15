@@ -192,7 +192,30 @@ e nunca pelo servidor (`pfnLightStyle` é broadcast e atropela o flicker do mapa
 
 ---
 
-## Ainda não portado
+## Disparo das armas de script — o que já é próprio de cada arma e o que é compartilhado
 
-Disparo em si (`PrimaryAttack`, som, animação, muzzle flash) continua hardcoded da
-MP5 (`events/mp5.sc`). Armas de script reusam `CMP5WeaponContext`.
+Armas de script reusam `CMP5WeaponContext` (`game_shared/weapons/mp5.h/.cpp`) como
+implementação C++, mas isso **não** significa que elas soam/atiram como a MP5. Já
+está portado, por arma, via `weapon_*.txt`:
+
+- **Som de tiro** (`SoundData/shootsound1|2`, `emptysound`) — toca no **servidor**
+  via `EMIT_SOUND_DYN` em `PrecacheScriptSounds()`/`PrimaryAttack()`, e o evento
+  client-side (`events/mp5.sc`) recebe `iparam1 = m_iScriptHasSound` avisando pra
+  **não** tocar o som hardcoded da MP5 por cima. O cliente não tem o parser do
+  script (não conhece o nome do `.wav`), por isso o som fica um frame atrás da
+  predição — assumido de propósito (ver comentário em `mp5.cpp` perto de
+  `PlaybackWeaponEvent`); cadência/dispersão continuam 100% preditos.
+- **Animação** — cada arma tem seu próprio `viewmodel`/`playermodel`/`worldmodel`
+  no `.txt`. `SendWeaponAnimAct(WACT_*, MP5_ANIM_*)` manda um **índice** de
+  sequência (0=idle, 1-3=tiro, 4=reload...); quem toca é o modelo carregado da
+  arma, não a MP5 — funciona porque o artista segue a mesma convenção de ordem
+  de sequência da MP5 ao modelar a viewmodel nova.
+- **Recuo** (`PunchAngle`/`PunchAngleIS` do script, sorteado por tiro) e
+  **dano/tipo de munição** (`primary_ammo` → `WeaponScript_FindAmmo`) — também
+  por arma, lidos do `.txt`.
+
+O que **é** genuinamente compartilhado entre todas as armas de script — e isso é
+opção de design herdada da HL/`events/mp5.sc`, não pendência: o **evento de fire**
+em si (`m_usEvent1`/`m_usEvent2`), ou seja, o sprite/luz de muzzle flash e a
+ejeção de estojo são do mesmo evento pra todas. Só mexer nisso se um dia quiser
+efeito visual de disparo diferente por arma — não é bug, é convenção.
