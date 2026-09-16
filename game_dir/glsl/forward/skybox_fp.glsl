@@ -23,6 +23,7 @@ uniform vec3		u_LightDir;
 uniform vec3		u_LightDiffuse;
 uniform vec3		u_ViewOrigin;
 uniform vec4		u_FogParams;
+uniform vec4		u_FogParams2;	// RTN: aqui .x = forca do gradiente de horizonte (0..1) - campos diferentes de fog.h, ver comentario abaixo
 
 varying vec4		var_Vertex;
 varying vec2		var_TexCoord;
@@ -66,7 +67,28 @@ void main()
 		//   1.0 = comportamento antigo, ceu totalmente coberto
 		//   0.85 = padrao: fog domina, mas o ceu ainda se insinua
 		//   0.0 = ceu limpo, sem fog nenhum
-		diffuse.rgb = mix( diffuse.rgb, u_FogParams.xyz, clamp( u_FogParams.w, 0.0, 1.0 ));
+		//
+		// RTN: gradiente de horizonte. Ate aqui o peso de mistura e o MESMO em
+		// qualquer ponto do domo - zenite recebe tanto fog quanto horizonte.
+		// Fog atmosferico de verdade nao e assim: perto do horizonte o raio de
+		// visao atravessa MUITO mais "espessura" de atmosfera de lado do que
+		// olhando reto pra cima, entao a neblina la e sempre mais forte. Sem
+		// esse degrade, a transicao geometria->skybox fica visivel como uma
+		// linha (o mundo desaparece no fog numa densidade, o ceu logo acima
+		// dele continua limpo com a mesma densidade) - e essa linha e
+		// literalmente "onde comeca o skybox" ficando obvio.
+		//
+		// horizonFactor: 1.0 exatamente no horizonte (skyDir.z perto de 0),
+		// cai pra 0.0 no zenite/nadir (skyDir.z perto de +-1). u_FogParams2.x
+		// (gl_fog_sky_horizon) e a forca desse gradiente: 0 = sem gradiente
+		// nenhum (peso igual em qualquer direcao, comportamento antigo), 1 =
+		// so o horizonte recebe fog, zenite fica sempre limpo.
+		vec3 skyDir = normalize( var_Vertex.xyz - u_ViewOrigin );
+		float horizonFactor = 1.0 - abs( skyDir.z );
+		float horizonWeight = mix( 1.0, horizonFactor, clamp( u_FogParams2.x, 0.0, 1.0 ));
+		float skyBlend = clamp( u_FogParams.w, 0.0, 1.0 ) * horizonWeight;
+
+		diffuse.rgb = mix( diffuse.rgb, u_FogParams.xyz, skyBlend );
 	}
 
 	gl_FragColor = vec4(diffuse, 1.0);

@@ -31,6 +31,7 @@ uniform float	u_RenderAlpha;
 uniform float	u_AmbientFactor;
 uniform vec2	u_LightShade;
 uniform vec4	u_FogParams;
+uniform vec4	u_FogParams2;	// RTN: fogStart, heightDensity, heightStart, heightFalloff - ver fog.h
 uniform vec3	u_ViewOrigin;
 
 varying vec4	var_TexDiffuse;
@@ -133,7 +134,7 @@ void main( void )
 #endif // LIGHTING_FULLBRIGHT
 
 #if defined( APPLY_FOG_EXP )
-	result.rgb = CalculateFog(result.rgb, u_FogParams, gl_FragCoord.z / gl_FragCoord.w);
+	result.rgb = CalculateFog(result.rgb, u_FogParams, u_FogParams2, var_Position.z);
 #endif
 	gl_FragColor = result;
 }

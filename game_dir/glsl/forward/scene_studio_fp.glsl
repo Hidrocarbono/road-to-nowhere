@@ -36,6 +36,7 @@ uniform vec4	u_RenderColor;
 uniform float	u_Smoothness;
 uniform float	u_ReflectScale;
 uniform vec4	u_FogParams;
+uniform vec4	u_FogParams2;	// RTN: fogStart, heightDensity, heightStart, heightFalloff - ver fog.h
 uniform vec3	u_ViewOrigin;
 uniform vec2	u_LightShade;
 
@@ -220,7 +221,7 @@ lighting.diffuse += var_AmbientLight;
 #endif
 
 #if defined( APPLY_FOG_EXP )
-	result.rgb = CalculateFog(result.rgb, u_FogParams, gl_FragCoord.z / gl_FragCoord.w);
+	result.rgb = CalculateFog(result.rgb, u_FogParams, u_FogParams2, var_Position.z);
 #endif
 	// compute final color
 	gl_FragColor = result;

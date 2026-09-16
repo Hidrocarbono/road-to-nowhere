@@ -57,6 +57,11 @@ cvar_t *gl_fog_sky_blend;	// RTN: quanto o fog cobre o skybox
 cvar_t *gl_fog_debug;		// RTN: diagnostico - ver comentario no CVAR_REGISTER abaixo
 cvar_t *gl_fog_debug_color;
 cvar_t *gl_fog_debug_density;
+cvar_t *gl_fog_start;			// RTN: fog com forma
+cvar_t *gl_fog_height_density;	// RTN: fog de altura
+cvar_t *gl_fog_height_start;	// RTN: fog de altura
+cvar_t *gl_fog_height_falloff;	// RTN: fog de altura
+cvar_t *gl_fog_sky_horizon;		// RTN: horizonte no ceu
 cvar_t *r_dof_fstop;
 cvar_t *r_dof_debug;
 cvar_t *r_pvs_radius;
@@ -244,5 +249,43 @@ void R_InitializeConVars()
 	gl_fog_debug = CVAR_REGISTER("gl_fog_debug", "0", 0);
 	gl_fog_debug_color = CVAR_REGISTER("gl_fog_debug_color", "255 0 255", 0);	// magenta: impossivel confundir com o por-do-sol
 	gl_fog_debug_density = CVAR_REGISTER("gl_fog_debug_density", "0.01", 0);
+
+	// RTN: fog com FORMA, nao so intensidade - ver a formula completa em
+	// game_dir/glsl/fog.h. Motivacao: gl_fog_density_scale sozinho escala a
+	// MESMA curva exponencial inteira (perto e longe juntos) - nao da pra
+	// pedir "limpo por 500u, so ai comeca a fechar" nem "mais denso rente ao
+	// chao pra esconder o horizonte". Os cvars abaixo dao essas duas formas
+	// separadas da mistura de densidade.
+	//
+	// gl_fog_start: unidades sem NENHUM fog antes de comecar a curva
+	// exponencial de sempre. 0 = comportamento identico a antes (fog comeca
+	// no olho do jogador).
+	gl_fog_start = CVAR_REGISTER("gl_fog_start", "0", FCVAR_ARCHIVE);
+
+	// gl_fog_height_*: fog de altura, independente da distancia - a
+	// intencao e imitar nevoa de verdade (rente ao chao, some com a altitude)
+	// em vez de nevoa uniforme em qualquer direcao que se olhe. E o que
+	// dissolve o horizonte gradualmente em vez de bater numa parede de cor.
+	//   height_density: densidade EXTRA somada a de sempre, escalada por um
+	//     fator que vale 1.0 no chao (height_start) e cai exponencialmente
+	//     com a altura. 0 = desligado (default - precisa ligar por mapa).
+	//   height_start: Z do mundo (unidades do mapa) onde o fog de altura esta
+	//     no maximo - normalmente o piso da area que se quer disfarcar.
+	//   height_falloff: quantas unidades de altura acima de height_start
+	//     levam a densidade de altura a cair para ~37% (1/e). Maior = camada
+	//     de nevoa mais alta/grossa; menor = camada mais rasteira.
+	gl_fog_height_density = CVAR_REGISTER("gl_fog_height_density", "0", FCVAR_ARCHIVE);
+	gl_fog_height_start = CVAR_REGISTER("gl_fog_height_start", "0", FCVAR_ARCHIVE);
+	gl_fog_height_falloff = CVAR_REGISTER("gl_fog_height_falloff", "128", FCVAR_ARCHIVE);
+
+	// gl_fog_sky_horizon: hoje o skybox_fp.glsl mistura o fog com o MESMO peso
+	// em qualquer ponto do domo (zenite = horizonte). Fog atmosferico de
+	// verdade e muito mais denso perto do horizonte (o raio atravessa muito
+	// mais "espessura" de atmosfera de lado que olhando pra cima) - e
+	// exatamente essa falta de degrade que faz a transicao mundo->skybox ficar
+	// visivel como uma linha/mancha em vez de se perder. 0..1: 0 = sem
+	// gradiente (comportamento antigo, igual em qualquer direcao), 1 = so o
+	// horizonte recebe o fog do ceu, zenite fica limpo.
+	gl_fog_sky_horizon = CVAR_REGISTER("gl_fog_sky_horizon", "0.6", FCVAR_ARCHIVE);
 }
 

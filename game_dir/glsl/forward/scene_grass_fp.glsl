@@ -20,6 +20,7 @@ GNU General Public License for more details.
 
 uniform sampler2D	u_ColorMap;
 uniform vec4		u_FogParams;
+uniform vec4		u_FogParams2;	// RTN: fogStart, heightDensity, heightStart, heightFalloff - ver fog.h
 uniform vec3		u_ViewOrigin;
 
 varying vec3		var_Position;
@@ -44,7 +45,7 @@ void main( void )
 #endif//LIGHTING_FULLBRIGHT
 
 #if defined( APPLY_FOG_EXP )
-	diffuse.rgb = CalculateFog(diffuse.rgb, u_FogParams, gl_FragCoord.z / gl_FragCoord.w);
+	diffuse.rgb = CalculateFog(diffuse.rgb, u_FogParams, u_FogParams2, var_Position.z);
 #endif
 	gl_FragColor = diffuse;
 }

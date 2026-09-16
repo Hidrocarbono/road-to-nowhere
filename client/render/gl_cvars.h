@@ -62,6 +62,17 @@ extern cvar_t *gl_fog_sky_blend;	// RTN: teto de cobertura do fog sobre o skybox
 extern cvar_t *gl_fog_debug;		// RTN: 1 = ignora o worldspawn, usa gl_fog_debug_color/density
 extern cvar_t *gl_fog_debug_color;	// RTN: "R G B" 0-255, so quando gl_fog_debug 1
 extern cvar_t *gl_fog_debug_density;	// RTN: mesma unidade de tr.fogDensity, so quando gl_fog_debug 1
+
+// RTN: fog com forma - distancia inicial + fog de altura + horizonte no ceu.
+// Ver o comentario grande em fog.h para a formula e client/CHANGELOG (ou o
+// commit) para o antes/depois. Todos default pra "sem efeito" (0), exceto
+// gl_fog_height_falloff (evita divisao por zero) e gl_fog_sky_horizon (ganho
+// visivel de cara, como os outros cvars de fog do RTN ja calibrados).
+extern cvar_t *gl_fog_start;			// RTN: distancia (unidades) sem fog nenhum antes de comecar a fechar
+extern cvar_t *gl_fog_height_density;	// RTN: densidade EXTRA do fog de altura (0 = desligado)
+extern cvar_t *gl_fog_height_start;	// RTN: Z do mundo onde o fog de altura esta no maximo (ex: chao)
+extern cvar_t *gl_fog_height_falloff;	// RTN: unidades de altura pra densidade de altura cair ~63%
+extern cvar_t *gl_fog_sky_horizon;		// RTN: 0..1, quanto o horizonte do ceu recebe mais fog que o zenite
 extern cvar_t *r_dof_fstop;
 extern cvar_t *r_dof_debug;
 extern cvar_t *r_allow_mirrors;

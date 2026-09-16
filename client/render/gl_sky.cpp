@@ -326,6 +326,13 @@ static void GL_DrawSkySide( word hProgram, int skyside )
 			u->SetValue( tr.fogColor[0], tr.fogColor[1], tr.fogColor[2], skyBlend );
 			break;
 		}
+		case UT_FOGPARAMS2:
+			// RTN: aqui .x e a forca do degrade de horizonte (gl_fog_sky_horizon),
+			// nao fogStart como em fog.h/scene_*_fp.glsl - mesmo uniform, campos
+			// diferentes por contexto (igual .w de UT_FOGPARAMS ja fazia antes de
+			// chegar aqui). Ver o comentario grande em skybox_fp.glsl.
+			u->SetValue( gl_fog_sky_horizon ? gl_fog_sky_horizon->value : 0.0f, 0.0f, 0.0f, 0.0f );
+			break;
 		case UT_ZFAR:
 			u->SetValue( RI->view.farClip );
 			break;

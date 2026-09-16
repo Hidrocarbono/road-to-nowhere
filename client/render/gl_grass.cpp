@@ -788,6 +788,14 @@ void R_SetGrassUniforms( word hProgram, grass_t *grass )
 		case UT_FOGPARAMS:
 			u->SetValue( tr.fogColor[0], tr.fogColor[1], tr.fogColor[2], tr.fogDensity );
 			break;
+		case UT_FOGPARAMS2:
+			// RTN: fog com forma - ver o comentario grande em game_dir/glsl/fog.h
+			u->SetValue(
+				gl_fog_start ? gl_fog_start->value : 0.0f,
+				gl_fog_height_density ? gl_fog_height_density->value : 0.0f,
+				gl_fog_height_start ? gl_fog_height_start->value : 0.0f,
+				gl_fog_height_falloff ? gl_fog_height_falloff->value : 128.0f );
+			break;
 		case UT_SHADOWPARMS:
 			if( pl != NULL )
 			{

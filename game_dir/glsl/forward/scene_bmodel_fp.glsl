@@ -47,6 +47,7 @@ uniform vec3		u_ViewOrigin;
 uniform float		u_ReflectScale;
 uniform vec4		u_RenderColor;
 uniform vec4		u_FogParams;
+uniform vec4		u_FogParams2;	// RTN: fogStart, heightDensity, heightStart, heightFalloff - ver fog.h
 uniform float		u_RealTime;
 uniform float		u_zFar;
 
@@ -283,7 +284,7 @@ void main( void )
 #endif // USING_SCREENCOPY
 
 #if defined( APPLY_FOG_EXP )
-	result.rgb = CalculateFog(result.rgb, u_FogParams, gl_FragCoord.z / gl_FragCoord.w);
+	result.rgb = CalculateFog(result.rgb, u_FogParams, u_FogParams2, var_Position.z);
 #endif
 
 #if defined( LIGHTMAP_DEBUG ) || defined( LIGHTVEC_DEBUG )
