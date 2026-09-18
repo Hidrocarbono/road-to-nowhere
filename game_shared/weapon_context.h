@@ -91,7 +91,11 @@ public:
 	// animacoes em vez do "random(0,2)" fixo herdado da MP5.
 	int CountWeaponAnimVariants( int activity );
 	float GetNextPrimaryAttackDelay(float delay);
-	bool CanAttack(float attack_time);
+	// RTN: virtual pra permitir override em arma com UsePredicting()==false
+	// (ver CStimulantWeaponContext::CanAttack) - a formula abaixo assume a
+	// convencao de armas PREDITAS (attack_time relativo, comparado contra
+	// GetWeaponTimeBase()==0.0f). Nao muda nada pra quem nao sobrescreve.
+	virtual bool CanAttack(float attack_time);
 	bool PlayEmptySound();
 	void ResetEmptySound();
 

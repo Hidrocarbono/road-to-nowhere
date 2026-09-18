@@ -30,4 +30,5 @@ public:
 	void Holster() override;
 	void PrimaryAttack() override;
 	void WeaponIdle() override;
+	bool CanAttack(float attack_time) override;
 };
