@@ -297,6 +297,19 @@ static const char *HGrunt_AmmoClassnameForKiller( entvars_t *pevAttacker )
 		if ( FStrEq( pszAmmoName, "bolts" ) )		return "ammo_crossbow";
 		if ( FStrEq( pszAmmoName, "ARgrenades" ) )	return "ammo_mp5grenades";
 		if ( FStrEq( pszAmmoName, "9mm" ) )		return "ammo_9mmclip";
+		// RTN: tipos das armas de script (game_dir/scripts/weapons/*.txt +
+		// ammodesc.txt) - faltavam aqui desde que o sistema de script foi
+		// introduzido, entao matar um hgrunt com M4A3/Parafal/APS/RPK/VSS-
+		// Groza/MP5 sempre caia no fallback generico "ammo_9mmclip" no fim
+		// desta funcao, mesmo a arma sendo outro calibre.
+		if ( FStrEq( pszAmmoName, "5.56" ) )		return "ammo_m16";		// M4A3
+		if ( FStrEq( pszAmmoName, "7.62" ) )		return "ammo_ak74";	// Parafal
+		if ( FStrEq( pszAmmoName, "5.45" ) )		return "ammo_aks";
+		if ( FStrEq( pszAmmoName, "9x39" ) )		return "ammo_vss";		// VSS e Groza usam o mesmo tipo
+		if ( FStrEq( pszAmmoName, "aps" ) )		return "ammo_aps";
+		if ( FStrEq( pszAmmoName, "mp5" ) )		return "ammo_mp5";
+		if ( FStrEq( pszAmmoName, "rpk" ) )		return "ammo_rpk";
+		if ( FStrEq( pszAmmoName, "tt33" ) )		return "ammo_tt33";
 	}
 
 	return "ammo_9mmclip"; // genérico - sem arma identificada ou tipo desconhecido
