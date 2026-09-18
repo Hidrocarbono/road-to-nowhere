@@ -104,6 +104,35 @@ void CStimulantWeaponContext::Holster()
 	m_bPendingUse = false;
 }
 
+bool CStimulantWeaponContext::CanAttack( float attack_time )
+{
+	// RTN FIX (bug: "so funciona uma vez via mouse1, depois so com V"):
+	// CBaseWeaponContext::CanAttack() (weapon_context.cpp) faz
+	//   floor(attack_time*1000)*1000 <= GetWeaponTimeBase(UsePredicting())
+	// Essa formula assume a convencao de arma PREDITA: GetWeaponTimeBase(true)
+	// e sempre 0.0f, e attack_time e um contador RELATIVO pequeno que
+	// UpdateWeaponTimers() decrementa ate <=0. O *1000 so preserva o SINAL
+	// da comparacao contra o 0 fixo - "funciona" por acidente de escala.
+	//
+	// O estimulante e a UNICA arma de jogador com UsePredicting()==false:
+	// GetWeaponTimeBase(false) retorna gpGlobals->time (ABSOLUTO, ex. ~500s
+	// de servidor de pe), e PrimaryAttack() grava m_flNextPrimaryAttack =
+	// GetTime()+1.1 (TAMBEM absoluto). A formula da base multiplica esse
+	// absoluto por 1000 -> ~500.000 comparado contra ~500: nunca mais fecha.
+	// m_flNextPrimaryAttack comeca em 0.0f (default do construtor), e SO
+	// nesse caso especifico floor(0*1000)*1000==0 <= gpGlobals->time (sempre
+	// positivo) da true por coincidencia - por isso o primeiro uso via
+	// mouse1 (que passa por CBaseWeaponContext::ItemPostFrame(), que chama
+	// CanAttack()) funciona, mas o segundo em diante trava pra sempre. A
+	// tecla V nunca teve esse problema porque "stimulant_use" chama
+	// PrimaryAttack() direto (server/client.cpp), sem passar por CanAttack().
+	//
+	// Aqui comparamos direto contra o mesmo relogio absoluto que
+	// PrimaryAttack() usa (m_pLayer->GetTime()), sem a escala x1000 que so
+	// faz sentido pro contador relativo das armas preditas.
+	return attack_time <= m_pLayer->GetTime();
+}
+
 void CStimulantWeaponContext::PrimaryAttack()
 {
 	if( m_bUseInProgress )
