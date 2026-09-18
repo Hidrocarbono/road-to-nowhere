@@ -4696,8 +4696,8 @@
 
 // server/weapons/item_painkiller.cpp / item_stimulant.cpp
 // Ambos reusam o modelo do antidote (o Paranoia 2 usa w_painkiller.mdl proprio).
-@PointClass base(Targetname, Targetx, Parent, Reflection) studio("models/w_antidote.mdl") = item_painkiller : "RTN: Analgesico" []
-@PointClass base(Targetname, Targetx, Parent, Reflection) studio("models/w_antidote.mdl") = item_stimulant : "RTN: Estimulante" []
+@PointClass base(Targetname, Targetx, Parent, Reflection) studio("models/w_painkiller.mdl") = item_painkiller : "RTN: Analgesico" []
+@PointClass base(Targetname, Targetx, Parent, Reflection) studio("models/w_stimulant.mdl") = item_stimulant : "RTN: Estimulante" []
 
 // server/weapons/weapon_scripted.cpp - CWeaponScripted
 // Arma dirigida por game_dir/scripts/weapons/<classname>.txt.

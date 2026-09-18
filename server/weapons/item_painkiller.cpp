@@ -11,13 +11,13 @@ LINK_ENTITY_TO_CLASS( item_painkiller, CItemPainkiller );
 void CItemPainkiller::Spawn( void )
 {
 	Precache( );
-	SET_MODEL( ENT( pev ), "models/w_antidote.mdl" );  // reuso do modelo antidote (Paranoia 2 usa w_painkiller.mdl)
+	SET_MODEL( ENT( pev ), "models/w_painkiller.mdl" );  // RTN: era w_antidote.mdl (placeholder) - nome real confirmado
 	CBasePlayerAmmo::Spawn( );
 }
 
 void CItemPainkiller::Precache( void )
 {
-	PRECACHE_MODEL( "models/w_antidote.mdl" );
+	PRECACHE_MODEL( "models/w_painkiller.mdl" );
 	PRECACHE_SOUND( "items/smallmedkit1.wav" );
 }
 

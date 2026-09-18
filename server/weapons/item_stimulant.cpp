@@ -25,8 +25,8 @@ void CItemStimulant::Spawn()
 
 void CItemStimulant::Precache()
 {
-	PRECACHE_MODEL("models/v_antidote.mdl");
-	PRECACHE_MODEL("models/w_antidote.mdl");
+	PRECACHE_MODEL("models/v_antidote.mdl");	// viewmodel (animacao de injecao) - mantido de proposito, ver commit
+	PRECACHE_MODEL("models/w_stimulant.mdl");	// RTN: era w_antidote.mdl (placeholder) - nome real confirmado
 	PRECACHE_SOUND("items/smallmedkit1.wav");
 }
 

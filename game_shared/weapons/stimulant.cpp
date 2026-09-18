@@ -56,7 +56,11 @@ bool CStimulantWeaponContext::Deploy()
 	// 2=idle_3 3=draw 4=hitme_1 5=hitme_2 ... O indice 2 usado antes e
 	// "idle_3" (looping) - visualmente indistinguivel de nao ter acontecido
 	// nada, ja que o viewmodel ja estava em idle. O certo pra saque e 3.
-	bool bResult = DefaultDeploy( "models/v_antidote.mdl", "models/w_antidote.mdl", 3, "medkit" );  // anim 3 = draw
+	// v_antidote.mdl mantido de proposito (indice de sequencia 3=draw foi
+	// conferido contra o QC decompilado DESSE modelo especifico - ver
+	// comentario acima). w_antidote.mdl -> w_stimulant.mdl: nome real
+	// confirmado, era placeholder (mesma correcao de item_stimulant.cpp).
+	bool bResult = DefaultDeploy( "models/v_antidote.mdl", "models/w_stimulant.mdl", 3, "medkit" );  // anim 3 = draw
 
 	// RTN FIX (bug critico): DefaultDeploy() faz
 	//   SetPlayerNextAttackTime( GetWeaponTimeBase(UsePredicting()) + 0.5 )
