@@ -62,6 +62,10 @@ cvar_t *gl_fog_height_density;	// RTN: fog de altura
 cvar_t *gl_fog_height_start;	// RTN: fog de altura
 cvar_t *gl_fog_height_falloff;	// RTN: fog de altura
 cvar_t *gl_fog_sky_horizon;		// RTN: horizonte no ceu
+cvar_t *gl_sky_clouds;			// RTN: nuvem animada no skybox
+cvar_t *gl_sky_clouds_scale;		// RTN: nuvem animada - tiling
+cvar_t *gl_sky_clouds_speed;		// RTN: nuvem animada - velocidade
+cvar_t *gl_sky_clouds_opacity;		// RTN: nuvem animada - opacidade
 cvar_t *r_dof_fstop;
 cvar_t *r_dof_debug;
 cvar_t *r_pvs_radius;
