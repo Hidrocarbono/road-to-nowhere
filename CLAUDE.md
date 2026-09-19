@@ -228,3 +228,121 @@ opção de design herdada da HL/`events/mp5.sc`, não pendência: o **evento de 
 em si (`m_usEvent1`/`m_usEvent2`), ou seja, o sprite/luz de muzzle flash e a
 ejeção de estojo são do mesmo evento pra todas. Só mexer nisso se um dia quiser
 efeito visual de disparo diferente por arma — não é bug, é convenção.
+
+---
+
+# Munição de script (`ammo_*`) — registro dinâmico de entidades
+
+Assim como armas de script, munição de script (`ammo_aks`, `ammo_ak74`, `ammo_m16`,
+`ammo_painkillers`, etc., definidas em `game_dir/scripts/weapons/ammodesc.txt`) só
+existe de verdade a partir de `CEntityFactoryDictionary`/`IEntityFactory` —
+`CAmmoScripted` (`server/entities/ammo_scripted.h`/`.cpp`) resolve o pickup certo via
+`WeaponScript_FindAmmoPickup(STRING(pev->classname))` no `Spawn()`, e
+`AmmoScript_RegisterEntities()` (`server/weaponscript.cpp`, chamada logo depois de
+`WeaponScript_RegisterEntities()` em `WeaponScript_Init()`) registra a factory
+compartilhada pra cada classname de `gAmmoPickups[]` que ainda não tem entidade C++
+própria.
+
+**Armadilha já paga:** ter o `classname` certo no `.txt`/`.fgd` **não basta** — sem
+essa factory registrada, `CreateEntityByName()` falha em silêncio (loga "unknown
+entity type" e nada spawna) pro classname que não tem `LINK_ENTITY_TO_CLASS` fixo.
+Isso já mordeu uma vez: o primeiro fix (sincronizar nome de modelo entre `.fgd` e
+`ammodesc.txt`) foi necessário mas **insuficiente** — a munição só passou a aparecer
+no mapa depois de criar essa factory. Mesma lição do bug do atlas de fonte: uma
+correção real pode mascarar uma causa-raiz mais funda; sempre confirmar que o
+sintoma sumiu de fato, não só que o primeiro problema identificado foi corrigido.
+
+---
+
+# Nomes de modelo unificados (itens de consumo)
+
+`item_painkiller`, `item_stimulant` e `item_antidote` vinham de um ciclo antigo que
+usava nomes de asset emprestados/placeholder do Half-Life (`w_antidote.mdl` pros
+três). Já corrigido: `item_painkiller` → `models/w_painkiller.mdl`, `item_stimulant`
+→ `models/w_stimulant.mdl` (mantendo **`v_antidote.mdl`** como viewmodel do
+stimulant — verificado contra a QC decompilada desse modelo especificamente, a
+sequência de índice 3 = "draw"; não trocar esse viewmodel sem reconferir). Também
+sincronizados em `game_dir/primext.fgd`. `item_antidote` continua em
+`models/w_antidote.mdl` (esse é o nome real dele, não placeholder).
+
+Mesmo padrão vale pra munição de script: `ammo_aks`/`aksbox`, `ammo_ak74`/`ak74box`,
+`ammo_m16`/`m16box` e `ammo_painkillers` tiveram os `.mdl` sincronizados entre
+`ammodesc.txt` e `primext.fgd`. **Cuidado ao editar `ammodesc.txt` por script:** ele
+usa CRLF; reescrever em modo texto (Python `open(...).read()/write()`) corrompe os
+finais de linha e polui o diff — editar em modo binário ou preservando `\r\n`.
+
+---
+
+# Loot dos hgrunt
+
+Tabela de drop configurada em `server/monsters/hgrunt.cpp`
+(`HGrunt_AmmoClassnameForKiller()` mapeia tipo de munição → classname de pickup).
+Estendida pra cobrir todos os tipos de munição de arma de script, não só as armas
+clássicas: `"5.56"→ammo_m16`, `"7.62"→ammo_ak74`, `"5.45"→ammo_aks`,
+`"9x39"→ammo_vss`, `"aps"→ammo_aps`, `"mp5"→ammo_mp5`, `"rpk"→ammo_rpk`,
+`"tt33"→ammo_tt33`. Antes disso, hgrunt morto com arma de script sempre dropava
+munição genérica de 9mm por falta de mapeamento. Referência completa de loot em
+`game_dir/devkit/ATIVIDADES_HGRUNT.md`.
+
+---
+
+# Fog volumétrico — start distance, height fog e horizonte de céu
+
+Sistema estendido de um único parâmetro de densidade (`u_FogParams.w`) pra um
+modelo com forma: distância inicial, decaimento por altura e blend do céu
+ponderado por horizonte. Novo uniform `u_FogParams2` (`vec4`), registrado em
+`client/render/gl_shader.h`/`.cpp` como `UT_FOGPARAMS2`, com **significado
+diferente por shader** (mesmo padrão já usado em `u_FogParams.w` — densidade nos
+shaders de mundo, peso de blend no shybox):
+
+- Mundo/studio/grass/decal (`game_dir/glsl/fog.h`, `CalculateFog(...)`): `.x` =
+  `fogStart` (distância antes da qual não há névoa), `.y` = densidade extra por
+  altura, `.z` = altura onde a névoa de altura começa, `.w` = falloff.
+- Skybox (`game_dir/glsl/forward/skybox_fp.glsl`): só `.x`, força do blend
+  ponderado por horizonte (`1 - |skyDir.z|`) — céu no horizonte pega mais fog que
+  o zênite.
+
+5 cvars novas em `client/render/gl_cvars.h`/`.cpp` (`FCVAR_ARCHIVE`):
+`gl_fog_start`, `gl_fog_height_density`, `gl_fog_height_start`,
+`gl_fog_height_falloff`, `gl_fog_sky_horizon`. Todos com default que reproduz o
+comportamento antigo (mudança 100% aditiva — cvars antigos de fog continuam
+funcionando sem alteração). Referência completa de cvars e uso em
+`game_dir/devkit/GUIA_FOG.md`.
+
+---
+
+# Sistemas nativos já confirmados (não reinventar)
+
+Antes de propor um sistema novo, checar esta lista — várias ideias que parecem
+gaps já são cobertas pelo engine ou por código existente:
+
+- **Fadiga/stamina:** já existe, `server/player.cpp:~1779-1798`. `pev->fuser2`
+  guarda stamina 0-100, drena `-0.25`/tick correndo (`IN_RUN` + velocidade > 100),
+  regenera `+0.25` parado / `+0.1` andando; com stamina < 1 não corre (`maxspeed`
+  cai pra 320) **e não pula**. Nasce cheia em 100 no spawn (`player.cpp:~3125`).
+  Estilo Paranoia2 (`dlls/player.cpp:2139-2158` de lá foi a referência).
+- **Autosave:** `server/entities/trigger_autosave.cpp` é só o wrapper de entidade
+  (`SaveTouch()` chama `SERVER_COMMAND("autosave\n")`) — o comando `autosave` em
+  si é **nativo do engine** (`engine/server/sv_save.c`/`sv_cmds.c`/`sv_main.c`,
+  serialização completa de save state). Não precisa reimplementar nada aqui, só
+  colocar o trigger padrão no mapa.
+- **Diário/notas com imagem:** sistema já existe, exibe `.tga` na tela (não usar
+  o caminho de textura crua pro HUD normal — ver armadilha de `GL_INVALID_ENUM`
+  na seção de fonte custom do `CHANGELOG_AGENT.md` — mas o diário já tem seu
+  próprio caminho funcional, não confundir os dois).
+- **Geiger/radiação:** `CBasePlayer::UpdateGeigerCounter()` +
+  `CTriggerHurt::RadiationThink()` (`server/entities/trigger_hurt.cpp`) já fazem
+  detecção por proximidade ao trigger de radiação mais próximo, 100% funcional,
+  nativo do HL1. `trigger_hurt` com `DMG_POISON`/`DMG_RADIATION` já aplica dano
+  persistente a cada 0.5s (`HurtTouch()`) — serve como "parede" de área sem
+  precisar de física/geometria.
+- **Ciclo de dia/noite real: NÃO existe e não dá pra fingir bem.** Engine só tem
+  `sv_skyname`/`svc_skybox` (troca de textura do skybox em runtime), sem ângulo
+  de sol dinâmico — `light_environment`/lightmaps são **bakeados em tempo de
+  compilação do mapa**, não recalculam em runtime. Um "ciclo" fake (trocar
+  skybox + tint do `u_FogParams`/`u_FogParams2` num timer) muda cor ambiente e
+  névoa, mas a sombra permanece fixa — não prometer "dia/noite" de verdade, só
+  "variação de atmosfera por horário".
+- **Antídoto:** `item_antidote`/`server/player.cpp:~2406` já cura automaticamente
+  exposição a `Poison`/`NerveGas` (zera o contador de dano por tempo) alguns
+  segundos após pegar o item. Não cura radiação.
