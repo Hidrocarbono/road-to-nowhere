@@ -384,6 +384,60 @@ Encerrar conversa
 
 
 // ============================================================================
+//  DIALOGO DE TESTE - ver game_dir/scripts/dialogs/dialogs.txt (dialog_teste)
+// ============================================================================
+
+Teste_Intro
+{
+NPC Teste
+Isso e um teste de dialogo. Escolha uma opcao.
+}
+
+Teste_RespostaA
+{
+NPC Teste
+Voce escolheu A. Aqui esta um item de teste.
+}
+
+Teste_RespostaB
+{
+NPC Teste
+Voce escolheu B. Quer voltar ao inicio?
+}
+
+Teste_Selado
+{
+NPC Teste
+Ja conversamos. Este dialogo so acontece uma vez.
+}
+
+Teste_OpcaoA
+{
+Caminho A (recebe um item e termina)
+}
+
+Teste_OpcaoB
+{
+Caminho B (volta ao inicio)
+}
+
+Teste_Fim
+{
+Encerrar
+}
+
+Teste_Voltar
+{
+Voltar ao inicio
+}
+
+Teste_Sair
+{
+Sair sem terminar
+}
+
+
+// ============================================================================
 //  DOCUMENTOS (RTN F10 - trigger_textwindow)
 //  No mapa: entidade trigger_textwindow com o keyvalue message = "p_army1b"
 //  (sem #!). O client abre texts/p_army1b.txt e exibe a janela com a imagem.

@@ -54,3 +54,38 @@ dialog_medico_final
 	give          "item_antidote"
 	option 1      "Opcao_Sair" -> END
 }
+
+
+// ============================================================================
+//  DIALOGO DE TESTE - curto, pra validar o sistema inteiro num mapa novo:
+//  ramificacao (2 caminhos), exit_option em mais de um no, "give" (uma vez
+//  so) e selar/sealed_line depois de chegar num END de verdade.
+//
+//  Como testar: qualquer entidade monster_* (ex: monster_scientist) com a
+//  keyvalue "dialog_target" "dialog_teste". +USE nela.
+// ============================================================================
+
+dialog_teste
+{
+	repeatable    0
+	sealed_line   "Teste_Selado"
+
+	npc_line      "Teste_Intro"
+	option 1      "Teste_OpcaoA" -> dialog_teste_a
+	option 2      "Teste_OpcaoB" -> dialog_teste_b
+	exit_option   "Teste_Sair"
+}
+
+dialog_teste_a
+{
+	npc_line      "Teste_RespostaA"
+	give          "item_antidote"
+	option 1      "Teste_Fim" -> END
+}
+
+dialog_teste_b
+{
+	npc_line      "Teste_RespostaB"
+	option 1      "Teste_Voltar" -> dialog_teste
+	exit_option   "Teste_Sair"
+}
