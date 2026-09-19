@@ -12,6 +12,20 @@
 
 #define MAX_CLIP_VERTS	128	// skybox clip vertices
 
+// RTN: mascara de cobertura de nuvem (game_dir/textures/clouds.tga), carregada
+// sob demanda na primeira vez que o skybox shader pedir u_CloudMap. Sem
+// TF_CLAMP de proposito - precisa repetir (GL_REPEAT) pro scroll de
+// gl_sky_clouds_speed tileiar sem parar de borda em borda.
+static TextureHandle g_cloudTexture;
+
+static TextureHandle RTN_GetCloudTexture()
+{
+	if( !g_cloudTexture.Initialized( ))
+		g_cloudTexture = LOAD_TEXTURE( "textures/clouds.tga", NULL, 0, TF_HAS_ALPHA );
+
+	return g_cloudTexture;
+}
+
 static const int		r_skyTexOrder[6] = { 0, 2, 1, 3, 4, 5 };
 
 static const Vector	skyclip[6] = 
@@ -333,6 +347,24 @@ static void GL_DrawSkySide( word hProgram, int skyside )
 			// chegar aqui). Ver o comentario grande em skybox_fp.glsl.
 			u->SetValue( gl_fog_sky_horizon ? gl_fog_sky_horizon->value : 0.0f, 0.0f, 0.0f, 0.0f );
 			break;
+		case UT_CLOUDMAP:
+			u->SetValue( RTN_GetCloudTexture().ToInt() );
+			break;
+		case UT_CLOUDPARAMS:
+		{
+			// RTN: scroll acumulado a partir de tr.time (client-side, sem rede -
+			// mesmo padrao ja usado pra animar textura de agua em gl_world_new.cpp).
+			// fmodf mantem o uniform num range pequeno com o jogo ligado por horas;
+			// como a textura repete (GL_REPEAT), o "salto" do wrap e invisivel.
+			bool clouds_on = CVAR_TO_BOOL( gl_sky_clouds ) && RTN_GetCloudTexture().Initialized();
+			float speed = gl_sky_clouds_speed ? gl_sky_clouds_speed->value : 0.0f;
+			float scale = gl_sky_clouds_scale ? gl_sky_clouds_scale->value : 1.0f;
+			float opacity = clouds_on && gl_sky_clouds_opacity ? gl_sky_clouds_opacity->value : 0.0f;
+			float scrollX = fmodf( tr.time * speed, 1.0f );
+			float scrollY = fmodf( tr.time * speed * 0.6f, 1.0f );	// eixo Y mais lento: da direcao de "vento"
+			u->SetValue( scrollX, scrollY, scale, opacity );
+			break;
+		}
 		case UT_ZFAR:
 			u->SetValue( RI->view.farClip );
 			break;

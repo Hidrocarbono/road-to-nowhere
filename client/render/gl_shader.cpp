@@ -259,6 +259,8 @@ static uniformTable_t glsl_uniformTable[] =
 { "u_DetailScale",		UT_DETAILSCALE,		0 },
 { "u_FogParams",		UT_FOGPARAMS,		UFL_GLOBAL_PARM },
 { "u_FogParams2",		UT_FOGPARAMS2,		UFL_GLOBAL_PARM },
+{ "u_CloudMap",		UT_CLOUDMAP,		UFL_TEXTURE_UNIT },
+{ "u_CloudParams",		UT_CLOUDPARAMS,		UFL_GLOBAL_PARM },
 { "u_ShadowParams",		UT_SHADOWPARMS,		0 },
 { "u_TexOffset",		UT_TEXOFFSET,		0 },
 { "u_ViewOrigin",		UT_VIEWORIGIN,		0 },	// not in a global because it's transformed into modelspace

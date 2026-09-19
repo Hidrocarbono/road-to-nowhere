@@ -18,12 +18,14 @@ GNU General Public License for more details.
 #include "texfetch.h"
 
 uniform sampler2D		u_ColorMap;
+uniform sampler2D		u_CloudMap;		// RTN: mascara de cobertura de nuvem (clouds.tga), tileavel
 
 uniform vec3		u_LightDir;
 uniform vec3		u_LightDiffuse;
 uniform vec3		u_ViewOrigin;
 uniform vec4		u_FogParams;
 uniform vec4		u_FogParams2;	// RTN: aqui .x = forca do gradiente de horizonte (0..1) - campos diferentes de fog.h, ver comentario abaixo
+uniform vec4		u_CloudParams;	// RTN: .xy = offset de scroll (UV), .z = tiling, .w = opacidade (0 = camada desligada)
 
 varying vec4		var_Vertex;
 varying vec2		var_TexCoord;
@@ -47,6 +49,20 @@ void main()
 	sky_color *= day_factor;
 #endif
 	vec3 diffuse = sky_color + sun_color * sun_factor;
+
+	// RTN: camada de nuvem escorregando por cima do skybox pintado. u_CloudParams.w
+	// chega 0 quando gl_sky_clouds esta desligado (client/render/gl_sky.cpp) - assim
+	// evita o "if" aqui, so custa uma textura fetch e um mix a mais sempre.
+	//
+	// UV projetado a partir da direcao de visao (nao var_TexCoord, que e o atlas DA
+	// FACE - usar ele criaria uma costura visivel em cada quina do cubo, porque cada
+	// face tileia a textura de forma independente). Achatando .z (como o
+	// R_CloudTexCoord nativo do engine, gl_warp.c, faz pra cobrir a cupula toda com
+	// distorcao minima perto do zenite) da uma projecao continua nas 6 faces.
+	vec3 cloudDir = normalize( var_Vertex.xyz - u_ViewOrigin );
+	vec2 cloudUV = ( cloudDir.xy / max( abs( cloudDir.z ) + 0.15, 0.15 )) * u_CloudParams.z + u_CloudParams.xy;
+	float cloudCoverage = colormap2D( u_CloudMap, cloudUV ).a * u_CloudParams.w;
+	diffuse.rgb = mix( diffuse.rgb, vec3( 1.0 ), cloudCoverage );
 
 	if( bool( u_FogParams.w > 0.0 ))
 	{

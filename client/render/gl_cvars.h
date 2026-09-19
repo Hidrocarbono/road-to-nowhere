@@ -73,6 +73,14 @@ extern cvar_t *gl_fog_height_density;	// RTN: densidade EXTRA do fog de altura (
 extern cvar_t *gl_fog_height_start;	// RTN: Z do mundo onde o fog de altura esta no maximo (ex: chao)
 extern cvar_t *gl_fog_height_falloff;	// RTN: unidades de altura pra densidade de altura cair ~63%
 extern cvar_t *gl_fog_sky_horizon;		// RTN: 0..1, quanto o horizonte do ceu recebe mais fog que o zenite
+
+// RTN: nuvem animada no skybox - segunda camada (clouds.tga) amostrada por
+// cima do sky_color, com UV que escorrega com tr.time. Ver skybox_fp.glsl e
+// utils/gen_clouds.py.
+extern cvar_t *gl_sky_clouds;			// RTN: liga/desliga a camada de nuvem
+extern cvar_t *gl_sky_clouds_scale;		// RTN: tiling da textura sobre o domo (maior = nuvens menores/mais numerosas)
+extern cvar_t *gl_sky_clouds_speed;		// RTN: velocidade de deslocamento (unidades de UV por segundo)
+extern cvar_t *gl_sky_clouds_opacity;		// RTN: 0..1, o quanto a nuvem cobre o ceu por baixo dela
 extern cvar_t *r_dof_fstop;
 extern cvar_t *r_dof_debug;
 extern cvar_t *r_allow_mirrors;

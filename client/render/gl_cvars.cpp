@@ -287,5 +287,15 @@ void R_InitializeConVars()
 	// gradiente (comportamento antigo, igual em qualquer direcao), 1 = so o
 	// horizonte recebe o fog do ceu, zenite fica limpo.
 	gl_fog_sky_horizon = CVAR_REGISTER("gl_fog_sky_horizon", "0.6", FCVAR_ARCHIVE);
+
+	// gl_sky_clouds_*: camada de nuvem escorregando por cima do skybox de 6
+	// faces pintado (client/render/gl_sky.cpp calcula o UV a partir de
+	// tr.time). scale controla o tiling (nuvens maiores/menores), speed a
+	// velocidade do deslocamento, opacity o quanto ela cobre o ceu de baixo.
+	// Default pensado pra ser perceptivel mas nao dominar o skybox pintado.
+	gl_sky_clouds = CVAR_REGISTER("gl_sky_clouds", "1", FCVAR_ARCHIVE);
+	gl_sky_clouds_scale = CVAR_REGISTER("gl_sky_clouds_scale", "1.5", FCVAR_ARCHIVE);
+	gl_sky_clouds_speed = CVAR_REGISTER("gl_sky_clouds_speed", "0.006", FCVAR_ARCHIVE);
+	gl_sky_clouds_opacity = CVAR_REGISTER("gl_sky_clouds_opacity", "0.35", FCVAR_ARCHIVE);
 }
 
