@@ -2,11 +2,11 @@
 //  titles.txt - SISTEMA DE FALAS E DOCUMENTOS DO ROAD TO NOWHERE
 //  Criado por Hermes e Hidrocarboneto.
 //
-//  COMO FUNCIONA (orientações para uso futuro):
+//  COMO FUNCIONA (orientaï¿½ï¿½es para uso futuro):
 //  ----------------------------------------------------------------------------
-//  Este é o ARQUIVO CENTRAL de mensagens do jogo. Ele não fica no mapa:
+//  Este ï¿½ o ARQUIVO CENTRAL de mensagens do jogo. Ele nï¿½o fica no mapa:
 //  as entidades no mapa guardam apenas o NOME da mensagem, e o texto
-//  (com formatação) é buscado aqui pelo client.
+//  (com formataï¿½ï¿½o) ï¿½ buscado aqui pelo client.
 //
 //  FLUXO:
 //    entidade no mapa (ex: env_message ou game_text)
@@ -16,16 +16,16 @@
 //      -> desenha na tela com os atributos abaixo
 //
 //  FORMATO DE CADA MENSAGEM:
-//    (linhas com // no início são comentários e são ignoradas)
+//    (linhas com // no inï¿½cio sï¿½o comentï¿½rios e sï¿½o ignoradas)
 //
-//    $position x y      -> posição na tela. x e y vão de 0 a 1
+//    $position x y      -> posiï¿½ï¿½o na tela. x e y vï¿½o de 0 a 1
 //                          (0 = esquerda/topo, 1 = direita/fundo).
 //                          -1 centraliza no eixo.
-//                          NEGATIVO no y = DISTÂNCIA DO FUNDO:
+//                          NEGATIVO no y = DISTï¿½NCIA DO FUNDO:
 //                          y -0.1 = 10% acima do fundo (ideal p/ legenda).
 //    $effect 0..2       -> 0 = fade in/out | 1 = flicker (creditos)
 //                          2 = escrever letra por letra (scan)
-//    $color  R G B      -> cor do TÍTULO (linha 1) - 0 a 255
+//    $color  R G B      -> cor do Tï¿½TULO (linha 1) - 0 a 255
 //    $color2 R G B      -> cor da MENSAGEM (linhas 2 em diante)
 //    $fadein  seg       -> tempo de fade-in (ou tempo por caractere no effect 2)
 //    $fadeout seg       -> tempo de fade-out
@@ -33,24 +33,24 @@
 //
 //    NOME_DA_MENSAGEM   <- nome usado pela entidade (SEM # aqui)
 //    {
-//    Linha 1 do texto   <- TÍTULO (cor = $color)
+//    Linha 1 do texto   <- Tï¿½TULO (cor = $color)
 //    Linha 2 do texto   <- MENSAGEM (cor = $color2)
 //    }
 //
-//  SUBSTITUIÇÃO AUTOMÁTICA:
-//    %player_name% no texto é trocado pelo nome do jogador (feito no server).
+//  SUBSTITUIï¿½ï¿½O AUTOMï¿½TICA:
+//    %player_name% no texto ï¿½ trocado pelo nome do jogador (feito no server).
 //
 //  QUEBRA DE LINHA:
 //    Cada linha dentro das chaves { } vira uma linha na tela.
-//    Linha 1 = título (cor $color), linhas seguintes = mensagem ($color2).
+//    Linha 1 = tï¿½tulo (cor $color), linhas seguintes = mensagem ($color2).
 //
 //  FONTE:
 //    O HUD usa a fonte bitmap global do engine (gfx/creditsfont.fnt) POR
-//    PADRÃO - isso não muda a menos que você use $font (ver abaixo).
+//    PADRï¿½O - isso nï¿½o muda a menos que vocï¿½ use $font (ver abaixo).
 //
 //  DICAS:
 //    - Mensagem com # na frente (ex: "#Doutor_Intro") busca aqui.
-//    - Texto sem # é exibido literalmente (com %player_name% e \n funcionando).
+//    - Texto sem # ï¿½ exibido literalmente (com %player_name% e \n funcionando).
 //    - Para legenda estilo filme: $position -1 -0.1 (centralizada no fundo).
 // ============================================================================
 
@@ -58,54 +58,54 @@
 // ============================================================================
 //  FONTE E TAMANHO CUSTOM ($font / $fontsize) - RTN
 //  ----------------------------------------------------------------------------
-//  Por padrão toda mensagem usa a fonte fixa do engine (gfx/creditsfont.fnt),
-//  desenhada num tamanho ÚNICO que não dá pra mudar - o engine não tem
-//  parâmetro de tamanho nem de fonte na função que desenha cada letra
-//  (pfnDrawCharacter). Pra ter TAMANHO configurável e FONTE escolhível por
-//  mensagem (ex.: título de "episódio" grande, com fonte diferente), o RTN
-//  ganhou um sistema PRÓPRIO de fonte bitmap, independente do engine:
+//  Por padrï¿½o toda mensagem usa a fonte fixa do engine (gfx/creditsfont.fnt),
+//  desenhada num tamanho ï¿½NICO que nï¿½o dï¿½ pra mudar - o engine nï¿½o tem
+//  parï¿½metro de tamanho nem de fonte na funï¿½ï¿½o que desenha cada letra
+//  (pfnDrawCharacter). Pra ter TAMANHO configurï¿½vel e FONTE escolhï¿½vel por
+//  mensagem (ex.: tï¿½tulo de "episï¿½dio" grande, com fonte diferente), o RTN
+//  ganhou um sistema PRï¿½PRIO de fonte bitmap, independente do engine:
 //
-//    $font <nome_curto>   -> ativa a fonte custom pro bloco INTEIRO (título
-//                            E mensagem). <nome_curto> é o nome usado ao
+//    $font <nome_curto>   -> ativa a fonte custom pro bloco INTEIRO (tï¿½tulo
+//                            E mensagem). <nome_curto> ï¿½ o nome usado ao
 //                            gerar a fonte com utils/gen_titlefont.py -
-//                            ex.: "kirkwood" (fonte cplkirkwood.ttf, já
-//                            incluída no projeto - ver abaixo como gerar
+//                            ex.: "kirkwood" (fonte cplkirkwood.ttf, jï¿½
+//                            incluï¿½da no projeto - ver abaixo como gerar
 //                            outra fonte a partir de um .ttf).
 //    $fontsize <px>       -> tamanho da fonte custom NA TELA, em pixels de
-//                            altura de linha. SÓ TEM EFEITO junto com $font
-//                            no mesmo bloco - não existe como aumentar a
-//                            fonte padrão do engine, então $fontsize sozinho
-//                            (sem $font) é ignorado. Sem $fontsize, mas COM
+//                            altura de linha. Sï¿½ TEM EFEITO junto com $font
+//                            no mesmo bloco - nï¿½o existe como aumentar a
+//                            fonte padrï¿½o do engine, entï¿½o $fontsize sozinho
+//                            (sem $font) ï¿½ ignorado. Sem $fontsize, mas COM
 //                            $font, usa o tamanho "natural" da fonte (o
 //                            tamanho em que o atlas foi gerado - 128px).
 //
-//  NÃO SÃO PERSISTENTES: assim como $position/$color/$effect/etc., $font e
-//  $fontsize valem só pro bloco em que aparecem. Se a próxima mensagem não
-//  repetir $font, ela volta a usar a fonte padrão do engine automaticamente -
-//  não precisa "desligar" nada.
+//  Nï¿½O Sï¿½O PERSISTENTES: assim como $position/$color/$effect/etc., $font e
+//  $fontsize valem sï¿½ pro bloco em que aparecem. Se a prï¿½xima mensagem nï¿½o
+//  repetir $font, ela volta a usar a fonte padrï¿½o do engine automaticamente -
+//  nï¿½o precisa "desligar" nada.
 //
 //  COMO GERAR UMA FONTE NOVA A PARTIR DE UM .ttf:
-//    pip install Pillow      (uma vez só)
+//    pip install Pillow      (uma vez sï¿½)
 //    python3 utils/gen_titlefont.py minhafonte.ttf nome_curto
 //  Isso cria:
 //    game_dir/sprites/fonts/nome_curto.spr   (atlas com as letras, imagem)
-//    game_dir/fonts/nome_curto.rtnfont       (métricas - onde cada letra
-//                                              está no atlas e quanto espaço
+//    game_dir/fonts/nome_curto.rtnfont       (mï¿½tricas - onde cada letra
+//                                              estï¿½ no atlas e quanto espaï¿½o
 //                                              ela ocupa)
-//  Depois é só usar "$font nome_curto" em qualquer bloco deste arquivo.
+//  Depois ï¿½ sï¿½ usar "$font nome_curto" em qualquer bloco deste arquivo.
 //
-//  IMPLEMENTAÇÃO (pra quem for mexer): client/hud_titlefont.h/.cpp carregam
-//  o atlas (.spr) e as métricas (.rtnfont), e um parser próprio (bem mais
-//  simples que o do engine) lê ESTE ARQUIVO de novo só pra achar as linhas
+//  IMPLEMENTAï¿½ï¿½O (pra quem for mexer): client/hud_titlefont.h/.cpp carregam
+//  o atlas (.spr) e as mï¿½tricas (.rtnfont), e um parser prï¿½prio (bem mais
+//  simples que o do engine) lï¿½ ESTE ARQUIVO de novo sï¿½ pra achar as linhas
 //  $font/$fontsize de cada bloco - porque client_textmessage_t (a struct que
-//  o engine preenche com o resto dos dados de cada mensagem) é uma struct
-//  fixa do engine, sem campo de fonte nem tamanho, e não dá pra estender.
+//  o engine preenche com o resto dos dados de cada mensagem) ï¿½ uma struct
+//  fixa do engine, sem campo de fonte nem tamanho, e nï¿½o dï¿½ pra estender.
 //  O desenho de cada letra usa DrawSpriteAsPoly (client/render/tri.cpp),
 //  recortando o glifo certo do atlas e desenhando do tamanho pedido - sem
 //  isso, client/message.cpp usa TextMessageDrawChar como sempre (fonte do
 //  engine, comportamento 100% igual ao de antes desta feature).
 //
-//  Exemplo (título de episódio, fonte grande):
+//  Exemplo (tï¿½tulo de episï¿½dio, fonte grande):
 //    $position -1 -1
 //    $effect 0
 //    $color 255 255 255
@@ -155,12 +155,12 @@ $holdtime 4
 doc_cadaver
 {
 %player_name%:
-Mais um que não voltou pra casa. 
+Mais um que nï¿½o voltou pra casa. 
 }
 
 
 // ============================================================================
-//  EXEMPLO 2 - Documento / arquivo coletável (estilo lore)
+//  EXEMPLO 2 - Documento / arquivo coletï¿½vel (estilo lore)
 //  Uso no mapa: env_message com message = "#Doc_Primera_Anotacion"
 // ============================================================================
 $position -1 0.2
@@ -179,7 +179,7 @@ Ninguem sabe o que existe alem do desvio.
 
 
 // ============================================================================
-//  EXEMPLO 3 - Mensagem central clássica (aviso / tutorial)
+//  EXEMPLO 3 - Mensagem central clï¿½ssica (aviso / tutorial)
 //  Uso no mapa: env_message com message = "#Aviso_Estrada"
 // ============================================================================
 $position -1 -1
@@ -196,9 +196,9 @@ A estrada nao tem volta.
 }
 
 // ============================================================================
-//  EXEMPLO 4 - Título de "episódio" com fonte custom ($font)
-//  Uso no mapa: env_message com message = "#Episodio_01" - ver a documentação
-//  de $font/$fontsize logo no início deste arquivo.
+//  EXEMPLO 4 - Tï¿½tulo de "episï¿½dio" com fonte custom ($font)
+//  Uso no mapa: env_message com message = "#Episodio_01" - ver a documentaï¿½ï¿½o
+//  de $font/$fontsize logo no inï¿½cio deste arquivo.
 // ============================================================================
 $position -1 -1
 $effect 0
@@ -264,13 +264,13 @@ $holdtime 3
 
 !m16
 {
-+%d munição 5.56
++%d muniï¿½ï¿½o 5.56
 }
 
 
 !ak
 {
-+%d munição 5.56
++%d muniï¿½ï¿½o 5.56
 }
 
 !weapon_parafal
@@ -287,6 +287,99 @@ Item adicionado - M4A3
 dica_casas
 {
 Procure nas casas e escombros itens importantes
+}
+
+
+// ============================================================================
+//  DIALOGO COM ESCOLHAS (RTN) - exemplo do NPC "medico"
+//  Arvore: game_dir/scripts/dialogs/dialogs.txt (dialog_medico e afins)
+//  Formato completo: game_dir/devkit/GUIA_DIALOGOS.md
+//
+//  npc_line usa a MESMA convencao de titulo/mensagem do resto deste
+//  arquivo: linha 1 ($color) = nome exibido do falante, linha 2+
+//  ($color2) = a fala. As entradas "Opcao_*" (rotulo dos botoes do menu)
+//  sao so uma linha - nao tem "nome do falante" nenhum.
+// ============================================================================
+$position -1 -1
+$effect 0
+$color 255 200 0
+$color2 255 255 255
+$fadein 0.2
+$fadeout 0.2
+$holdtime 3
+
+Medico_Intro
+{
+Medico
+Vejo que sobreviveu ate aqui. Precisa de ajuda?
+}
+
+Medico_ExplicaVacina
+{
+Medico
+Tenho uma vacina experimental. Nao posso garantir que funcione, mas e a
+unica chance que temos contra a infeccao.
+}
+
+Medico_DetalheVacina
+{
+Medico
+Ela foi feita a partir do sangue de quem sobreviveu a primeira onda. Os
+efeitos colaterais sao... imprevisiveis. Mas sem ela, voce nao dura muito.
+}
+
+Medico_ExplicaSaida
+{
+Medico
+A saida mais segura e pelo velho posto de controle, a nordeste. Va com
+cuidado - ainda ha coisas la fora.
+}
+
+Medico_Despedida
+{
+Medico
+Tome. Use com sabedoria. E boa sorte - vai precisar.
+}
+
+Medico_JaConversamos
+{
+Medico
+Ja conversamos. Va com cuidado.
+}
+
+Opcao_PerguntarVacina
+{
+Perguntar sobre a vacina
+}
+
+Opcao_PerguntarSaida
+{
+Perguntar sobre a saida
+}
+
+Opcao_ComoFunciona
+{
+Como ela funciona?
+}
+
+Opcao_AceitarVacina
+{
+Aceito a vacina
+}
+
+Opcao_Voltar
+{
+Voltar
+}
+
+Opcao_Sair
+{
+Sair
+}
+
+Opcao_Encerrar
+{
+Encerrar conversa
 }
 
 

@@ -30,6 +30,7 @@
 #include "weapons.h"
 #include "func_break.h"
 #include "monster_satchel.h"
+#include "dialogscript.h"
 
 extern DLL_GLOBAL Vector		g_vecAttackDir;
 extern DLL_GLOBAL int		g_iSkillLevel;
@@ -613,6 +614,11 @@ void CBaseMonster :: Killed( entvars_t *pevAttacker, int iGib )
 	}
 
 	Remember( bits_MEMORY_KILLED );
+
+	// RTN: se o jogador estiver conversando com este NPC, fecha a sessao
+	// agora - sem isso ele ficaria travado (EnableControl FALSE) pra
+	// sempre, ja que o NPC nao vai mais responder nenhum "dlgselect".
+	Dialog_NotifyNPCDied( this );
 
 	// clear the deceased's sound channels.(may have been firing or reloading when killed)
 	EMIT_SOUND(ENT(pev), CHAN_WEAPON, "common/null.wav", 1, ATTN_NORM);

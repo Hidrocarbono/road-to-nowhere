@@ -24,6 +24,7 @@ int gmsgStamina = 0; // RTN F10: stamina (estilo P2 - o curstate.fuser2 nao cheg
 int gmsgTextWindow = 0; // RTN F10: janela de documento (trigger_textwindow/P2)
 int gmsgRadioIcon = 0;  // RTN F10: radio_sentence (icone do speaker + talker)
 int gmsgIronSight = 0;  // RTN F10: mira de ferro (0/1) - ativa o DOF no client
+int gmsgDialogShow = 0; // RTN: sistema de dialogo com escolhas
 int gmsgTrain = 0;
 int gmsgLogo = 0;
 int gmsgWeaponList = 0;
@@ -102,6 +103,7 @@ void LinkUserMessages()
 	gmsgTextWindow = REG_USER_MSG("TextWindow", -1);  // RTN F10: janela de documento (string variável)
 	gmsgRadioIcon = REG_USER_MSG("RadioIcon", -1);    // RTN F10: radio_sentence (string variável)
 	gmsgIronSight = REG_USER_MSG("IronSight", 1);      // RTN F10: mira de ferro (1 byte 0/1)
+	gmsgDialogShow = REG_USER_MSG("DialogShow", -1);   // RTN: dialogo com escolhas (variavel - ver dialogsession.cpp)
 	gmsgWeapPickup = REG_USER_MSG("WeapPickup", -1);  // RTN F10: -1 (variável) - leva o WRITE_STRING do nome
 	gmsgItemPickup = REG_USER_MSG("ItemPickup", -1);
 	gmsgHideWeapon = REG_USER_MSG("HideWeapon", 1);

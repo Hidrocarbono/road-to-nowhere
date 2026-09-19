@@ -668,7 +668,16 @@ SpriteHandle* WeaponsResource :: GetAmmoPicFromWeapon( int iAmmoId, wrect_t& rec
 // Menu Selection Code
 void WeaponsResource :: SelectSlot( int iSlot, int fAdvance, int iDirection )
 {
-	if( gHUD.m_Menu.m_fMenuDisplayed && ( fAdvance == FALSE ) && ( iDirection == 1 ))	
+	// RTN: dialogo com escolhas - mesma prioridade do menu nativo do HL1
+	// logo abaixo (o teclado numerico vira selecao de opcao, nao troca de
+	// arma, enquanto a conversa estiver na tela).
+	if( gHUD.m_Dialog.IsActive() && ( fAdvance == FALSE ) && ( iDirection == 1 ))
+	{
+		gHUD.m_Dialog.SelectOption( iSlot + 1 );  // slots are one off the key numbers
+		return;
+	}
+
+	if( gHUD.m_Menu.m_fMenuDisplayed && ( fAdvance == FALSE ) && ( iDirection == 1 ))
 	{
 		// menu is overriding slot use commands
 		gHUD.m_Menu.SelectMenuItem( iSlot + 1 );  // slots are one off the key numbers

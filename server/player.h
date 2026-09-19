@@ -17,6 +17,7 @@
 
 
 #include "pm_materials.h"
+#include "dialogscript.h"	// MAX_DIALOG_SEALED / MAX_DIALOG_GIVEN
 
 
 #define PLAYER_FATAL_FALL_SPEED	1024	// approx 60 feet
@@ -137,6 +138,20 @@ public:
 	BOOL		m_bNVGActive;		// ligado agora
 	int		m_iNVGBattery;		// 0..100
 	float		m_flNVGTime;		// proximo tique de drenagem/recarga
+
+	// RTN: dialogo com escolhas (server/dialogsession.cpp). Sessao 100%
+	// server-authoritative - o cliente so exibe o que o servidor manda em
+	// gmsgDialogShow e devolve o numero escolhido via "dlgselect N".
+	BOOL		m_bInDialog;
+	string_t	m_iszDialogRoot;	// no INICIAL da arvore (o que "dialog_target" do NPC aponta) - usado pra selar
+	string_t	m_iszDialogNode;	// no ATUAL da conversa (dialogscript.h)
+	EHANDLE		m_hDialogNPC;		// quem estamos "conversando"
+	int		m_iDialogTurn;		// anti-replay: incrementa a cada DialogShow
+
+	string_t	m_iszDialogSealed[MAX_DIALOG_SEALED];	// nos-inicio com repeatable 0 ja concluidos
+	int		m_iDialogSealedCount;
+	string_t	m_iszDialogGiven[MAX_DIALOG_GIVEN];	// nos que ja executaram "give" (um tiro so, mesmo se repeatable 1)
+	int		m_iDialogGivenCount;
 
 	int		m_afButtonLast;
 	int		m_afButtonPressed;
@@ -294,7 +309,14 @@ public:
 	void		NVGTurnOff( void );
 	void		NVGUpdateBattery( void );
 	void		NVGSendState( void );
-	
+
+	// RTN: dialogo com escolhas (server/dialogsession.cpp)
+	BOOL		InDialog( void ) { return m_bInDialog; }
+	void		Dialog_Start( class CBaseMonster *pNPC, const char *pszStartNode );
+	void		Dialog_Select( int iTurn, int iSlot );	// vindo do client command "dlgselect <turn> <slot>"
+	void		Dialog_End( void );		// fecha a sessao e destrava o jogador
+	void		Dialog_Cancel( void );		// como Dialog_End, mas chamado de fora (NPC sumiu/morreu)
+
 	void UpdatePlayerSound ( void );
 	void UpdatePlayerTimers();
 	void UpdateWeaponTimers();

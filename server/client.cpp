@@ -571,6 +571,10 @@ void ClientCommand( edict_t *pEntity )
 	{
 		GetClassPtr((CBasePlayer *)pev)->SelectLastItem();
 	}
+	else if (FStrEq(pcmd, "dlgselect" ))	// RTN: dialogo com escolhas - resposta do menu (gmsgDialogShow)
+	{
+		GetClassPtr((CBasePlayer *)pev)->Dialog_Select( atoi( CMD_ARGV(1) ), atoi( CMD_ARGV(2) ));
+	}
 	else if ( FStrEq( pcmd, "spectate" ) && (pev->flags & FL_PROXY) )	// added for proxy support
 	{
 		CBasePlayer * pPlayer = GetClassPtr((CBasePlayer *)pev);
