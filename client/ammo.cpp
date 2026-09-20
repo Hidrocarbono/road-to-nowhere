@@ -989,9 +989,19 @@ void CHudAmmo::UserCmd_NVG_Toggle( void )
 // rodinha do mouse move o destaque (ver UserCmd_NextWeapon/PrevWeapon). As
 // teclas slot1..slot10 continuam existindo (bind do jogador pode estar
 // configurado nelas) mas nao fazem mais nada aqui.
+//
+// RTN: EXCETO pro dialogo com escolhas - e ESTE metodo, nao
+// WeaponsResource::SelectSlot() (aposentado pelo mesmo motivo acima, so
+// fica de pé por compatibilidade), quem os comandos "slotN" chamam de
+// verdade (ver UserCmd_Slot1..10 logo abaixo). Sem esse desvio aqui, 1-9
+// nunca chegavam no menu de dialogo - SelectSlot() nunca era invocado.
 void CHudAmmo::SlotInput( int iSlot )
 {
-	(void)iSlot;
+	if( gHUD.m_Dialog.IsActive() )
+	{
+		gHUD.m_Dialog.SelectOption( iSlot + 1 );
+		return;
+	}
 }
 
 void CHudAmmo::UserCmd_Slot1( void )
