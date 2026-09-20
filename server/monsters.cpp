@@ -581,16 +581,26 @@ void CBaseMonster :: MonsterUse ( CBaseEntity *pActivator, CBaseEntity *pCaller,
 //=========================================================
 void CBaseMonster :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	if ( pActivator && pActivator->IsPlayer() && useType == USE_TOGGLE &&
+	// RTN F10 fix: o +USE de verdade do jogador manda USE_SET (ver
+	// CBasePlayer::PlayerUse, server/player.cpp:1518), nao USE_TOGGLE -
+	// esse ultimo e so o que os triggers de mapa (ex: AITRIGGER_DEATH via
+	// UTIL_FireTargets) mandam. Checar USE_TOGGLE aqui fazia essa condicao
+	// nunca ser verdadeira pro toque direto na tecla de uso.
+	if ( pActivator && pActivator->IsPlayer() &&
 		 !FStringNull( m_iszDialogTarget ) && IsAlive() )
 	{
 		CBasePlayer *pPlayer = (CBasePlayer *)pActivator;
 
+		// NPC com dialog_target nunca cai no comportamento padrao (seguir,
+		// ficar alerta...) pra um jogador - se ja estiver em outra
+		// conversa, so ignora o toque em vez de deixar isso vazar pro
+		// FollowerUse/MonsterUse da classe. Na pratica o freeze (FL_FROZEN
+		// zera IN_USE tambem, ver game_shared/playermove.cpp) ja impede
+		// esse segundo toque de chegar aqui, mas nao custa ser explicito.
 		if ( !pPlayer->InDialog() )
-		{
 			pPlayer->Dialog_Start( this, STRING( m_iszDialogTarget ));
-			return;
-		}
+
+		return;
 	}
 
 	CBaseToggle::Use( pActivator, pCaller, useType, value );
