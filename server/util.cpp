@@ -1242,6 +1242,26 @@ void UTIL_ShowMessage( const char *pString, CBaseEntity *pEntity )
 	MESSAGE_END();
 }
 
+void UTIL_ShowSystemTip( int iIcon, const char *pszKey, CBaseEntity *pEntity )
+{
+	if ( !pEntity || !pEntity->IsNetClient() )
+		return;
+
+	if ( !pszKey )
+		pszKey = "";
+
+	// mesma convencao do resto do titles.txt: quem chama pode passar "#KEY"
+	// (jeito que o mapper digita) ou "KEY" direto - aqui sempre tira o '#',
+	// porque o cliente resolve via TextMessageGet, que quer o nome cru.
+	if ( pszKey[0] == '#' )
+		pszKey++;
+
+	MESSAGE_BEGIN( MSG_ONE, gmsgSystemTip, NULL, pEntity->edict() );
+		WRITE_BYTE( iIcon );
+		WRITE_STRING( pszKey );
+	MESSAGE_END();
+}
+
 
 void UTIL_ShowMessageAll( const char *pString )
 {
@@ -1823,7 +1843,7 @@ void UTIL_BloodStudioDecalTrace(TraceResult *pTrace, int bloodColor)
 	}
 }
 
-bool UTIL_TraceCustomDecal(TraceResult *pTrace, const char *name, float angle, int persistent) // Wargon: Значение по умолчанию прописано в util.h.
+bool UTIL_TraceCustomDecal(TraceResult *pTrace, const char *name, float angle, int persistent) // Wargon: пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ util.h.
 {
 	short entityIndex;
 	short modelIndex = 0;

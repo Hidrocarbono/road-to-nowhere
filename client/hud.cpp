@@ -33,6 +33,7 @@ void CHud :: Init( void )
 	m_TextWindow.Init();  // RTN F10: janela de documento (P2)
 	m_Radio.Init();  // RTN F10: radio_sentence (icone do speaker + talker)
 	m_Dialog.Init(); // RTN: dialogo com escolhas do jogador
+	m_SystemTip.Init(); // RTN: aviso de sistema (save/dica) com icone
  	m_SayText.Init();
 	m_Menu.Init();
 	m_MOTD.Init();
@@ -205,6 +206,7 @@ void CHud :: VidInit( void )
 	m_TextWindow.VidInit();  // RTN F10: janela de documento (P2)
 	m_Radio.VidInit();  // RTN F10: radio_sentence (icone do speaker + talker)
 	m_Dialog.VidInit(); // RTN: dialogo com escolhas do jogador
+	m_SystemTip.VidInit(); // RTN: aviso de sistema (save/dica) com icone
 }
 
 void CHud::AddHudElem( CHudBase *phudelem )

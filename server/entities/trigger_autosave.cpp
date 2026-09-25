@@ -44,6 +44,12 @@ void CTriggerSave::SaveTouch( CBaseEntity *pOther )
 		return;
     
 	SetTouch( NULL );
+
+	// RTN: aviso de sistema (icone de save) - dispara ANTES de UTIL_Remove()
+	// tirar "this" do jogo, pra nao arriscar usar a entidade depois de
+	// removida caso a ordem mude no futuro.
+	UTIL_ShowSystemTip( 0, "GAMESAVED", pOther );
+
 	UTIL_Remove( this );
 	SERVER_COMMAND( "autosave\n" );
 }

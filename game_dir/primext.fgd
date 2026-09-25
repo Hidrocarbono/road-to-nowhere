@@ -1532,6 +1532,7 @@
 	[
 		1: "Play Once" : 0
 		2: "All Clients" : 0
+		4: "System Tip (icone de sistema - RTN)" : 0
 	]
 	messagesound(sound) : "Sound Effect"
 	messagevolume(string) : "Volume 0-10" : "10"

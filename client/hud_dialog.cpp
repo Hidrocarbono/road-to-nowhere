@@ -160,9 +160,11 @@ void CHudDialog::SelectOption( int iSlot )
 // DrawHudString NAO quebra "\n" sozinho (quem faz isso e o menu nativo,
 // client/menu.cpp, percorrendo a string na mao) - e npc_line pode ter
 // varias linhas de fala (mesma convencao do titles.txt normal). Desenha
-// cada pedaco separado por '\n' numa linha propria e devolve quantas
-// linhas desenhou, pra Draw() somar na altura do painel.
-static int DLG_DrawMultiline( int x, int y, int maxX, int lineGap, const char *szText, int r, int g, int b )
+// cada pedaco separado por '\n' CENTRALIZADO (meio da tela) numa linha
+// propria e devolve quantas linhas desenhou, pra Draw() somar na altura.
+// Largura de cada linha estimada em ~11px/char (sem medidor de glifo real
+// disponivel - mesma aproximacao ja usada pro dimensionamento do painel).
+static int DLG_DrawMultilineCentered( int y, int lineGap, const char *szText, int r, int g, int b )
 {
 	char buf[256];
 	Q_strncpy( buf, szText, sizeof( buf ));
@@ -174,7 +176,9 @@ static int DLG_DrawMultiline( int x, int y, int maxX, int lineGap, const char *s
 		char *nl = strchr( sptr, '\n' );
 		if( nl ) *nl = '\0';
 
-		gHUD.DrawHudString( x, y + lines * lineGap, maxX, sptr, r, g, b );
+		int textWide = (int)Q_strlen( sptr ) * 11;
+		int x = ( ScreenWidth - textWide ) / 2;
+		gHUD.DrawHudString( x, y + lines * lineGap, ScreenWidth, sptr, r, g, b );
 		lines++;
 
 		if( !nl )
@@ -192,24 +196,12 @@ static int DLG_CountLines( const char *szText )
 	return lines;
 }
 
-// Maior linha (entre \n's) de szText, em caracteres - usado pra dimensionar
-// a largura do painel pelo CONTEUDO em vez de uma fracao fixa da tela.
-static int DLG_MaxLineLen( const char *szText )
-{
-	int maxLen = 0, curLen = 0;
-	for( const char *p = szText; ; p++ )
-	{
-		if( *p == '\0' || *p == '\n' )
-		{
-			if( curLen > maxLen ) maxLen = curLen;
-			if( *p == '\0' ) break;
-			curLen = 0;
-		}
-		else curLen++;
-	}
-	return maxLen;
-}
-
+// RTN: "Opcao B" do desenho (decidida em conversa) - a fala do NPC fica
+// SEM caixa, centralizada, igual a legenda padrao do titles.txt
+// (EXEMPLO 1 - $position -1 -0.1). So as OPCOES (menu de verdade,
+// acionavel) ganham uma caixa bem sutil, tambem centralizada - o
+// suficiente pra sinalizar "isso aqui e clicavel", sem competir
+// visualmente com o resto do HUD "narrativo" do jogo.
 int CHudDialog::Draw( float flTime )
 {
 	if( !m_bActive )
@@ -218,21 +210,23 @@ int CHudDialog::Draw( float flTime )
 	int nFontHeight = Q_max( 12, gHUD.m_iFontHeight );
 	int lineGap = nFontHeight + 4;
 
-	// altura total: nome (se tiver) + fala (pode ter varias linhas) + uma
-	// linha por opcao + folgas
-	int numLines = ( m_szSpeaker[0] ? 1 : 0 ) + DLG_CountLines( m_szLine ) + m_iNumSlots;
-	int panelTall = numLines * lineGap + 16;
+	int falaLines = ( m_szSpeaker[0] ? 1 : 0 ) + DLG_CountLines( m_szLine );
+	int falaTall = falaLines * lineGap;
 
-	// Largura PROPORCIONAL ao maior texto (nome, cada linha da fala, cada
-	// opcao numerada) em vez de sempre 2/3 da tela - um dialogo com textos
-	// curtos (ex: "1. Sim") nao precisa de um painel largo. ~11px/char e a
-	// mesma aproximacao do hud_radio.cpp (12px/char, aqui um pouco mais
-	// justo porque o texto de opcao costuma ser curto). Clampado entre um
-	// minimo (pra nao ficar minusculo com "Sim"/"Nao") e o teto antigo de
-	// 2/3 da tela (pra nao estourar com fala longa). Sempre centralizado.
-	int maxChars = m_szSpeaker[0] ? (int)strlen( m_szSpeaker ) : 0;
-	int lineMax = DLG_MaxLineLen( m_szLine );
-	if( lineMax > maxChars ) maxChars = lineMax;
+	int optionsTall = m_iNumSlots * lineGap + 16;	// +16 = folga da caixa (8 em cima, 8 embaixo)
+
+	int gapBetween = 8;
+	int totalTall = falaTall + gapBetween + optionsTall;
+	int y = ScreenHeight - totalTall - 48;	// acima da area de "say" / HUD inferior
+
+	// --- fala do NPC: sem caixa, centralizada ---
+	int falaY = y;
+	if( m_szSpeaker[0] )
+		falaY += DLG_DrawMultilineCentered( falaY, lineGap, m_szSpeaker, 255, 210, 64 ) * lineGap;	// mesmo amarelo do \y do menu nativo
+	falaY += DLG_DrawMultilineCentered( falaY, lineGap, m_szLine, 255, 255, 255 ) * lineGap;
+
+	// --- opcoes: caixa BEM sutil, centralizada, do tamanho do maior texto ---
+	int maxChars = 0;
 	for( int i = 0; i < m_iNumSlots; i++ )
 	{
 		int optChars = (int)strlen( m_szOptions[i] ) + 3;	// "N. " na frente
@@ -240,41 +234,28 @@ int CHudDialog::Draw( float flTime )
 	}
 
 	int panelWide = maxChars * 11 + 24;
-	int minWide = ScreenWidth / 4;
+	int minWide = ScreenWidth / 6;
 	int maxWide = ( ScreenWidth * 2 ) / 3;
 	if( panelWide < minWide ) panelWide = minWide;
 	if( panelWide > maxWide ) panelWide = maxWide;
 
-	int x = ( ScreenWidth - panelWide ) / 2;
-	int y = ScreenHeight - panelTall - 48;	// acima da area de "say" / HUD inferior
+	int optionsY = y + falaTall + gapBetween;
+	int panelX = ( ScreenWidth - panelWide ) / 2;
 
 	gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
-	gEngfuncs.pTriAPI->Color4f( 0.0f, 0.0f, 0.0f, 0.3f );	// painel bem translucido - nunca preto solido opaco
+	gEngfuncs.pTriAPI->Color4f( 0.0f, 0.0f, 0.0f, 0.18f );	// bem mais sutil que antes - so uma pista visual, nao um painel
 	GL_Blend( GL_TRUE );
 	GL_Bind( 0, FIND_TEXTURE( "*white" ));
-	OrthoQuad( x, y, x + panelWide, y + panelTall );
+	OrthoQuad( panelX, optionsY, panelX + panelWide, optionsY + optionsTall );
 	GL_Blend( GL_FALSE );
 	gEngfuncs.pTriAPI->RenderMode( kRenderNormal );
 
-	int textX = x + 12;
-	int textY = y + 8;
-	int textMaxX = x + panelWide - 12;
-
-	if( m_szSpeaker[0] )
-	{
-		gHUD.DrawHudString( textX, textY, textMaxX, m_szSpeaker, 255, 210, 64 );	// mesmo amarelo do \y do menu nativo
-		textY += lineGap;
-	}
-
-	textY += DLG_DrawMultiline( textX, textY, textMaxX, lineGap, m_szLine, 255, 255, 255 ) * lineGap;
-	textY += 4;
-
+	int optTextY = optionsY + 8;
 	for( int i = 0; i < m_iNumSlots; i++ )
 	{
 		char szOpt[DLG_HUD_MAX_TEXT + 8];
 		Q_snprintf( szOpt, sizeof( szOpt ), "%d. %s", i + 1, m_szOptions[i] );
-		gHUD.DrawHudString( textX, textY, textMaxX, szOpt, 200, 200, 200 );
-		textY += lineGap;
+		optTextY += DLG_DrawMultilineCentered( optTextY, lineGap, szOpt, 200, 200, 200 ) * lineGap;
 	}
 
 	return 1;

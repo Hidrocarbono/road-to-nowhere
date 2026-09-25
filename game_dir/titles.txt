@@ -438,6 +438,39 @@ Sair sem terminar
 
 
 // ============================================================================
+//  SYSTEM TIPS (RTN) - aviso de sistema com icone (icon0 = save, icon1 =
+//  atencao/dica), desenhado no topo da tela, sem caixa - client/hud_systemtip.cpp.
+//  ----------------------------------------------------------------------------
+//  GAMESAVED e disparada automaticamente pelo trigger_autosave (server/
+//  entities/trigger_autosave.cpp) - nao precisa (nem deve) ser chamada por
+//  nenhuma entidade no mapa.
+//
+//  Para uma DICA (icon1), qualquer env_message com a spawnflag "System Tip"
+//  marcada manda por este canal em vez do HudText normal - o "message" da
+//  entidade continua sendo "#NOME_DA_MENSAGEM" como sempre.
+//
+//  $color, $fadein, $fadeout e $holdtime valem aqui normalmente. $position
+//  e $effect NAO tem efeito - a posicao (topo, centralizado) e fixa, sem
+//  caixa, igual a "linguagem visual de sistema" combinada.
+// ============================================================================
+$color 255 255 255
+$fadein 0.3
+$fadeout 0.4
+$holdtime 3
+
+GAMESAVED
+{
+Jogo salvo
+}
+
+$holdtime 4
+Dica_Lanterna
+{
+Aperte F para ligar a lanterna
+}
+
+
+// ============================================================================
 //  DOCUMENTOS (RTN F10 - trigger_textwindow)
 //  No mapa: entidade trigger_textwindow com o keyvalue message = "p_army1b"
 //  (sem #!). O client abre texts/p_army1b.txt e exibe a janela com a imagem.

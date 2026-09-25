@@ -20,6 +20,7 @@
 
 #define SF_MESSAGE_ONCE			0x0001		// Fade in, not out
 #define SF_MESSAGE_ALL			0x0002		// Send to all clients
+#define SF_MESSAGE_SYSTEMTIP		0x0004		// RTN: mostra como aviso de sistema (icon1) em vez de HudText normal
 
 class CMessage : public CPointEntity
 {

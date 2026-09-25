@@ -1,0 +1,205 @@
+/*
+hud_systemtip.cpp - aviso de sistema com icone (RTN)
+Copyright (C) 2026 Hermes e Hidrocarboneto
+
+Ver hud_systemtip.h para o desenho geral. Servidor manda so (icone, chave
+titles.txt) via "SystemTip" - o texto, cor e tempos (fadein/fadeout/
+holdtime) vem do proprio titles.txt (TextMessageGet), igual o hud_dialog.
+*/
+
+#include "hud.h"
+#include "hud_systemtip.h"
+#include "utils.h"
+#include "parsemsg.h"
+#include "triangleapi.h"
+#include "texture_handle.h"
+#include "gl_local.h"
+
+extern void OrthoQuad( int x1, int y1, int x2, int y2 );		// tri.cpp
+extern void RTN_Utf8ToCp1252( char *szText );				// mesmo fix do hud_radio/hud_dialog
+
+// nomes fixos dos assets - so existe UMA variante por icone (o "_1024"/"_640"
+// original do Paranoia 2 era por faixa de resolucao de tela; aqui o HUD ja
+// escala pela resolucao real, entao so precisamos de uma).
+static const char *SYSTIP_ICON_PATH[SYSTIP_NUM_ICONS] =
+{
+	"gfx/vgui/icon0_1024.tga",	// 0 = save
+	"gfx/vgui/icon1_1024.tga",	// 1 = atencao/dica
+};
+
+DECLARE_MESSAGE( m_SystemTip, SystemTip )
+
+int CHudSystemTip::Init( void )
+{
+	gHUD.AddHudElem( this );
+	HOOK_MESSAGE( SystemTip );
+	m_iFlags |= HUD_ACTIVE;
+	ResetState();
+	return 1;
+}
+
+int CHudSystemTip::VidInit( void )
+{
+	ResetState();
+	for( int i = 0; i < SYSTIP_NUM_ICONS; i++ )
+		m_hIcons[i] = LOAD_TEXTURE( SYSTIP_ICON_PATH[i], NULL, 0, TF_CLAMP | TF_IMAGE | TF_HAS_ALPHA );
+	return 1;
+}
+
+void CHudSystemTip::ResetState( void )
+{
+	m_bActive = false;
+	m_bHasNext = false;
+	m_iIcon = 0;
+	m_szText[0] = 0;
+	m_iR = m_iG = m_iB = 255;
+	m_fShowTime = m_fHideTime = 0.0f;
+	m_fFadeIn = 0.3f;
+	m_fFadeOut = 0.4f;
+}
+
+int CHudSystemTip::MsgFunc_SystemTip( const char *pszName, int iSize, void *pbuf )
+{
+	BEGIN_READ( pszName, pbuf, iSize );
+	int iIcon = READ_BYTE();
+
+	char szKey[SYSTIP_MAX_TEXT];
+	Q_strncpy( szKey, READ_STRING(), sizeof( szKey ));
+	END_READ();
+
+	if( iIcon < 0 || iIcon >= SYSTIP_NUM_ICONS )
+		iIcon = 0;
+
+	char szText[SYSTIP_MAX_TEXT];
+	int r = 255, g = 255, b = 255;
+	float fadein = 0.3f, fadeout = 0.4f, holdtime = 3.0f;
+
+	client_textmessage_t *pMsg = TextMessageGet( szKey );
+	if( pMsg && pMsg->pMessage )
+	{
+		Q_strncpy( szText, pMsg->pMessage, sizeof( szText ));
+		r = pMsg->r1; g = pMsg->g1; b = pMsg->b1;
+		if( pMsg->fadein > 0 ) fadein = pMsg->fadein;
+		if( pMsg->fadeout > 0 ) fadeout = pMsg->fadeout;
+		if( pMsg->holdtime > 0 ) holdtime = pMsg->holdtime;
+	}
+	else
+	{
+		Q_strncpy( szText, szKey, sizeof( szText ));	// chave sem entrada - mostra o nome cru, nunca em branco
+	}
+	RTN_Utf8ToCp1252( szText );
+
+	float curtime = gEngfuncs.GetClientTime();
+
+	if( !m_bActive || curtime > m_fHideTime )
+	{
+		// mostra agora
+		m_iIcon = iIcon;
+		Q_strncpy( m_szText, szText, sizeof( m_szText ));
+		m_iR = r; m_iG = g; m_iB = b;
+		m_fFadeIn = fadein;
+		m_fFadeOut = fadeout;
+		m_fShowTime = curtime;
+		m_fHideTime = curtime + holdtime;
+		m_bActive = true;
+		m_bHasNext = false;
+	}
+	else
+	{
+		// ja tem um na tela - enfileira (mesma logica do hud_radio)
+		m_iNextIcon = iIcon;
+		Q_strncpy( m_szNextText, szText, sizeof( m_szNextText ));
+		m_iNextR = r; m_iNextG = g; m_iNextB = b;
+		m_fNextFadeIn = fadein;
+		m_fNextFadeOut = fadeout;
+		m_fNextHold = holdtime;
+		m_bHasNext = true;
+	}
+
+	return 1;
+}
+
+// Centraliza cada linha (separada por '\n') em volta do meio da tela -
+// mesma aproximacao de 11px/char do hud_dialog (sem medidor de glifo real
+// disponivel). Devolve quantas linhas desenhou.
+static int SysTip_DrawCentered( int y, int lineGap, const char *szText, int r, int g, int b )
+{
+	char buf[SYSTIP_MAX_TEXT];
+	Q_strncpy( buf, szText, sizeof( buf ));
+
+	int lines = 0;
+	char *sptr = buf;
+	while( true )
+	{
+		char *nl = strchr( sptr, '\n' );
+		if( nl ) *nl = '\0';
+
+		int textWide = (int)Q_strlen( sptr ) * 11;
+		int x = ( ScreenWidth - textWide ) / 2;
+		gHUD.DrawHudString( x, y + lines * lineGap, ScreenWidth, sptr, r, g, b );
+		lines++;
+
+		if( !nl )
+			break;
+		sptr = nl + 1;
+	}
+	return lines;
+}
+
+int CHudSystemTip::Draw( float flTime )
+{
+	if( !m_bActive )
+		return 0;
+
+	float curtime = gEngfuncs.GetClientTime();
+
+	if( curtime > m_fHideTime )
+	{
+		if( m_bHasNext )
+		{
+			m_iIcon = m_iNextIcon;
+			Q_strncpy( m_szText, m_szNextText, sizeof( m_szText ));
+			m_iR = m_iNextR; m_iG = m_iNextG; m_iB = m_iNextB;
+			m_fFadeIn = m_fNextFadeIn;
+			m_fFadeOut = m_fNextFadeOut;
+			m_fShowTime = curtime;
+			m_fHideTime = curtime + m_fNextHold;
+			m_bHasNext = false;
+		}
+		else
+		{
+			m_bActive = false;
+			return 0;
+		}
+	}
+
+	float fFadeAlpha = 1.0f;
+	if( curtime < m_fShowTime + m_fFadeIn )
+		fFadeAlpha = ( curtime - m_fShowTime ) / m_fFadeIn;
+	else if( curtime > m_fHideTime - m_fFadeOut )
+		fFadeAlpha = ( m_fHideTime - curtime ) / m_fFadeOut;
+	fFadeAlpha = Q_min( 1.0f, Q_max( 0.0f, fFadeAlpha ));
+
+	int nFontHeight = Q_max( 12, gHUD.m_iFontHeight );
+	int iconSize = nFontHeight * 2;
+	int y = 40;	// topo da tela - longe da fala de NPC (rodape) e da maozinha (centro)
+
+	// icone (sem caixa - so o sprite, com o fade aplicado no alpha)
+	if( m_hIcons[m_iIcon].Initialized() )
+	{
+		int iconX = ( ScreenWidth - iconSize ) / 2;
+		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
+		gEngfuncs.pTriAPI->Color4f( 1.0f, 1.0f, 1.0f, fFadeAlpha );
+		GL_Bind( 0, m_hIcons[m_iIcon] );
+		OrthoQuad( iconX, y, iconX + iconSize, y + iconSize );
+		gEngfuncs.pTriAPI->RenderMode( kRenderNormal );
+	}
+
+	// texto centralizado, logo abaixo do icone. DrawHudString nao aceita
+	// alpha (so cor) - o fade in/out fica visivel no icone; o texto entra/
+	// sai "seco" junto dele. Mesma limitacao que o resto do HUD 2D do RTN
+	// (hud_radio/hud_dialog tambem nao fazem fade de texto letra a letra).
+	SysTip_DrawCentered( y + iconSize + 4, nFontHeight + 2, m_szText, m_iR, m_iG, m_iB );
+
+	return 1;
+}
