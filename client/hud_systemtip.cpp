@@ -119,10 +119,45 @@ int CHudSystemTip::MsgFunc_SystemTip( const char *pszName, int iSize, void *pbuf
 	return 1;
 }
 
-// Centraliza cada linha (separada por '\n') em volta do meio da tela -
-// mesma aproximacao de 11px/char do hud_dialog (sem medidor de glifo real
-// disponivel). Devolve quantas linhas desenhou.
-static int SysTip_DrawCentered( int y, int lineGap, const char *szText, int r, int g, int b )
+// RTN F10 fix: largura REAL do texto (soma de gHUD.m_scrinfo.charWidths[]
+// - a mesma tabela de fonte variavel que CHud::DrawHudString usa), nao
+// mais uma estimativa de ~11px/char.
+static int SysTip_MeasureString( const char *sz )
+{
+	int width = 0;
+	for( const byte *p = (const byte *)sz; *p; p++ )
+		width += gHUD.m_scrinfo.charWidths[*p];
+	return width;
+}
+
+// Maior largura entre as linhas (separadas por '\n') de szText.
+static int SysTip_MaxLineWidth( const char *szText )
+{
+	char buf[SYSTIP_MAX_TEXT];
+	Q_strncpy( buf, szText, sizeof( buf ));
+
+	int maxWide = 0;
+	char *sptr = buf;
+	while( true )
+	{
+		char *nl = strchr( sptr, '\n' );
+		if( nl ) *nl = '\0';
+
+		int w = SysTip_MeasureString( sptr );
+		if( w > maxWide ) maxWide = w;
+
+		if( !nl )
+			break;
+		sptr = nl + 1;
+	}
+	return maxWide;
+}
+
+// Desenha cada linha (separada por '\n') alinhada a esquerda a partir de x
+// - o bloco "icone + texto" inteiro e que fica centralizado (ver Draw()),
+// nao cada linha de texto individualmente (o icone fica fixo a esquerda,
+// igual a referencia do Paranoia 2). Devolve quantas linhas desenhou.
+static int SysTip_DrawLeftAligned( int x, int y, int lineGap, const char *szText, int r, int g, int b )
 {
 	char buf[SYSTIP_MAX_TEXT];
 	Q_strncpy( buf, szText, sizeof( buf ));
@@ -134,8 +169,6 @@ static int SysTip_DrawCentered( int y, int lineGap, const char *szText, int r, i
 		char *nl = strchr( sptr, '\n' );
 		if( nl ) *nl = '\0';
 
-		int textWide = (int)Q_strlen( sptr ) * 11;
-		int x = ( ScreenWidth - textWide ) / 2;
 		gHUD.DrawHudString( x, y + lines * lineGap, ScreenWidth, sptr, r, g, b );
 		lines++;
 
@@ -143,6 +176,14 @@ static int SysTip_DrawCentered( int y, int lineGap, const char *szText, int r, i
 			break;
 		sptr = nl + 1;
 	}
+	return lines;
+}
+
+static int SysTip_CountLines( const char *szText )
+{
+	int lines = 1;
+	for( const char *p = szText; *p; p++ )
+		if( *p == '\n' ) lines++;
 	return lines;
 }
 
@@ -180,26 +221,45 @@ int CHudSystemTip::Draw( float flTime )
 		fFadeAlpha = ( m_fHideTime - curtime ) / m_fFadeOut;
 	fFadeAlpha = Q_min( 1.0f, Q_max( 0.0f, fFadeAlpha ));
 
+	// RTN F10 fix: layout era icone GRANDE empilhado ACIMA do texto (ficava
+	// por cima/colado nele). Referencia do Paranoia 2 (print mandado) e
+	// icone PEQUENO ao lado esquerdo do texto, os dois lado a lado - o
+	// bloco inteiro (icone+texto) e que fica centralizado na tela.
 	int nFontHeight = Q_max( 12, gHUD.m_iFontHeight );
-	int iconSize = nFontHeight * 2;
+	int lineGap = nFontHeight + 2;
+	int iconSize = nFontHeight;			// do tamanho da fonte, nao 2x - "pequeno" como pedido
+	int iconTextGap = 8;
+
+	int textLines = SysTip_CountLines( m_szText );
+	int textTall = textLines * lineGap;
+	int textWide = SysTip_MaxLineWidth( m_szText );
+
+	int blockWide = iconSize + iconTextGap + textWide;
+	int blockX = ( ScreenWidth - blockWide ) / 2;
+	int blockTall = Q_max( iconSize, textTall );
 	int y = 40;	// topo da tela - longe da fala de NPC (rodape) e da maozinha (centro)
 
-	// icone (sem caixa - so o sprite, com o fade aplicado no alpha)
+	int iconX = blockX;
+	int iconY = y + ( blockTall - iconSize ) / 2;	// icone centralizado verticalmente contra o texto
+
 	if( m_hIcons[m_iIcon].Initialized() )
 	{
-		int iconX = ( ScreenWidth - iconSize ) / 2;
 		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
 		gEngfuncs.pTriAPI->Color4f( 1.0f, 1.0f, 1.0f, fFadeAlpha );
 		GL_Bind( 0, m_hIcons[m_iIcon] );
-		OrthoQuad( iconX, y, iconX + iconSize, y + iconSize );
+		OrthoQuad( iconX, iconY, iconX + iconSize, iconY + iconSize );
 		gEngfuncs.pTriAPI->RenderMode( kRenderNormal );
 	}
 
-	// texto centralizado, logo abaixo do icone. DrawHudString nao aceita
-	// alpha (so cor) - o fade in/out fica visivel no icone; o texto entra/
-	// sai "seco" junto dele. Mesma limitacao que o resto do HUD 2D do RTN
-	// (hud_radio/hud_dialog tambem nao fazem fade de texto letra a letra).
-	SysTip_DrawCentered( y + iconSize + 4, nFontHeight + 2, m_szText, m_iR, m_iG, m_iB );
+	// texto a direita do icone, alinhado a esquerda dentro do bloco. Sem
+	// caixa, sem centralizar linha a linha - e um bloco unico com o icone.
+	// DrawHudString nao aceita alpha (so cor) - o fade in/out fica visivel
+	// no icone; o texto entra/sai "seco" junto dele, mesma limitacao do
+	// resto do HUD 2D do RTN (hud_radio/hud_dialog tambem nao esmaecem
+	// texto letra a letra).
+	int textX = blockX + iconSize + iconTextGap;
+	int textY = y + ( blockTall - textTall ) / 2;
+	SysTip_DrawLeftAligned( textX, textY, lineGap, m_szText, m_iR, m_iG, m_iB );
 
 	return 1;
 }

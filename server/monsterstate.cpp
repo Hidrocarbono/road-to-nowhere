@@ -25,6 +25,7 @@
 #include "animation.h"
 #include "saverestore.h"
 #include "soundent.h"
+#include "dialogscript.h"
 
 //=========================================================
 // SetState
@@ -61,6 +62,16 @@ void CBaseMonster :: SetState ( MONSTERSTATE State )
 //=========================================================
 void CBaseMonster :: RunAI ( void )
 {
+	// RTN: NPC em dialogo com o jogador nao processa IA normal (Look/
+	// Listen/inimigo/schedule) - sem isso, som/inimigo no ambiente troca
+	// o schedule dele no meio da conversa (ex.: "scared" -> ACT_CROUCHIDLE)
+	// e a animacao fica alternando enquanto o jogador so consegue ler o
+	// menu. MonsterThink() (server/monsters.cpp) continua chamando
+	// StudioFrameAdvance() normalmente mesmo com este early return, entao
+	// a animacao atual so continua rodando - nao trava em T-pose.
+	if ( Dialog_IsTalkingToPlayer( this ) )
+		return;
+
 	// to test model's eye height
 	//UTIL_ParticleEffect ( EyePosition(), g_vecZero, 255, 10 );
 

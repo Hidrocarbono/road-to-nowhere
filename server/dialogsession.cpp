@@ -288,3 +288,13 @@ void Dialog_NotifyNPCDied( CBaseEntity *pNPC )
 	if( pPlayer->InDialog() && pPlayer->m_hDialogNPC == pNPC )
 		pPlayer->Dialog_Cancel();
 }
+
+bool Dialog_IsTalkingToPlayer( CBaseEntity *pNPC )
+{
+	CBaseEntity *pEnt = CBaseEntity::Instance( INDEXENT( 1 ));
+	if( !pEnt || !pEnt->IsPlayer() )
+		return false;
+
+	CBasePlayer *pPlayer = (CBasePlayer *)pEnt;
+	return pPlayer->InDialog() && pPlayer->m_hDialogNPC == pNPC;
+}

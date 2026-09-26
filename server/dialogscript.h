@@ -82,4 +82,12 @@ dialognode_t *DialogScript_FindNode( const char *name );
 // FALSE nunca desfeito). Implementado em server/dialogsession.cpp.
 void Dialog_NotifyNPCDied( class CBaseEntity *pNPC );
 
+// Chamado de CBaseMonster::RunAI() (server/monsterstate.cpp) pra pausar a
+// IA (Look/Listen/inimigo/schedule) do NPC enquanto ele estiver
+// conversando com o jogador - sem isso, som/inimigo no ambiente troca o
+// schedule dele no meio da conversa (ex.: "scared" -> ACT_CROUCHIDLE) e a
+// animacao fica alternando enquanto o jogador so consegue ler o menu.
+// Implementado em server/dialogsession.cpp.
+bool Dialog_IsTalkingToPlayer( class CBaseEntity *pNPC );
+
 #endif // DIALOGSCRIPT_H

@@ -157,13 +157,26 @@ void CHudDialog::SelectOption( int iSlot )
 	m_bActive = false;
 }
 
+// RTN F10 fix: a largura de texto era so uma estimativa (~11px/char), e
+// numa linha longa o erro acumulado (fonte real e mais estreita) jogava o
+// texto visivelmente pra esquerda do centro de verdade. O engine ja tem a
+// largura REAL de cada glifo (fonte de largura variavel) em
+// gHUD.m_scrinfo.charWidths[] - e a mesma tabela que CHud::DrawHudString
+// (client/hud_redraw.cpp) usa pra desenhar. Soma-la da a largura exata.
+static int DLG_MeasureString( const char *sz )
+{
+	int width = 0;
+	for( const byte *p = (const byte *)sz; *p; p++ )
+		width += gHUD.m_scrinfo.charWidths[*p];
+	return width;
+}
+
 // DrawHudString NAO quebra "\n" sozinho (quem faz isso e o menu nativo,
 // client/menu.cpp, percorrendo a string na mao) - e npc_line pode ter
 // varias linhas de fala (mesma convencao do titles.txt normal). Desenha
-// cada pedaco separado por '\n' CENTRALIZADO (meio da tela) numa linha
-// propria e devolve quantas linhas desenhou, pra Draw() somar na altura.
-// Largura de cada linha estimada em ~11px/char (sem medidor de glifo real
-// disponivel - mesma aproximacao ja usada pro dimensionamento do painel).
+// cada pedaco separado por '\n' CENTRALIZADO (meio da tela, com a largura
+// REAL medida acima) numa linha propria e devolve quantas linhas desenhou,
+// pra Draw() somar na altura.
 static int DLG_DrawMultilineCentered( int y, int lineGap, const char *szText, int r, int g, int b )
 {
 	char buf[256];
@@ -176,8 +189,7 @@ static int DLG_DrawMultilineCentered( int y, int lineGap, const char *szText, in
 		char *nl = strchr( sptr, '\n' );
 		if( nl ) *nl = '\0';
 
-		int textWide = (int)Q_strlen( sptr ) * 11;
-		int x = ( ScreenWidth - textWide ) / 2;
+		int x = ( ScreenWidth - DLG_MeasureString( sptr )) / 2;
 		gHUD.DrawHudString( x, y + lines * lineGap, ScreenWidth, sptr, r, g, b );
 		lines++;
 
@@ -225,15 +237,17 @@ int CHudDialog::Draw( float flTime )
 		falaY += DLG_DrawMultilineCentered( falaY, lineGap, m_szSpeaker, 255, 210, 64 ) * lineGap;	// mesmo amarelo do \y do menu nativo
 	falaY += DLG_DrawMultilineCentered( falaY, lineGap, m_szLine, 255, 255, 255 ) * lineGap;
 
-	// --- opcoes: caixa BEM sutil, centralizada, do tamanho do maior texto ---
-	int maxChars = 0;
+	// --- opcoes: caixa translucida, centralizada, do tamanho do maior texto ---
+	int panelWide = 0;
 	for( int i = 0; i < m_iNumSlots; i++ )
 	{
-		int optChars = (int)strlen( m_szOptions[i] ) + 3;	// "N. " na frente
-		if( optChars > maxChars ) maxChars = optChars;
+		char szOpt[DLG_HUD_MAX_TEXT + 8];
+		Q_snprintf( szOpt, sizeof( szOpt ), "%d. %s", i + 1, m_szOptions[i] );
+		int optWide = DLG_MeasureString( szOpt );
+		if( optWide > panelWide ) panelWide = optWide;
 	}
+	panelWide += 24;
 
-	int panelWide = maxChars * 11 + 24;
 	int minWide = ScreenWidth / 6;
 	int maxWide = ( ScreenWidth * 2 ) / 3;
 	if( panelWide < minWide ) panelWide = minWide;
@@ -243,7 +257,7 @@ int CHudDialog::Draw( float flTime )
 	int panelX = ( ScreenWidth - panelWide ) / 2;
 
 	gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
-	gEngfuncs.pTriAPI->Color4f( 0.0f, 0.0f, 0.0f, 0.18f );	// bem mais sutil que antes - so uma pista visual, nao um painel
+	gEngfuncs.pTriAPI->Color4f( 0.0f, 0.0f, 0.0f, 0.5f );	// RTN F10: 0.18 ficava quase opaco na pratica (feedback em jogo) - 0.5 pedido direto
 	GL_Blend( GL_TRUE );
 	GL_Bind( 0, FIND_TEXTURE( "*white" ));
 	OrthoQuad( panelX, optionsY, panelX + panelWide, optionsY + optionsTall );
