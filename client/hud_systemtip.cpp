@@ -266,7 +266,9 @@ int CHudSystemTip::Draw( float flTime )
 	// tamanho do sistema antigo, so trocando os glifos - entao o alvo de
 	// tamanho e o proprio nFontHeight nativo (o mesmo valor ja usado antes
 	// desta fonte existir), nao um valor novo escalado por resolucao.
-	int nFontHeight = Q_max( 12, gHUD.m_iFontHeight );
+	// RTN F10 fix (pedido do usuario): -7px - ainda estava grande demais no
+	// teste em jogo mesmo do tamanho "igual ao antigo".
+	int nFontHeight = Q_max( 8, Q_max( 12, gHUD.m_iFontHeight ) - 7 );
 
 	if( s_pSysTipFont )
 		s_flSysTipFontScale = (float)nFontHeight / (float)s_pSysTipFont->iBakeSize;

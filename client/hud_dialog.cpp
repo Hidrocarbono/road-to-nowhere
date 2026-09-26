@@ -269,7 +269,9 @@ int CHudDialog::Draw( float flTime )
 	// alvo de tamanho agora e o proprio nFontHeight nativo (o mesmo valor
 	// que ja era usado pra tudo antes desta fonte existir), nao um valor
 	// novo escalado por resolucao.
-	int nFontHeight = Q_max( 12, gHUD.m_iFontHeight );
+	// RTN F10 fix (pedido do usuario): -7px - ainda estava grande demais no
+	// teste em jogo mesmo do tamanho "igual ao antigo".
+	int nFontHeight = Q_max( 8, Q_max( 12, gHUD.m_iFontHeight ) - 7 );
 	int lineGap = nFontHeight + 4;
 
 	if( s_pDlgFont )

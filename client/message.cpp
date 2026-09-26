@@ -328,30 +328,40 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time, i
 	RTN_SubstitutePickupAmount( szPlayerNameBuf, sizeof( szPlayerNameBuf ), iArg );
 	pText = szPlayerNameBuf;
 
-	// RTN: $font/$fontsize do titles.txt - troca a fonte SO desta mensagem,
-	// pelo nome do bloco (pMessage->pName, preenchido pelo proprio engine ao
-	// achar o bloco em titles.txt). Sem "$font" no bloco -> m_pCustomFont
-	// fica NULL e todo o resto da funcao se comporta exatamente como antes
-	// (fonte fixa do engine, TextMessageDrawChar). Ver client/hud_titlefont.h.
+	// RTN F10 fix: a creditsFont nativa do engine nao tem acento latino de
+	// verdade em NENHUMA variante cp1252 disponivel neste projeto (mesma
+	// causa raiz corrigida no hud_dialog.cpp/hud_systemtip.cpp) - entao a
+	// Roboto agora e a fonte PADRAO daqui tambem, nao mais um opt-in via
+	// "$font" no titles.txt. Um bloco AINDA PODE pedir "$font outronome"
+	// pra usar outra fonte custom (ex.: kirkwood no titulo de episodio) -
+	// RTN_GetTitleFontOverride so sobrescreve szFontName/iFontSize quando
+	// acha um "$font" de verdade no bloco, senao deixa "roboto" como esta.
+	// So cai pro caminho nativo (m_pCustomFont NULL) se o asset da Roboto
+	// falhar em carregar - nunca trava, so perde o acento certo nesse caso.
 	m_pCustomFont = NULL;
 	m_flCustomFontScale = 1.0f;
 	{
 		char szFontName[32];
+		Q_strncpy( szFontName, "roboto", sizeof( szFontName ));
 		int iFontSize = 0;
-		if( pMessage->pName && RTN_GetTitleFontOverride( pMessage->pName, szFontName, sizeof( szFontName ), &iFontSize ))
+		if( pMessage->pName )
+			RTN_GetTitleFontOverride( pMessage->pName, szFontName, sizeof( szFontName ), &iFontSize );
+
+		CRTNTitleFont *pFont = RTN_GetTitleFont( szFontName );
+		if( pFont )
 		{
-			CRTNTitleFont *pFont = RTN_GetTitleFont( szFontName );
-			if( pFont )
-			{
-				m_pCustomFont = pFont;
-				// sem $fontsize -> usa o tamanho de bake como "tamanho natural" (escala 1:1, sem perda de nitidez)
-				int iSize = ( iFontSize > 0 ) ? iFontSize : pFont->iBakeSize;
-				m_flCustomFontScale = (float)iSize / (float)pFont->iBakeSize;
-			}
-			else
-			{
-				gEngfuncs.Con_Printf( "RTN titlefont: '%s' ($font em '%s') nao carregou - usando fonte padrao\n", szFontName, pMessage->pName );
-			}
+			m_pCustomFont = pFont;
+			// sem $fontsize -> mesmo tamanho que a fonte nativa desenhava
+			// antes (gHUD.m_scrinfo.iCharHeight, ja usado no fallback logo
+			// abaixo), -7px (pedido do usuario - ainda grande no teste em
+			// jogo do tamanho "igual ao antigo")
+			int iSize = ( iFontSize > 0 ) ? iFontSize
+				: Q_max( 8, Q_max( 12, gHUD.m_scrinfo.iCharHeight ) - 7 );
+			m_flCustomFontScale = (float)iSize / (float)pFont->iBakeSize;
+		}
+		else
+		{
+			gEngfuncs.Con_Printf( "RTN titlefont: '%s' nao carregou - usando fonte padrao do engine\n", szFontName );
 		}
 	}
 
