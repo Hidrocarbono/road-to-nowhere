@@ -444,7 +444,7 @@ Sair sem terminar
 ivo_intro
 {
 Ivo:
-Voce... voce nao devia ter vindo. Ninguem devia. Aqui a miseria gruda na pele, a morte assobia baixo nos ouvidos...
+Você... você não devia ter vindo. Ninguém devia. Aqui a miséria gruda na pele, a morte assobia baixo nos ouvidos...
 }
 
 ivo_opcaoA
@@ -455,8 +455,8 @@ O que é este lugar?
 ivo_respostaA
 {
 Ivo:
-Isso? Isso nao tem nome. O povo chama de Zona. Mas Zona e so uma palavra. O que tem aqui... nao cabe em palavra.
-E uma ferida na terra. E você... voce ta dentro dela. Respirando o que ela respira. Andando onde ela quer que voce ande.
+Isso? Isso não tem nome. O povo chama de Zona. Mas Zona é só uma palavra. O que tem aqui... não cabe em palavra.
+É uma ferida na terra. E você... você tá dentro dela. Respirando o que ela respira. Andando onde ela quer que você ande.
 }
 
 ivo_opcaoB
@@ -467,19 +467,19 @@ Como você chegou aqui?
 ivo_respostaB
 {
 Ivo:
-Eu era caminhoneiro. Quando a nevoa veio... eu tava na estrada. Vi a cidade desaparecer. Tentei voltar. Nao deu. O caminho nao existia mais.
-Eu fiquei. Não sei por que. Talvez pra avisar os que vem depois. Mas, ninguem escuta... ninguem nunca escuta
+Eu era caminhoneiro. Quando a névoa veio... eu tava na estrada. Vi a cidade desaparecer. Tentei voltar. Não deu. O caminho não existia mais.
+Eu fiquei. Não sei por quê. Talvez pra avisar os que vêm depois. Mas, ninguém escuta... ninguém nunca escuta.
 }
 
 ivo_fim
 {
-Vou embora, voce e maluco!
+Vou embora, você é maluco!
 }
 
 ivo_vaembora
 {
 Ivo:
-Agora e tarde demais pra voce. Tarde demais...
+Agora é tarde demais pra você. Tarde demais...
 }
 
 

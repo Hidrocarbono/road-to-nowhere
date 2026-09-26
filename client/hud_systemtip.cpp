@@ -261,18 +261,17 @@ int CHudSystemTip::Draw( float flTime )
 	// no topo do arquivo. NULL cai pro caminho nativo automaticamente.
 	s_pSysTipFont = RTN_GetTitleFont( SYSTIP_FONT_NAME );
 
-	int nFontHeight;
+	// RTN F10 fix (tamanho): XRES(16) rendia enorme (escala com a resolucao -
+	// a 1920px de largura ja da 48px de glifo). O pedido foi manter o MESMO
+	// tamanho do sistema antigo, so trocando os glifos - entao o alvo de
+	// tamanho e o proprio nFontHeight nativo (o mesmo valor ja usado antes
+	// desta fonte existir), nao um valor novo escalado por resolucao.
+	int nFontHeight = Q_max( 12, gHUD.m_iFontHeight );
+
 	if( s_pSysTipFont )
-	{
-		int iSize = XRES( 16 );
-		s_flSysTipFontScale = (float)iSize / (float)s_pSysTipFont->iBakeSize;
-		nFontHeight = RTN_TitleFont_LineHeight( s_pSysTipFont, s_flSysTipFontScale );
-	}
+		s_flSysTipFontScale = (float)nFontHeight / (float)s_pSysTipFont->iBakeSize;
 	else
-	{
 		s_flSysTipFontScale = 1.0f;
-		nFontHeight = Q_max( 12, gHUD.m_iFontHeight );
-	}
 
 	// RTN F10 fix: layout era icone GRANDE empilhado ACIMA do texto (ficava
 	// por cima/colado nele). Referencia do Paranoia 2 (print mandado) e

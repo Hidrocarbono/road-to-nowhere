@@ -262,20 +262,20 @@ int CHudDialog::Draw( float flTime )
 	// DLG_MeasureString/DLG_DrawMultilineCentered acima).
 	s_pDlgFont = RTN_GetTitleFont( DLG_FONT_NAME );
 
-	int nFontHeight, lineGap;
+	// RTN F10 fix (tamanho): XRES(16) rendia enorme (XRES escala com a
+	// resolucao - a 1920px de largura isso ja da 48px de glifo, quase o
+	// dobro do que o sistema antigo mostrava). O pedido foi manter o MESMO
+	// tamanho de antes, so trocando quais glifos sao desenhados - entao o
+	// alvo de tamanho agora e o proprio nFontHeight nativo (o mesmo valor
+	// que ja era usado pra tudo antes desta fonte existir), nao um valor
+	// novo escalado por resolucao.
+	int nFontHeight = Q_max( 12, gHUD.m_iFontHeight );
+	int lineGap = nFontHeight + 4;
+
 	if( s_pDlgFont )
-	{
-		int iSize = XRES( 16 );
-		s_flDlgFontScale = (float)iSize / (float)s_pDlgFont->iBakeSize;
-		nFontHeight = RTN_TitleFont_LineHeight( s_pDlgFont, s_flDlgFontScale );
-		lineGap = nFontHeight + 4;
-	}
+		s_flDlgFontScale = (float)nFontHeight / (float)s_pDlgFont->iBakeSize;
 	else
-	{
 		s_flDlgFontScale = 1.0f;
-		nFontHeight = Q_max( 12, gHUD.m_iFontHeight );
-		lineGap = nFontHeight + 4;
-	}
 
 	int falaLines = ( m_szSpeaker[0] ? 1 : 0 ) + DLG_CountLines( m_szLine );
 	int falaTall = falaLines * lineGap;

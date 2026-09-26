@@ -54,9 +54,8 @@ pedido muito maior que o tamanho de bake.
 CONJUNTO DE CARACTERES
 -----------------------
 ASCII imprimivel (32-126) + Latin-1 (160-255, cobre acentos do portugues:
-a a a a e e i i o o o o u u c C, mesma faixa que game_dir/*_cp1252.fnt ja usa
-neste projeto). Codepoint Unicode == byte cp1252 nessas duas faixas, entao nao
-precisa de tabela de conversao.
+a a a a e e i i o o o o u u c C). Codepoint Unicode == byte cp1252 nessas
+duas faixas, entao nao precisa de tabela de conversao.
 """
 
 import struct
