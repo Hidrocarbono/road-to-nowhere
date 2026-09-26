@@ -335,14 +335,20 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time, i
 	// "$font" no titles.txt. Um bloco AINDA PODE pedir "$font outronome"
 	// pra usar outra fonte custom (ex.: kirkwood no titulo de episodio) -
 	// RTN_GetTitleFontOverride so sobrescreve szFontName/iFontSize quando
-	// acha um "$font" de verdade no bloco, senao deixa "roboto" como esta.
-	// So cai pro caminho nativo (m_pCustomFont NULL) se o asset da Roboto
-	// falhar em carregar - nunca trava, so perde o acento certo nesse caso.
+	// acha um "$font" de verdade no bloco, senao deixa "roboto_small" como
+	// esta. So cai pro caminho nativo (m_pCustomFont NULL) se o asset falhar
+	// em carregar - nunca trava, so perde o acento certo nesse caso.
+	//
+	// RTN F11 fix (texto ilegivel/sumindo): "roboto" e bakeado a 63px (atlas
+	// de titulo); qualquer HudText no tamanho normal de mensagem minificava
+	// esse atlas ~8x via DrawSpriteAsPoly (sem mipmap/SDF), virando ruido.
+	// "roboto_small" e um bake dedicado a 24px - ver o comentario completo em
+	// client/hud_dialog.cpp (#define DLG_FONT_NAME) pro root-cause inteiro.
 	m_pCustomFont = NULL;
 	m_flCustomFontScale = 1.0f;
 	{
 		char szFontName[32];
-		Q_strncpy( szFontName, "roboto", sizeof( szFontName ));
+		Q_strncpy( szFontName, "roboto_small", sizeof( szFontName ));
 		int iFontSize = 0;
 		if( pMessage->pName )
 			RTN_GetTitleFontOverride( pMessage->pName, szFontName, sizeof( szFontName ), &iFontSize );
@@ -351,12 +357,13 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time, i
 		if( pFont )
 		{
 			m_pCustomFont = pFont;
-			// sem $fontsize -> mesmo tamanho que a fonte nativa desenhava
-			// antes (gHUD.m_scrinfo.iCharHeight, ja usado no fallback logo
-			// abaixo), -7px (pedido do usuario - ainda grande no teste em
-			// jogo do tamanho "igual ao antigo")
-			int iSize = ( iFontSize > 0 ) ? iFontSize
-				: Q_max( 8, Q_max( 12, gHUD.m_scrinfo.iCharHeight ) - 7 );
+			// sem $fontsize -> alvo FIXO de 14px, nao mais derivado de
+			// gHUD.m_scrinfo.iCharHeight (base opaca - vem de um hud.txt que
+			// nao existe neste repo) menos um offset magico. 14px contra o
+			// bake de 24px do roboto_small = escala 0.58, testado legivel em
+			// simulacao (mesma escolha usada em hud_dialog.cpp/
+			// hud_systemtip.cpp).
+			int iSize = ( iFontSize > 0 ) ? iFontSize : 14;
 			m_flCustomFontScale = (float)iSize / (float)pFont->iBakeSize;
 		}
 		else

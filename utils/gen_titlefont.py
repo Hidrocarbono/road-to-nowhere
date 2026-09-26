@@ -167,13 +167,20 @@ def fit_bake_size( ttf_path, requested_size ):
 
 
 def main():
-    if len(sys.argv) != 3:
-        print(f"uso: {sys.argv[0]} <fonte.ttf> <nome_curto>", file=sys.stderr)
+    if len(sys.argv) not in (3, 4):
+        print(f"uso: {sys.argv[0]} <fonte.ttf> <nome_curto> [bake_px]", file=sys.stderr)
         return 1
 
     ttf_path, name = sys.argv[1], sys.argv[2]
+    # RTN: bake_px opcional - fontes pra texto PEQUENO (legenda/HUD) ficam mais
+    # nitidas com um bake pequeno (ex.: 24) do que reaproveitando o bake padrao
+    # de titulo (128, encolhido pro teto de 1024x1024 do engine pra 63) e
+    # escalando pra baixo - escala pra baixo de mais (ex.: 8/63 = 13% do
+    # tamanho original) faz a letra virar ruido ilegivel, sem antialiasing
+    # nem mipmap no DrawSpriteAsPoly. Ver comentario grande no topo do arquivo.
+    requested_bake = int(sys.argv[3]) if len(sys.argv) == 4 else BAKE_SIZE
 
-    font, metrics, lineheight, atlas_w, atlas_h, cols = fit_bake_size( ttf_path, BAKE_SIZE )
+    font, metrics, lineheight, atlas_w, atlas_h, cols = fit_bake_size( ttf_path, requested_bake )
     bake_size = font.size
     rows = (len( CHARSET ) + cols - 1) // cols
     cell_w = atlas_w // cols

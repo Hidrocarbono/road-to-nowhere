@@ -23,7 +23,12 @@ extern void RTN_Utf8ToCp1252( char *szText );				// mesmo fix do hud_radio/hud_d
 // nativa do engine nao tem acento latino de verdade em nenhuma variante
 // cp1252 disponivel neste projeto. Cai pra DrawHudString nativo se o asset
 // nao carregar.
-#define SYSTIP_FONT_NAME	"roboto"
+//
+// RTN F11 fix (texto ilegivel/sumindo): "roboto" e bakeado a 63px (atlas de
+// titulo); no tamanho de HUD normal isso minificava ~8x via DrawSpriteAsPoly
+// (sem mipmap/SDF) e virava ruido. "roboto_small" e um bake dedicado a 24px -
+// ver o comentario completo em client/hud_dialog.cpp (#define DLG_FONT_NAME).
+#define SYSTIP_FONT_NAME	"roboto_small"
 
 static CRTNTitleFont *s_pSysTipFont = NULL;
 static float s_flSysTipFontScale = 1.0f;
@@ -261,14 +266,13 @@ int CHudSystemTip::Draw( float flTime )
 	// no topo do arquivo. NULL cai pro caminho nativo automaticamente.
 	s_pSysTipFont = RTN_GetTitleFont( SYSTIP_FONT_NAME );
 
-	// RTN F10 fix (tamanho): XRES(16) rendia enorme (escala com a resolucao -
-	// a 1920px de largura ja da 48px de glifo). O pedido foi manter o MESMO
-	// tamanho do sistema antigo, so trocando os glifos - entao o alvo de
-	// tamanho e o proprio nFontHeight nativo (o mesmo valor ja usado antes
-	// desta fonte existir), nao um valor novo escalado por resolucao.
-	// RTN F10 fix (pedido do usuario): -7px - ainda estava grande demais no
-	// teste em jogo mesmo do tamanho "igual ao antigo".
-	int nFontHeight = Q_max( 8, Q_max( 12, gHUD.m_iFontHeight ) - 7 );
+	// RTN F11 fix (tamanho): mesma causa raiz e mesma solucao do
+	// hud_dialog.cpp (ver comentario completo la, perto do #define
+	// DLG_FONT_NAME) - a formula antiga colapsava pro piso de 8px contra o
+	// bake de 63px do "roboto" (~8x de minificacao, ilegivel via
+	// DrawSpriteAsPoly). Com "roboto_small" (bake 24px), alvo fixo de 14px
+	// = escala 0.58, testado legivel em simulacao.
+	int nFontHeight = 14;
 
 	if( s_pSysTipFont )
 		s_flSysTipFontScale = (float)nFontHeight / (float)s_pSysTipFont->iBakeSize;

@@ -28,7 +28,19 @@ extern void RTN_Utf8ToCp1252( char *szText );				// mesmo fix do hud_radio
 // 0x80-0xFF). Diálogo usa a Roboto (fonte custom RTN, client/hud_titlefont.h)
 // por padrao agora - se o asset nao carregar por algum motivo, cai pra
 // DrawHudString nativo (mesmo texto, so sem garantia de acento certo).
-#define DLG_FONT_NAME	"roboto"
+//
+// RTN F11 fix (texto ilegivel/sumindo): "roboto" (usado ate o commit
+// anterior) e um atlas de TITULO, bakeado a 63px (o pedido original era
+// 128px, mas MAX_ATLAS_DIM=1024 forcou o gen_titlefont.py a encolher pra
+// caber o charset ASCII+Latin-1 inteiro - ver fit_bake_size() em
+// utils/gen_titlefont.py). DrawSpriteAsPoly (client/render/tri.cpp) e um
+// quad texturizado simples, SEM mipmap/SDF - desenhar esse atlas no tamanho
+// de dialogo (a formula antiga colapsava pro piso de 8px) e minificar
+// ~8x (8/63), e sampling simples nesse fator vira ruido ilegivel em vez de
+// letra pequena e limpa. "roboto_small" e um atlas SEPARADO, bakeado a 24px
+// (utils/gen_titlefont.py ... roboto_small 24) so pra este uso - o mesmo
+// tamanho final de tela agora precisa de uma minificacao muito mais branda.
+#define DLG_FONT_NAME	"roboto_small"
 
 // resolvidos 1x no topo de Draw() e lidos por DLG_MeasureString/
 // DLG_DrawMultilineCentered - evita passar fonte+escala por parametro em
@@ -262,16 +274,22 @@ int CHudDialog::Draw( float flTime )
 	// DLG_MeasureString/DLG_DrawMultilineCentered acima).
 	s_pDlgFont = RTN_GetTitleFont( DLG_FONT_NAME );
 
-	// RTN F10 fix (tamanho): XRES(16) rendia enorme (XRES escala com a
-	// resolucao - a 1920px de largura isso ja da 48px de glifo, quase o
-	// dobro do que o sistema antigo mostrava). O pedido foi manter o MESMO
-	// tamanho de antes, so trocando quais glifos sao desenhados - entao o
-	// alvo de tamanho agora e o proprio nFontHeight nativo (o mesmo valor
-	// que ja era usado pra tudo antes desta fonte existir), nao um valor
-	// novo escalado por resolucao.
-	// RTN F10 fix (pedido do usuario): -7px - ainda estava grande demais no
-	// teste em jogo mesmo do tamanho "igual ao antigo".
-	int nFontHeight = Q_max( 8, Q_max( 12, gHUD.m_iFontHeight ) - 7 );
+	// RTN F11 fix (tamanho): a formula antiga (Q_max(8, Q_max(12,
+	// gHUD.m_iFontHeight) - 7)) tinha DOIS problemas empilhados. Primeiro,
+	// gHUD.m_iFontHeight vem do retangulo do sprite "number_0" (HUD de
+	// munição, client/hud.cpp) - um arquivo referenciado por hud.txt que nao
+	// existe neste repo (herdado do jogo base via "basedir valve"), ou seja,
+	// era uma base OPACA, impossivel de verificar/prever neste projeto.
+	// Segundo, subtrair 7 dali colapsava pro piso de 8px contra um atlas
+	// "roboto" bakeado a 63px (~8x de minificacao) - ver comentario grande
+	// no #define DLG_FONT_NAME acima pra por que isso rende ilegivel.
+	// Agora que "roboto_small" e um bake dedicado a 24px, o alvo de tamanho
+	// e um valor FIXO e direto (independente de resolucao, mesma escolha de
+	// design que descartou XRES() aqui - ver historico) - 14px contra bake
+	// de 24px = escala 0.58, testado legivel em simulacao (13-18px checados,
+	// ver conversa) e do lado pequeno da faixa por causa do padrao repetido
+	// de feedback "ainda esta grande" nas rodadas anteriores.
+	int nFontHeight = 14;
 	int lineGap = nFontHeight + 4;
 
 	if( s_pDlgFont )
