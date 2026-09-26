@@ -38,7 +38,13 @@ Texto simples, um comando por linha, "#" comenta a linha inteira:
     sprite <caminho do .spr, relativo a game_dir>
     size <tamanho em pixels em que o atlas foi rasterizado>
     lineheight <altura de uma linha, no mesmo tamanho de bake>
-    glyph <codigo> <atlasX> <atlasY> <atlasW> <atlasH> <avanco>
+    glyph <codigo> <atlasX> <atlasY> <atlasW> <atlasH> <avanco> <yOffset>
+
+<yOffset> e o deslocamento vertical do glifo em relacao a uma origem
+COMPARTILHADA por toda a fonte (a linha de base) - sem isso, todo glifo
+desenhado no mesmo Y de tela colava pelo TOPO em vez de pela base ("p" e "a"
+ficavam em alturas diferentes). Um .rtnfont antigo (sem esse campo) ainda
+carrega no client/hud_titlefont.cpp, so sem o fix (cai pra yOffset=0).
 
 Todas as unidades de glyph/lineheight sao em PIXELS DO ATLAS (tamanho de bake).
 client/hud_titlefont.cpp escala tudo por (fontsize_pedido / size) na hora de
@@ -180,7 +186,7 @@ def main():
     atlas = Image.new("RGBA", (atlas_w, atlas_h), (0, 0, 0, 0))
     draw = ImageDraw.Draw(atlas)
 
-    glyphs = []  # (code, atlasX, atlasY, atlasW, atlasH, advance)
+    glyphs = []  # (code, atlasX, atlasY, atlasW, atlasH, advance, yOffset)
     for i, code in enumerate(CHARSET):
         col, row = i % cols, i // cols
         cellX, cellY = col * cell_w, row * cell_h
@@ -192,9 +198,17 @@ def main():
             # a margem de padding - garante que a tinta caia dentro da celula
             # mesmo pra glifos com overshoot negativo (itaicos, cedilha etc.)
             draw.text((cellX + PADDING - x0, cellY + PADDING - y0), ch, font=font, fill=(255, 255, 255, 255))
-            glyphs.append((code, cellX + PADDING, cellY + PADDING, w, h, advance))
+            # RTN F10 fix (alinhamento pela base): y0 e a posicao vertical do
+            # glifo relativa a uma origem COMPARTILHADA por toda a fonte (o
+            # mesmo (0,0) que font.getbbox() usa pra qualquer caractere desse
+            # objeto font) - e exatamente o deslocamento que falta na hora de
+            # desenhar (client/hud_titlefont.cpp), senao um "p" (desce) e um
+            # "a" (nao desce) sao colados no MESMO topo em vez de alinhados
+            # pela base. O recorte no atlas fica igual (compacto, por celula);
+            # so passamos essa info adiante em vez de descarta-la.
+            glyphs.append((code, cellX + PADDING, cellY + PADDING, w, h, advance, y0))
         else:
-            glyphs.append((code, 0, 0, 0, 0, advance))
+            glyphs.append((code, 0, 0, 0, 0, advance, 0))
 
     # ---- escreve o atlas como .spr v32 (mesmo formato de bloodyhud.spr) ----
     out_spr_dir = os.path.join(ROOT, "game_dir", "sprites", "fonts")
@@ -212,8 +226,8 @@ def main():
         f.write(f"sprite sprites/fonts/{name}.spr\n")
         f.write(f"size {bake_size}\n")
         f.write(f"lineheight {lineheight}\n")
-        for code, gx, gy, gw, gh, advance in glyphs:
-            f.write(f"glyph {code} {gx} {gy} {gw} {gh} {advance:.2f}\n")
+        for code, gx, gy, gw, gh, advance, yoff in glyphs:
+            f.write(f"glyph {code} {gx} {gy} {gw} {gh} {advance:.2f} {yoff}\n")
 
     print(f"{spr_path}: atlas {atlas_w}x{atlas_h}, {len(glyphs)} glifos")
     print(f"{rtnfont_path}: metricas ({bake_size}px de bake)")
