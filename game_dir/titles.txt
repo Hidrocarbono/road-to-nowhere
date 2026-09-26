@@ -438,6 +438,52 @@ Sair sem terminar
 
 
 // ============================================================================
+//  DIALOGO IVO - MAPA ZONE00
+// ============================================================================
+
+ivo_intro
+{
+Ivo:
+Voce... voce nao devia ter vindo. Ninguem devia. Aqui a miseria gruda na pele, a morte assobia baixo nos ouvidos...
+}
+
+ivo_opcaoA
+{
+O que é este lugar?
+}
+
+ivo_respostaA
+{
+Ivo:
+Isso? Isso nao tem nome. O povo chama de Zona. Mas Zona e so uma palavra. O que tem aqui... nao cabe em palavra.
+E uma ferida na terra. E você... voce ta dentro dela. Respirando o que ela respira. Andando onde ela quer que voce ande.
+}
+
+ivo_opcaoB
+{
+Como você chegou aqui?
+}
+
+ivo_respostaB
+{
+Ivo:
+Eu era caminhoneiro. Quando a nevoa veio... eu tava na estrada. Vi a cidade desaparecer. Tentei voltar. Nao deu. O caminho nao existia mais.
+Eu fiquei. Não sei por que. Talvez pra avisar os que vem depois. Mas, ninguem escuta... ninguem nunca escuta
+}
+
+ivo_fim
+{
+Vou embora, voce e maluco!
+}
+
+ivo_vaembora
+{
+Ivo:
+Agora e tarde demais pra voce. Tarde demais...
+}
+
+
+// ============================================================================
 //  SYSTEM TIPS (RTN) - aviso de sistema com icone (icon0 = save, icon1 =
 //  atencao/dica), desenhado no topo da tela, sem caixa - client/hud_systemtip.cpp.
 //  ----------------------------------------------------------------------------

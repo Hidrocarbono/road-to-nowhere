@@ -89,3 +89,29 @@ dialog_teste_b
 	option 1      "Teste_Voltar" -> dialog_teste
 	exit_option   "Teste_Sair"
 }
+
+
+// ============================================================================
+//  DIALOGO IVO - MAPA ZONE00
+// ============================================================================
+
+dialog_ivo
+{
+	repeatable    0
+	sealed_line   "ivo_vaembora"
+
+	npc_line      "ivo_intro"
+	option 1      "ivo_opcaoA" -> dialog_ivo_a
+}
+
+dialog_ivo_a
+{
+	npc_line      "ivo_respostaA"
+	option 1      "ivo_opcaoB" -> dialog_ivo_b
+}
+
+dialog_ivo_b
+{
+	npc_line      "ivo_respostaB"
+	option 1      "ivo_fim" -> END
+}
