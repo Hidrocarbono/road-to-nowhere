@@ -20,6 +20,8 @@ extern int gmsgStamina; // RTN F10: stamina
 extern int gmsgTextWindow; // RTN F10: janela de documento (trigger_textwindow)
 extern int gmsgRadioIcon; // RTN F10: radio_sentence (icone do speaker + talker)
 extern int gmsgIronSight; // RTN F10: estado da mira de ferro (0/1) - ativa o DOF no client
+extern int gmsgDialogShow; // RTN: sistema de dialogo com escolhas (fala do NPC + opcoes)
+extern int gmsgSystemTip;  // RTN: aviso de sistema (save/dica) com icone - icon0/icon1
 extern int gmsgTrain;
 extern int gmsgLogo;
 extern int gmsgWeaponList;

@@ -19,6 +19,13 @@ struct rtn_titlefont_glyph_t
 	short	x, y;			// posicao no atlas, em pixels de bake
 	short	w, h;			// tamanho no atlas, em pixels de bake
 	float	advance;		// quanto avancar o cursor, em pixels de bake
+	// RTN F10 fix (alinhamento pela base): deslocamento vertical do glifo em
+	// relacao a linha de base COMPARTILHADA por toda a fonte (mesma origem
+	// que o Pillow usa em font.getbbox() na hora do bake - ver gen_titlefont.py).
+	// Sem isso, todo glifo era desenhado com o TOPO colado no mesmo Y (a letra
+	// inteira, nao a tinta), entao "p"/"a"/"É" ficavam em alturas diferentes
+	// em vez de alinhados pelo pe da linha.
+	short	yOffset;
 };
 
 class CRTNTitleFont

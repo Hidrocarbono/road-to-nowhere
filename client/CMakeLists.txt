@@ -26,6 +26,8 @@ list(APPEND CLDLL_SOURCES
 	"hud_interact.cpp"
 	"hud_textwindow.cpp"
 	"hud_radio.cpp"
+	"hud_dialog.cpp"
+	"hud_systemtip.cpp"
 	"hud_redraw.cpp"
 	"hud_update.cpp"
 	"hud_flashlight.cpp"

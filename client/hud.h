@@ -101,6 +101,8 @@ struct HUDLIST
 #include "hud_interact.h"
 #include "hud_textwindow.h"
 #include "hud_radio.h"
+#include "hud_dialog.h"
+#include "hud_systemtip.h"
 #include "cl_entity.h"
 
 //
@@ -623,6 +625,8 @@ public:
 	CHudInteract	m_Interact;  // RTN F10: maozinha de interacao (P2)
 	CHudTextWindow	m_TextWindow;  // RTN F10: janela de documento (trigger_textwindow/P2)
 	CHudRadio	m_Radio;  // RTN F10: radio_sentence (icone do speaker + talker)
+	CHudDialog	m_Dialog; // RTN: dialogo com escolhas do jogador
+	CHudSystemTip	m_SystemTip; // RTN: aviso de sistema (save/dica) com icone
 	CHudMOTD		m_MOTD;
 
 	ViewSmoothingData_t	m_ViewSmoothingData;

@@ -93,9 +93,18 @@ static bool RTN_LoadTitleFontFile( CRTNTitleFont *pFont, const char *pszName )
 		}
 		else if( !Q_strnicmp( szLine, "glyph ", 6 ))
 		{
-			int code, x, y, w, h;
+			int code, x, y, w, h, yoff;
 			float advance;
-			if( sscanf( szLine + 6, "%d %d %d %d %d %f", &code, &x, &y, &w, &h, &advance ) == 6 )
+			// RTN F10 fix: campo "yoff" e novo (alinhamento pela base) - um
+			// .rtnfont antigo, gerado antes desse fix, ainda tem so 6 campos.
+			// Tenta ler os 7 primeiro; sem "yoff" no arquivo, cai pra 0 (o
+			// comportamento antigo, topo colado) em vez de falhar a linha
+			// inteira - fonte velha continua carregando, so sem o fix.
+			int nRead = sscanf( szLine + 6, "%d %d %d %d %d %f %d", &code, &x, &y, &w, &h, &advance, &yoff );
+			if( nRead == 6 )
+				yoff = 0;
+
+			if( nRead >= 6 )
 			{
 				if( code >= 0 && code < RTN_TITLEFONT_MAX_GLYPHS )
 				{
@@ -106,6 +115,7 @@ static bool RTN_LoadTitleFontFile( CRTNTitleFont *pFont, const char *pszName )
 					g->w = (short)w;
 					g->h = (short)h;
 					g->advance = advance;
+					g->yOffset = (short)yoff;
 				}
 			}
 		}
@@ -349,11 +359,17 @@ void RTN_TitleFont_DrawChar( CRTNTitleFont *pFont, int x, int y, unsigned char c
 	rect.right = pGlyph->x + pGlyph->w;
 	rect.bottom = pGlyph->y + pGlyph->h;
 
+	// RTN F10 fix (alinhamento pela base): desloca o topo do glifo por
+	// yOffset*escala em vez de colar todo mundo no mesmo y - yOffset vem da
+	// MESMA origem (linha de base) pra todo glifo da fonte, entao "p", "a" e
+	// "É" ficam na altura relativa certa entre si em vez de todos no topo.
+	int yTop = y + (int)( pGlyph->yOffset * flScale + 0.5f );
+
 	wrect_t screenpos;
 	screenpos.left = x;
-	screenpos.top = y;
+	screenpos.top = yTop;
 	screenpos.right = x + (int)( pGlyph->w * flScale + 0.5f );
-	screenpos.bottom = y + (int)( pGlyph->h * flScale + 0.5f );
+	screenpos.bottom = yTop + (int)( pGlyph->h * flScale + 0.5f );
 
 	DrawSpriteAsPoly( pFont->hSprite, &rect, &screenpos, kRenderTransTexture, r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f );
 }

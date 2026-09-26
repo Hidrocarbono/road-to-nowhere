@@ -157,23 +157,67 @@ int CHudStatus::Draw( float flTime )
 		return 0;
 
 	// ---- layout (escalado pela resolucao) ----
-	// Silhueta do soldado (vida): sprite 142x168, no canto inferior esquerdo
-	int sw = SPR_Width( m_hHealthEmpty, 0 );
-	int sh = SPR_Height( m_hHealthEmpty, 0 );
-	int sx = XRES( 12 );
-	int sy = ScreenHeight - YRES( 12 ) - sh;
+	// RTN F10 fix (alinhamento): uma UNICA margem esquerda pra silhueta E
+	// icones - antes a silhueta ficava em XRES(12) e os icones em XRES(6),
+	// dois X diferentes sem relacao nenhuma (silhueta "flutuava" fora do
+	// alinhamento da coluna de icones+barras). E uma UNICA margem inferior
+	// pra silhueta E a barra de stamina - antes a base da barra de stamina
+	// ficava BH pixels mais baixa que a base da silhueta (staminaBy era usado
+	// como TOPO da barra, nao base), quebrando o nivelamento dos dois.
+	int marginX = XRES( 12 );
+	int bottomMargin = YRES( 12 );
 
 	// barras: 240x10 originais, escaladas; armor em cima, stamina embaixo
 	int bw = XRES( 96 );
 	int bh = YRES( 8 );
-	int bx = XRES( 12 );
-	int armorBy = ScreenHeight - YRES( 12 ) - bh - YRES( 2 );
-	int staminaBy = ScreenHeight - YRES( 12 );
+	int barGap = YRES( 3 );	// espaco vertical entre as duas barras
 
-	// icones 20x20 ao lado esquerdo de cada barra
-	int iw = XRES( 14 );
-	int iconYarmor = armorBy - ( iw - bh ) / 2;
-	int iconYstam = staminaBy - ( iw - bh ) / 2;
+	// stamina embaixo (mesma margem inferior da silhueta), armor em cima dela
+	int staminaBy = ScreenHeight - bottomMargin - bh;
+	int armorBy = staminaBy - bh - barGap;
+
+	// Silhueta do soldado (vida): sprite 142x168, no canto inferior esquerdo
+	int sw = SPR_Width( m_hHealthEmpty, 0 );
+	int sh = SPR_Height( m_hHealthEmpty, 0 );
+	int sx = marginX;
+	// RTN F10 fix (pedido do usuario): precisa sobrar um respiro VISIVEL
+	// entre a base da silhueta e o topo da barra de armor, do mesmo tamanho
+	// do respiro entre armor e stamina (barGap) - nao só "nao sobrepor".
+	//
+	// A tentativa anterior alinhava a BASE da silhueta com a base da barra
+	// de stamina (mesma logica do bottomMargin compartilhado) e so garantia
+	// folga contra o armor se o sprite fosse mais baixo que a pilha de
+	// barras. Na pratica sobrepunha mesmo assim: o sprite de vida (142x168)
+	// tem ~26px de moldura TRANSPARENTE na base (a arte de verdade para bem
+	// antes do fim do arquivo) - alinhar pela BASE DO ARQUIVO faz a arte
+	// visivel "descer" mais do que parece, invadindo a barra de armor por
+	// cima. Em vez de tentar adivinhar quanto de moldura cada sprite tem,
+	// ancora a silhueta de baixo pra cima a partir do PROPRIO armor: a base
+	// do sprite (sy+sh) fica exatamente barGap acima do topo do armor,
+	// sempre - a moldura transparente vira folga EXTRA, nunca sobreposicao.
+	int sy = armorBy - barGap - sh;
+
+	// RTN F10 fix: a barra comecava em XRES(12) mas o icone era desenhado em
+	// XRES(6) com ~14 unidades de largura - o icone TERMINAVA depois da barra
+	// COMECAR (sobreposicao). Agora o X da barra nasce da largura REAL do
+	// maior dos dois icones (+ um respiro fixo), entao nunca sobrepoe nenhum
+	// dos dois - e as duas barras compartilham o MESMO bx, alinhadas entre si.
+	int iconWArmor = SPR_Width( m_hArmorIcon, 0 );
+	int iconWStam = SPR_Width( m_hStaminaIcon, 0 );
+	int iconSlotW = Q_max( iconWArmor, iconWStam );
+	int iconBarGap = XRES( 4 );	// espaco entre o icone e a barra
+	int bx = marginX + iconSlotW + iconBarGap;
+
+	// RTN F10 fix: icones agora centralizados na ALTURA REAL de cada barra
+	// (SPR_Height do proprio icone), nao numa estimativa fixa de 14 unidades -
+	// e ambos ficam encostados na mesma marginX da silhueta (alinhamento
+	// pedido pelo usuario), nunca "flutuando" mais pra dentro que ela.
+	int iconHArmor = SPR_Height( m_hArmorIcon, 0 );
+	int iconHStam = SPR_Height( m_hStaminaIcon, 0 );
+	int iconXarmor = marginX;
+	int iconXstam = marginX;
+	int iconYarmor = armorBy + ( bh - iconHArmor ) / 2;
+	int iconYstam = staminaBy + ( bh - iconHStam ) / 2;
 
 	// ---- vida: silhueta (mascara VERTICAL, consumo de cima p/ baixo) ----
 	float fHealthFill = (float)iHealth / 100.0f;
@@ -197,7 +241,7 @@ int CHudStatus::Draw( float flTime )
 	if( m_hArmorIcon )
 	{
 		SPR_Set( m_hArmorIcon, 255, 255, 255 );
-		SPR_Draw( 0, XRES( 6 ), iconYarmor, NULL );
+		SPR_Draw( 0, iconXarmor, iconYarmor, NULL );
 	}
 	float fArmorFill = (float)iBat / 100.0f;
 	RTN_DrawFill( bx, armorBy, bw, bh, m_hArmorEmpty, m_hArmorFull, fArmorFill, false );
@@ -206,7 +250,7 @@ int CHudStatus::Draw( float flTime )
 	if( m_hStaminaIcon )
 	{
 		SPR_Set( m_hStaminaIcon, 255, 255, 255 );
-		SPR_Draw( 0, XRES( 6 ), iconYstam, NULL );
+		SPR_Draw( 0, iconXstam, iconYstam, NULL );
 	}
 	float fStaminaFill = flStamina / 100.0f;
 	RTN_DrawFill( bx, staminaBy, bw, bh, m_hStaminaEmpty, m_hStaminaFull, fStaminaFill, false );

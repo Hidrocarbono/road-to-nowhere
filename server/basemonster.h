@@ -104,7 +104,13 @@ public:
 	byte		m_iWeapons[MAX_WEAPON_BYTES];	// monster weapon flags
 
 	int		m_iTriggerCondition;// for scripted AI, this is the condition that will cause the activation of the monster's TriggerTarget
-	string_t		m_iszTriggerTarget;// name of target that should be fired. 
+	string_t		m_iszTriggerTarget;// name of target that should be fired.
+
+	// RTN: dialogo com escolhas (server/dialogsession.cpp). Keyvalue no editor:
+	// "dialog_target" "dialog_<npc>" - nome do NO INICIAL da arvore (ver
+	// game_dir/devkit/GUIA_DIALOGOS.md). String vazia (o normal - poucos
+	// NPCs-chave tem isso) = comportamento de sempre, custo zero.
+	string_t		m_iszDialogTarget;
 
 	Vector		m_HackedGunPos;	// HACK until we can query end of gun
 
@@ -121,6 +127,12 @@ public:
 
 // monster use function
 	void MonsterUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+
+	// RTN: intercepta o +USE ANTES de cair no m_pfnUse especifico da classe
+	// (MonsterUse, CTalkMonster::FollowerUse etc.) quando o monstro tem
+	// dialog_target setado - funciona em QUALQUER monstro (nao so
+	// CTalkMonster), sem tocar em cada subclasse. Ver server/dialogsession.cpp.
+	virtual void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 
 // overrideable Monster member functions
 	

@@ -95,6 +95,19 @@ BEGIN_DATADESC( CBasePlayer )
 	DEFINE_FIELD( m_iNVGBattery, FIELD_INTEGER ),
 	DEFINE_FIELD( m_flNVGTime, FIELD_TIME ),
 
+	// RTN: dialogo com escolhas - ver server/dialogsession.cpp. Precisa
+	// sobreviver a save/load (uma conversa "selada" ou um item ja entregue
+	// nao podem "voltar" so porque o jogador salvou e carregou o jogo).
+	DEFINE_FIELD( m_bInDialog, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_iszDialogRoot, FIELD_STRING ),
+	DEFINE_FIELD( m_iszDialogNode, FIELD_STRING ),
+	DEFINE_FIELD( m_hDialogNPC, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_iDialogTurn, FIELD_INTEGER ),
+	DEFINE_AUTO_ARRAY( m_iszDialogSealed, FIELD_STRING ),
+	DEFINE_FIELD( m_iDialogSealedCount, FIELD_INTEGER ),
+	DEFINE_AUTO_ARRAY( m_iszDialogGiven, FIELD_STRING ),
+	DEFINE_FIELD( m_iDialogGivenCount, FIELD_INTEGER ),
+
 	DEFINE_FIELD( m_afButtonLast, FIELD_INTEGER ),
 	DEFINE_FIELD( m_afButtonPressed, FIELD_INTEGER ),
 	DEFINE_FIELD( m_afButtonReleased, FIELD_INTEGER ),

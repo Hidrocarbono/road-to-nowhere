@@ -1,0 +1,117 @@
+// ============================================================================
+//  dialogs.txt - ARVORE DE DIALOGO (RTN)
+//  ----------------------------------------------------------------------------
+//  Ver game_dir/devkit/GUIA_DIALOGOS.md pra referencia completa do formato.
+//  Parser: server/dialogscript.cpp (server-only, mesmo motivo de
+//  weaponscript.cpp - o cliente nao pode saber o proximo no de antemao).
+//
+//  Todo TEXTO (npc_line, option, exit_option, sealed_line) e uma CHAVE de
+//  game_dir/titles.txt, nunca o texto em si.
+// ============================================================================
+
+// NOTA: usamos "medico", nao "doutor", porque game_dir/titles.txt JA TINHA
+// uma entrada de exemplo chamada "Doutor_Intro" (o "Dr. Freeman" de
+// demonstracao, sem relacao com este NPC) - reusar o nome ia colidir com
+// texto de outro contexto. Ver game_dir/devkit/GUIA_DIALOGOS.md.
+
+dialog_medico
+{
+	repeatable    0
+	sealed_line   "Medico_JaConversamos"
+
+	npc_line      "Medico_Intro"
+	option 1      "Opcao_PerguntarVacina" -> dialog_medico_vacina
+	option 2      "Opcao_PerguntarSaida"  -> dialog_medico_saida
+	exit_option   "Opcao_Encerrar"
+}
+
+dialog_medico_vacina
+{
+	npc_line      "Medico_ExplicaVacina"
+	option 1      "Opcao_ComoFunciona"    -> dialog_medico_vacina_detalhe
+	option 2      "Opcao_AceitarVacina"   -> dialog_medico_final
+	option 3      "Opcao_Voltar"          -> dialog_medico
+	exit_option   "Opcao_Encerrar"
+}
+
+dialog_medico_vacina_detalhe
+{
+	npc_line      "Medico_DetalheVacina"
+	option 1      "Opcao_Voltar" -> dialog_medico_vacina
+	exit_option   "Opcao_Encerrar"
+}
+
+dialog_medico_saida
+{
+	npc_line      "Medico_ExplicaSaida"
+	option 1      "Opcao_Voltar" -> dialog_medico
+	exit_option   "Opcao_Encerrar"
+}
+
+dialog_medico_final
+{
+	npc_line      "Medico_Despedida"
+	give          "item_antidote"
+	option 1      "Opcao_Sair" -> END
+}
+
+
+// ============================================================================
+//  DIALOGO DE TESTE - curto, pra validar o sistema inteiro num mapa novo:
+//  ramificacao (2 caminhos), exit_option em mais de um no, "give" (uma vez
+//  so) e selar/sealed_line depois de chegar num END de verdade.
+//
+//  Como testar: qualquer entidade monster_* (ex: monster_scientist) com a
+//  keyvalue "dialog_target" "dialog_teste". +USE nela.
+// ============================================================================
+
+dialog_teste
+{
+	repeatable    0
+	sealed_line   "Teste_Selado"
+
+	npc_line      "Teste_Intro"
+	option 1      "Teste_OpcaoA" -> dialog_teste_a
+	option 2      "Teste_OpcaoB" -> dialog_teste_b
+	exit_option   "Teste_Sair"
+}
+
+dialog_teste_a
+{
+	npc_line      "Teste_RespostaA"
+	give          "item_antidote"
+	option 1      "Teste_Fim" -> END
+}
+
+dialog_teste_b
+{
+	npc_line      "Teste_RespostaB"
+	option 1      "Teste_Voltar" -> dialog_teste
+	exit_option   "Teste_Sair"
+}
+
+
+// ============================================================================
+//  DIALOGO IVO - MAPA ZONE00
+// ============================================================================
+
+dialog_ivo
+{
+	repeatable    0
+	sealed_line   "ivo_vaembora"
+
+	npc_line      "ivo_intro"
+	option 1      "ivo_opcaoA" -> dialog_ivo_a
+}
+
+dialog_ivo_a
+{
+	npc_line      "ivo_respostaA"
+	option 1      "ivo_opcaoB" -> dialog_ivo_b
+}
+
+dialog_ivo_b
+{
+	npc_line      "ivo_respostaB"
+	option 1      "ivo_fim" -> END
+}

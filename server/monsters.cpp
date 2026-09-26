@@ -36,6 +36,7 @@
 #include "gamerules.h"
 #include "player.h"
 #include "material.h"
+#include "dialogscript.h"
 
 #define MONSTER_CUT_CORNER_DIST		8 // 8 means the monster's bounding box is contained without the box of the node in WC
 
@@ -106,6 +107,7 @@ BEGIN_DATADESC( CBaseMonster )
 	DEFINE_FIELD( m_flDistLook, FIELD_FLOAT ),
 	DEFINE_KEYFIELD( m_iTriggerCondition, FIELD_INTEGER, "TriggerCondition" ),
 	DEFINE_KEYFIELD( m_iszTriggerTarget, FIELD_STRING, "TriggerTarget" ),
+	DEFINE_KEYFIELD( m_iszDialogTarget, FIELD_STRING, "dialog_target" ),	// RTN: dialogo com escolhas
 	DEFINE_FIELD( m_HackedGunPos, FIELD_VECTOR ),
 	DEFINE_FIELD( m_scriptState, FIELD_INTEGER ),
 	DEFINE_FIELD( m_pCine, FIELD_CLASSPTR ),
@@ -567,6 +569,41 @@ void CBaseMonster :: MonsterThink ( void )
 void CBaseMonster :: MonsterUse ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	m_IdealMonsterState = MONSTERSTATE_ALERT;
+}
+
+//=========================================================
+// RTN: dialogo com escolhas - intercepta o +USE ANTES do m_pfnUse
+// especifico da classe (MonsterUse, CTalkMonster::FollowerUse etc.),
+// pra funcionar em QUALQUER monstro sem precisar tocar em cada subclasse.
+// So age quando o NPC tem "dialog_target" setado (custo zero nos outros) e
+// so pra um jogador vivo usando um NPC vivo - servidor-autoritativo, ver
+// server/dialogsession.cpp.
+//=========================================================
+void CBaseMonster :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	// RTN F10 fix: o +USE de verdade do jogador manda USE_SET (ver
+	// CBasePlayer::PlayerUse, server/player.cpp:1518), nao USE_TOGGLE -
+	// esse ultimo e so o que os triggers de mapa (ex: AITRIGGER_DEATH via
+	// UTIL_FireTargets) mandam. Checar USE_TOGGLE aqui fazia essa condicao
+	// nunca ser verdadeira pro toque direto na tecla de uso.
+	if ( pActivator && pActivator->IsPlayer() &&
+		 !FStringNull( m_iszDialogTarget ) && IsAlive() )
+	{
+		CBasePlayer *pPlayer = (CBasePlayer *)pActivator;
+
+		// NPC com dialog_target nunca cai no comportamento padrao (seguir,
+		// ficar alerta...) pra um jogador - se ja estiver em outra
+		// conversa, so ignora o toque em vez de deixar isso vazar pro
+		// FollowerUse/MonsterUse da classe. Na pratica o freeze (FL_FROZEN
+		// zera IN_USE tambem, ver game_shared/playermove.cpp) ja impede
+		// esse segundo toque de chegar aqui, mas nao custa ser explicito.
+		if ( !pPlayer->InDialog() )
+			pPlayer->Dialog_Start( this, STRING( m_iszDialogTarget ));
+
+		return;
+	}
+
+	CBaseToggle::Use( pActivator, pCaller, useType, value );
 }
 
 //=========================================================
@@ -3153,6 +3190,11 @@ void CBaseMonster :: KeyValue( KeyValueData *pkvd )
 	else if (FStrEq(pkvd->szKeyName, "TriggerCondition") )
 	{
 		m_iTriggerCondition = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if (FStrEq(pkvd->szKeyName, "dialog_target") )	// RTN: dialogo com escolhas
+	{
+		m_iszDialogTarget = ALLOC_STRING( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
 	else if (FStrEq(pkvd->szKeyName, "m_iClass") ) //LRC

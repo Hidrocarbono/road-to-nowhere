@@ -117,7 +117,28 @@ void CMessage::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useT
 {
 	CBaseEntity *pPlayer = NULL;
 
-	if ( pev->spawnflags & SF_MESSAGE_ALL )
+	// RTN: aviso de sistema (icon1) em vez do HudText/titles.txt normal - sem
+	// substituicao de %player_name%, porque aqui manda so a CHAVE (o cliente
+	// resolve o texto via TextMessageGet, nao recebe string pronta).
+	if ( pev->spawnflags & SF_MESSAGE_SYSTEMTIP )
+	{
+		if ( pev->spawnflags & SF_MESSAGE_ALL )
+		{
+			for( int i = 1; i <= gpGlobals->maxClients; i++ )
+			{
+				CBaseEntity *pEnt = CBaseEntity::Instance( INDEXENT( i ) );
+				if( pEnt && pEnt->IsPlayer() && pEnt->IsNetClient() )
+					UTIL_ShowSystemTip( 1, STRING( pev->message ), pEnt );
+			}
+		}
+		else
+		{
+			pPlayer = ( pActivator && pActivator->IsPlayer() ) ? pActivator : CBaseEntity::Instance( INDEXENT( 1 ) );
+			if ( pPlayer )
+				UTIL_ShowSystemTip( 1, STRING( pev->message ), pPlayer );
+		}
+	}
+	else if ( pev->spawnflags & SF_MESSAGE_ALL )
 	{
 		// envia pra todos os jogadores (com nome de cada um)
 		for( int i = 1; i <= gpGlobals->maxClients; i++ )

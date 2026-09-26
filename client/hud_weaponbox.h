@@ -4,7 +4,7 @@
 // NAO incluir hud.h aqui (include circular!) - incluido PELO hud.h.
 //
 // Layout VERTICAL: silhueta da arma em cima (branca), nome e municao
-// "00 / 000" embaixo (Roboto BOLD - creditsfont_cp1251.fnt agora e o Bold).
+// "00 / 000" embaixo (fonte nativa do engine, DrawHudString - gfx/creditsfont.fnt).
 //
 // ATRIBUICAO DINAMICA DO SPRITE (data-driven, sem recompilar):
 //   o sprite da arma e carregado por convencao de nome:

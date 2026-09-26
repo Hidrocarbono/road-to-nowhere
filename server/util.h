@@ -355,6 +355,9 @@ extern void UTIL_ScreenShake		( const Vector &center, float amplitude, float fre
 extern void UTIL_ScreenShakeAll		( const Vector &center, float amplitude, float frequency, float duration );
 extern void UTIL_ShowMessage		( const char *pString, CBaseEntity *pPlayer );
 extern void UTIL_ShowMessageAll		( const char *pString );
+// RTN: aviso de sistema (save/dica) com icone - iIcon 0 = save (icon0), 1 = atencao (icon1).
+// pszKey e o nome da entrada em titles.txt, SEM o '#' (o cliente resolve via TextMessageGet).
+extern void UTIL_ShowSystemTip		( int iIcon, const char *pszKey, CBaseEntity *pPlayer );
 extern void UTIL_ScreenFadeAll		( const Vector &color, float fadeTime, float holdTime, int alpha, int flags );
 extern void UTIL_ScreenFade			( CBaseEntity *pEntity, const Vector &color, float fadeTime, float fadeHold, int alpha, int flags );
 extern void UTIL_FireTargets( const char *targetName, CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value = 0 );

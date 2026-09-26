@@ -221,7 +221,8 @@
 		10: "See Player Unconditional"
 		11: "See Player, Not In Combat"
 	]
-	spawnflags(Flags) = 
+	dialog_target(String) : "Dialog Target" : "" : "RTN: dialogo com escolhas do jogador. Nome do NO INICIAL em game_dir/scripts/dialogs/dialogs.txt (convencao: dialog_<npc>). Vazio = comportamento normal (sem dialogo). Ver game_dir/devkit/GUIA_DIALOGOS.md."
+	spawnflags(Flags) =
 	[
 		1 : "WaitTillSeen" 	: 0
 		2 : "Gag"		: 0
@@ -275,7 +276,8 @@
 		10: "See Player Unconditional"
 		11: "See Player, Not In Combat"
 	]
-	spawnflags(Flags) = 
+	dialog_target(String) : "Dialog Target" : "" : "RTN: dialogo com escolhas do jogador. Nome do NO INICIAL em game_dir/scripts/dialogs/dialogs.txt (convencao: dialog_<npc>). Vazio = comportamento normal (sem dialogo). Ver game_dir/devkit/GUIA_DIALOGOS.md."
+	spawnflags(Flags) =
 	[
 		1 : "WaitTillSeen" 	: 0
 		2 : "Gag"		: 0
@@ -1530,6 +1532,7 @@
 	[
 		1: "Play Once" : 0
 		2: "All Clients" : 0
+		4: "System Tip (icone de sistema - RTN)" : 0
 	]
 	messagesound(sound) : "Sound Effect"
 	messagevolume(string) : "Volume 0-10" : "10"

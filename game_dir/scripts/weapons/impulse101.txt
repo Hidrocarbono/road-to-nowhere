@@ -9,29 +9,6 @@
 item_suit
 item_battery
 
-// armas classicas da HL
-weapon_crowbar
-weapon_glock
-ammo_9mmclip
-weapon_shotgun
-ammo_buckshot
-weapon_mp5
-ammo_9mmAR
-ammo_ARgrenades
-weapon_handgrenade
-weapon_tripmine
-weapon_357
-ammo_357
-weapon_crossbow
-ammo_crossbow
-weapon_egon
-weapon_gauss
-ammo_gaussclip
-weapon_rpg
-ammo_rpgclip
-weapon_satchel
-weapon_snark
-weapon_hornetgun
 
 // armas de script do RTN (server/weaponscript.cpp, weapon_*.txt)
 weapon_aps

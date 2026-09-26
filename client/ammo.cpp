@@ -668,7 +668,16 @@ SpriteHandle* WeaponsResource :: GetAmmoPicFromWeapon( int iAmmoId, wrect_t& rec
 // Menu Selection Code
 void WeaponsResource :: SelectSlot( int iSlot, int fAdvance, int iDirection )
 {
-	if( gHUD.m_Menu.m_fMenuDisplayed && ( fAdvance == FALSE ) && ( iDirection == 1 ))	
+	// RTN: dialogo com escolhas - mesma prioridade do menu nativo do HL1
+	// logo abaixo (o teclado numerico vira selecao de opcao, nao troca de
+	// arma, enquanto a conversa estiver na tela).
+	if( gHUD.m_Dialog.IsActive() && ( fAdvance == FALSE ) && ( iDirection == 1 ))
+	{
+		gHUD.m_Dialog.SelectOption( iSlot + 1 );  // slots are one off the key numbers
+		return;
+	}
+
+	if( gHUD.m_Menu.m_fMenuDisplayed && ( fAdvance == FALSE ) && ( iDirection == 1 ))
 	{
 		// menu is overriding slot use commands
 		gHUD.m_Menu.SelectMenuItem( iSlot + 1 );  // slots are one off the key numbers
@@ -980,9 +989,19 @@ void CHudAmmo::UserCmd_NVG_Toggle( void )
 // rodinha do mouse move o destaque (ver UserCmd_NextWeapon/PrevWeapon). As
 // teclas slot1..slot10 continuam existindo (bind do jogador pode estar
 // configurado nelas) mas nao fazem mais nada aqui.
+//
+// RTN: EXCETO pro dialogo com escolhas - e ESTE metodo, nao
+// WeaponsResource::SelectSlot() (aposentado pelo mesmo motivo acima, so
+// fica de pé por compatibilidade), quem os comandos "slotN" chamam de
+// verdade (ver UserCmd_Slot1..10 logo abaixo). Sem esse desvio aqui, 1-9
+// nunca chegavam no menu de dialogo - SelectSlot() nunca era invocado.
 void CHudAmmo::SlotInput( int iSlot )
 {
-	(void)iSlot;
+	if( gHUD.m_Dialog.IsActive() )
+	{
+		gHUD.m_Dialog.SelectOption( iSlot + 1 );
+		return;
+	}
 }
 
 void CHudAmmo::UserCmd_Slot1( void )
