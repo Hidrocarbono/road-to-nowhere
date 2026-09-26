@@ -2,11 +2,11 @@
 //  titles.txt - SISTEMA DE FALAS E DOCUMENTOS DO ROAD TO NOWHERE
 //  Criado por Hermes e Hidrocarboneto.
 //
-//  COMO FUNCIONA (orienta��es para uso futuro):
+//  COMO FUNCIONA (orientações para uso futuro):
 //  ----------------------------------------------------------------------------
-//  Este � o ARQUIVO CENTRAL de mensagens do jogo. Ele n�o fica no mapa:
+//  Este é o ARQUIVO CENTRAL de mensagens do jogo. Ele não fica no mapa:
 //  as entidades no mapa guardam apenas o NOME da mensagem, e o texto
-//  (com formata��o) � buscado aqui pelo client.
+//  (com formatação) é buscado aqui pelo client.
 //
 //  FLUXO:
 //    entidade no mapa (ex: env_message ou game_text)
@@ -16,16 +16,16 @@
 //      -> desenha na tela com os atributos abaixo
 //
 //  FORMATO DE CADA MENSAGEM:
-//    (linhas com // no in�cio s�o coment�rios e s�o ignoradas)
+//    (linhas com // no início são comentários e são ignoradas)
 //
-//    $position x y      -> posi��o na tela. x e y v�o de 0 a 1
+//    $position x y      -> posição na tela. x e y vão de 0 a 1
 //                          (0 = esquerda/topo, 1 = direita/fundo).
 //                          -1 centraliza no eixo.
-//                          NEGATIVO no y = DIST�NCIA DO FUNDO:
+//                          NEGATIVO no y = DISTÂNCIA DO FUNDO:
 //                          y -0.1 = 10% acima do fundo (ideal p/ legenda).
 //    $effect 0..2       -> 0 = fade in/out | 1 = flicker (creditos)
 //                          2 = escrever letra por letra (scan)
-//    $color  R G B      -> cor do T�TULO (linha 1) - 0 a 255
+//    $color  R G B      -> cor do TÍTULO (linha 1) - 0 a 255
 //    $color2 R G B      -> cor da MENSAGEM (linhas 2 em diante)
 //    $fadein  seg       -> tempo de fade-in (ou tempo por caractere no effect 2)
 //    $fadeout seg       -> tempo de fade-out
@@ -33,24 +33,25 @@
 //
 //    NOME_DA_MENSAGEM   <- nome usado pela entidade (SEM # aqui)
 //    {
-//    Linha 1 do texto   <- T�TULO (cor = $color)
+//    Linha 1 do texto   <- TÍTULO (cor = $color)
 //    Linha 2 do texto   <- MENSAGEM (cor = $color2)
 //    }
 //
-//  SUBSTITUI��O AUTOM�TICA:
-//    %player_name% no texto � trocado pelo nome do jogador (feito no server).
+//  SUBSTITUIÇÃO AUTOMÁTICA:
+//    %player_name% no texto é trocado pelo nome do jogador (feito no server).
 //
 //  QUEBRA DE LINHA:
 //    Cada linha dentro das chaves { } vira uma linha na tela.
-//    Linha 1 = t�tulo (cor $color), linhas seguintes = mensagem ($color2).
+//    Linha 1 = título (cor $color), linhas seguintes = mensagem ($color2).
 //
 //  FONTE:
-//    O HUD usa a fonte bitmap global do engine (gfx/creditsfont.fnt) POR
-//    PADR�O - isso n�o muda a menos que voc� use $font (ver abaixo).
+//    O HUD usa a fonte custom Roboto por padrão (client/hud_titlefont.cpp) -
+//    ver a seção "$font / $fontsize" logo abaixo pra trocar por outra fonte
+//    ou mudar o tamanho num bloco especifico.
 //
 //  DICAS:
 //    - Mensagem com # na frente (ex: "#Doutor_Intro") busca aqui.
-//    - Texto sem # � exibido literalmente (com %player_name% e \n funcionando).
+//    - Texto sem # é exibido literalmente (com %player_name% e \n funcionando).
 //    - Para legenda estilo filme: $position -1 -0.1 (centralizada no fundo).
 // ============================================================================
 
@@ -58,54 +59,49 @@
 // ============================================================================
 //  FONTE E TAMANHO CUSTOM ($font / $fontsize) - RTN
 //  ----------------------------------------------------------------------------
-//  Por padr�o toda mensagem usa a fonte fixa do engine (gfx/creditsfont.fnt),
-//  desenhada num tamanho �NICO que n�o d� pra mudar - o engine n�o tem
-//  par�metro de tamanho nem de fonte na fun��o que desenha cada letra
-//  (pfnDrawCharacter). Pra ter TAMANHO configur�vel e FONTE escolh�vel por
-//  mensagem (ex.: t�tulo de "epis�dio" grande, com fonte diferente), o RTN
-//  ganhou um sistema PR�PRIO de fonte bitmap, independente do engine:
+//  Por padrão toda mensagem usa a fonte custom Roboto (client/hud_titlefont.cpp),
+//  no tamanho padrão do sistema. Pra usar OUTRA fonte custom (ex.: um título
+//  de "episódio" grande, com fonte diferente) ou um tamanho especifico:
 //
-//    $font <nome_curto>   -> ativa a fonte custom pro bloco INTEIRO (t�tulo
-//                            E mensagem). <nome_curto> � o nome usado ao
+//    $font <nome_curto>   -> troca a fonte custom pro bloco INTEIRO (título
+//                            E mensagem). <nome_curto> é o nome usado ao
 //                            gerar a fonte com utils/gen_titlefont.py -
-//                            ex.: "kirkwood" (fonte cplkirkwood.ttf, j�
-//                            inclu�da no projeto - ver abaixo como gerar
+//                            ex.: "kirkwood" (fonte cplkirkwood.ttf, já
+//                            incluída no projeto - ver abaixo como gerar
 //                            outra fonte a partir de um .ttf).
 //    $fontsize <px>       -> tamanho da fonte custom NA TELA, em pixels de
-//                            altura de linha. S� TEM EFEITO junto com $font
-//                            no mesmo bloco - n�o existe como aumentar a
-//                            fonte padr�o do engine, ent�o $fontsize sozinho
-//                            (sem $font) � ignorado. Sem $fontsize, mas COM
+//                            altura de linha. Só TEM EFEITO junto com $font
+//                            no mesmo bloco - não existe como aumentar a
+//                            fonte padrão do engine, então $fontsize sozinho
+//                            (sem $font) é ignorado. Sem $fontsize, mas COM
 //                            $font, usa o tamanho "natural" da fonte (o
-//                            tamanho em que o atlas foi gerado - 128px).
+//                            tamanho em que o atlas foi gerado).
 //
-//  N�O S�O PERSISTENTES: assim como $position/$color/$effect/etc., $font e
-//  $fontsize valem s� pro bloco em que aparecem. Se a pr�xima mensagem n�o
-//  repetir $font, ela volta a usar a fonte padr�o do engine automaticamente -
-//  n�o precisa "desligar" nada.
+//  NÃO SÃO PERSISTENTES: assim como $position/$color/$effect/etc., $font e
+//  $fontsize valem só pro bloco em que aparecem. Se a próxima mensagem não
+//  repetir $font, ela volta a usar a Roboto (fonte padrão) automaticamente -
+//  não precisa "desligar" nada.
 //
 //  COMO GERAR UMA FONTE NOVA A PARTIR DE UM .ttf:
-//    pip install Pillow      (uma vez s�)
+//    pip install Pillow      (uma vez só)
 //    python3 utils/gen_titlefont.py minhafonte.ttf nome_curto
 //  Isso cria:
 //    game_dir/sprites/fonts/nome_curto.spr   (atlas com as letras, imagem)
-//    game_dir/fonts/nome_curto.rtnfont       (m�tricas - onde cada letra
-//                                              est� no atlas e quanto espa�o
+//    game_dir/fonts/nome_curto.rtnfont       (métricas - onde cada letra
+//                                              está no atlas e quanto espaço
 //                                              ela ocupa)
-//  Depois � s� usar "$font nome_curto" em qualquer bloco deste arquivo.
+//  Depois é só usar "$font nome_curto" em qualquer bloco deste arquivo.
 //
-//  IMPLEMENTA��O (pra quem for mexer): client/hud_titlefont.h/.cpp carregam
-//  o atlas (.spr) e as m�tricas (.rtnfont), e um parser pr�prio (bem mais
-//  simples que o do engine) l� ESTE ARQUIVO de novo s� pra achar as linhas
+//  IMPLEMENTAÇÃO (pra quem for mexer): client/hud_titlefont.h/.cpp carregam
+//  o atlas (.spr) e as métricas (.rtnfont), e um parser próprio (bem mais
+//  simples que o do engine) lê ESTE ARQUIVO de novo só pra achar as linhas
 //  $font/$fontsize de cada bloco - porque client_textmessage_t (a struct que
-//  o engine preenche com o resto dos dados de cada mensagem) � uma struct
-//  fixa do engine, sem campo de fonte nem tamanho, e n�o d� pra estender.
+//  o engine preenche com o resto dos dados de cada mensagem) é uma struct
+//  fixa do engine, sem campo de fonte nem tamanho, e não dá pra estender.
 //  O desenho de cada letra usa DrawSpriteAsPoly (client/render/tri.cpp),
-//  recortando o glifo certo do atlas e desenhando do tamanho pedido - sem
-//  isso, client/message.cpp usa TextMessageDrawChar como sempre (fonte do
-//  engine, comportamento 100% igual ao de antes desta feature).
+//  recortando o glifo certo do atlas e desenhando do tamanho pedido.
 //
-//  Exemplo (t�tulo de epis�dio, fonte grande):
+//  Exemplo (título de episódio, fonte grande):
 //    $position -1 -1
 //    $effect 0
 //    $color 255 255 255
@@ -146,21 +142,21 @@ $holdtime 10
 random02
 {
 Desconhecido:
-Voce... voce nao devia ter vindo. Ninguem devia. Aqui a miseria gruda na pele,
-a morte assovia baixo nos ouvidos... e a traicao... a traicao vem ate dos
-seus. Agora e tarde demais pra voce. Tarde demais.
+Você... você não devia ter vindo. Ninguém devia. Aqui a miséria gruda na pele,
+a morte assovia baixo nos ouvidos... e a traição... a traição vem até dos
+seus. Agora é tarde demais pra você. Tarde demais.
 }
 
 $holdtime 4
 doc_cadaver
 {
 %player_name%:
-Mais um que n�o voltou pra casa. 
+Mais um que não voltou pra casa.
 }
 
 
 // ============================================================================
-//  EXEMPLO 2 - Documento / arquivo colet�vel (estilo lore)
+//  EXEMPLO 2 - Documento / arquivo colecionável (estilo lore)
 //  Uso no mapa: env_message com message = "#Doc_Primera_Anotacion"
 // ============================================================================
 $position -1 0.2
@@ -172,14 +168,14 @@ $fadeout 0.4
 $holdtime 6
 Doc_Primera_Anotacion
 {
-ARQUIVO 001 - DIARIO
+ARQUIVO 001 - DIÁRIO
 Hoje chegamos ao fim da estrada.
-Ninguem sabe o que existe alem do desvio.
+Ninguém sabe o que existe além do desvio.
 }
 
 
 // ============================================================================
-//  EXEMPLO 3 - Mensagem central cl�ssica (aviso / tutorial)
+//  EXEMPLO 3 - Mensagem central clássica (aviso / tutorial)
 //  Uso no mapa: env_message com message = "#Aviso_Estrada"
 // ============================================================================
 $position -1 -1
@@ -191,14 +187,14 @@ $fadeout 0.6
 $holdtime 3
 Aviso_Estrada
 {
-ATENCAO
-A estrada nao tem volta.
+ATENÇÃO
+A estrada não tem volta.
 }
 
 // ============================================================================
-//  EXEMPLO 4 - T�tulo de "epis�dio" com fonte custom ($font)
-//  Uso no mapa: env_message com message = "#Episodio_01" - ver a documenta��o
-//  de $font/$fontsize logo no in�cio deste arquivo.
+//  EXEMPLO 4 - Título de "episódio" com fonte custom ($font)
+//  Uso no mapa: env_message com message = "#Episodio_01" - ver a documentação
+//  de $font/$fontsize logo no início deste arquivo.
 // ============================================================================
 $position -1 -1
 $effect 0
@@ -216,19 +212,19 @@ A Estrada Sem Volta
 }
 
 // ============================================================================
-//  PICKUP MESSAGES (RTN F10 - automatico ao pegar municao)
+//  PICKUP MESSAGES (RTN F10 - automático ao pegar munição)
 //  O server envia o nome do ammo via AmmoPickup; o client monta "!<nome>"
 //  e busca aqui. Sem a entrada, o fallback mostra o texto cru (feio) -
-//  entao crie uma entrada para cada tipo de municao do mod.
+//  então crie uma entrada para cada tipo de munição do mod.
 //  Local: canto inferior-esquerdo, discreto (estilo Tarkov).
 //
 //  "%d" NO TEXTO -> QUANTIDADE RECEBIDA (Paranoia 2 style):
-//  O client troca a primeira ocorrencia de "%d" pela quantidade real de
-//  municao do pickup (client/ammo.cpp::MsgFunc_AmmoPickup passa o numero,
-//  client/message.cpp faz a troca). O contador PADRAO do sistema (numero
-//  generico no canto inferior direito) foi desligado de proposito pra nao
-//  duplicar a mensagem - essas entradas aqui sao a UNICA notificacao de
-//  pickup de municao agora. "%d" e opcional: sem ele, so mostra o texto
+//  O client troca a primeira ocorrência de "%d" pela quantidade real de
+//  munição do pickup (client/ammo.cpp::MsgFunc_AmmoPickup passa o número,
+//  client/message.cpp faz a troca). O contador PADRÃO do sistema (número
+//  genérico no canto inferior direito) foi desligado de propósito pra não
+//  duplicar a mensagem - essas entradas aqui são a ÚNICA notificação de
+//  pickup de munição agora. "%d" é opcional: sem ele, só mostra o texto
 //  fixo, igual antes.
 // ============================================================================
 
@@ -241,19 +237,19 @@ $fadeout 0.5
 $holdtime 3
 !9mm
 {
-+%d Municao 9mm
++%d Munição 9mm
 }
 
 
 !buckshot
 {
-+%d Municao de escopeta
++%d Munição de escopeta
 }
 
 
 !357
 {
-+%d Municao .357
++%d Munição .357
 }
 
 
@@ -264,13 +260,13 @@ $holdtime 3
 
 !m16
 {
-+%d muni��o 5.56
++%d munição 5.56
 }
 
 
 !ak
 {
-+%d muni��o 5.56
++%d munição 5.56
 }
 
 !weapon_parafal
@@ -295,10 +291,10 @@ Procure nas casas e escombros itens importantes
 //  Arvore: game_dir/scripts/dialogs/dialogs.txt (dialog_medico e afins)
 //  Formato completo: game_dir/devkit/GUIA_DIALOGOS.md
 //
-//  npc_line usa a MESMA convencao de titulo/mensagem do resto deste
+//  npc_line usa a MESMA convenção de título/mensagem do resto deste
 //  arquivo: linha 1 ($color) = nome exibido do falante, linha 2+
-//  ($color2) = a fala. As entradas "Opcao_*" (rotulo dos botoes do menu)
-//  sao so uma linha - nao tem "nome do falante" nenhum.
+//  ($color2) = a fala. As entradas "Opcao_*" (rótulo dos botões do menu)
+//  são só uma linha - não tem "nome do falante" nenhum.
 // ============================================================================
 $position -1 -1
 $effect 0
@@ -310,41 +306,41 @@ $holdtime 3
 
 Medico_Intro
 {
-Medico
-Vejo que sobreviveu ate aqui. Precisa de ajuda?
+Médico
+Vejo que sobreviveu até aqui. Precisa de ajuda?
 }
 
 Medico_ExplicaVacina
 {
-Medico
-Tenho uma vacina experimental. Nao posso garantir que funcione, mas e a
-unica chance que temos contra a infeccao.
+Médico
+Tenho uma vacina experimental. Não posso garantir que funcione, mas é a
+única chance que temos contra a infecção.
 }
 
 Medico_DetalheVacina
 {
-Medico
-Ela foi feita a partir do sangue de quem sobreviveu a primeira onda. Os
-efeitos colaterais sao... imprevisiveis. Mas sem ela, voce nao dura muito.
+Médico
+Ela foi feita a partir do sangue de quem sobreviveu à primeira onda. Os
+efeitos colaterais são... imprevisíveis. Mas sem ela, você não dura muito.
 }
 
 Medico_ExplicaSaida
 {
-Medico
-A saida mais segura e pelo velho posto de controle, a nordeste. Va com
-cuidado - ainda ha coisas la fora.
+Médico
+A saída mais segura é pelo velho posto de controle, a nordeste. Vá com
+cuidado - ainda há coisas lá fora.
 }
 
 Medico_Despedida
 {
-Medico
+Médico
 Tome. Use com sabedoria. E boa sorte - vai precisar.
 }
 
 Medico_JaConversamos
 {
-Medico
-Ja conversamos. Va com cuidado.
+Médico
+Já conversamos. Vá com cuidado.
 }
 
 Opcao_PerguntarVacina
@@ -354,7 +350,7 @@ Perguntar sobre a vacina
 
 Opcao_PerguntarSaida
 {
-Perguntar sobre a saida
+Perguntar sobre a saída
 }
 
 Opcao_ComoFunciona
@@ -390,25 +386,25 @@ Encerrar conversa
 Teste_Intro
 {
 NPC Teste
-Isso e um teste de dialogo. Escolha uma opcao.
+Isso é um teste de diálogo. Escolha uma opção.
 }
 
 Teste_RespostaA
 {
 NPC Teste
-Voce escolheu A. Aqui esta um item de teste.
+Você escolheu A. Aqui está um item de teste.
 }
 
 Teste_RespostaB
 {
 NPC Teste
-Voce escolheu B. Quer voltar ao inicio?
+Você escolheu B. Quer voltar ao início?
 }
 
 Teste_Selado
 {
 NPC Teste
-Ja conversamos. Este dialogo so acontece uma vez.
+Já conversamos. Este diálogo só acontece uma vez.
 }
 
 Teste_OpcaoA
@@ -418,7 +414,7 @@ Caminho A (recebe um item e termina)
 
 Teste_OpcaoB
 {
-Caminho B (volta ao inicio)
+Caminho B (volta ao início)
 }
 
 Teste_Fim
@@ -428,7 +424,7 @@ Encerrar
 
 Teste_Voltar
 {
-Voltar ao inicio
+Voltar ao início
 }
 
 Teste_Sair
@@ -493,10 +489,10 @@ Tarde demais...
 
 // ============================================================================
 //  SYSTEM TIPS (RTN) - aviso de sistema com icone (icon0 = save, icon1 =
-//  atencao/dica), desenhado no topo da tela, sem caixa - client/hud_systemtip.cpp.
+//  atenção/dica), desenhado no topo da tela, sem caixa - client/hud_systemtip.cpp.
 //  ----------------------------------------------------------------------------
-//  GAMESAVED e disparada automaticamente pelo trigger_autosave (server/
-//  entities/trigger_autosave.cpp) - nao precisa (nem deve) ser chamada por
+//  GAMESAVED é disparada automaticamente pelo trigger_autosave (server/
+//  entities/trigger_autosave.cpp) - não precisa (nem deve) ser chamada por
 //  nenhuma entidade no mapa.
 //
 //  Para uma DICA (icon1), qualquer env_message com a spawnflag "System Tip"
@@ -504,8 +500,8 @@ Tarde demais...
 //  entidade continua sendo "#NOME_DA_MENSAGEM" como sempre.
 //
 //  $color, $fadein, $fadeout e $holdtime valem aqui normalmente. $position
-//  e $effect NAO tem efeito - a posicao (topo, centralizado) e fixa, sem
-//  caixa, igual a "linguagem visual de sistema" combinada.
+//  e $effect NÃO tem efeito - a posição (topo, centralizado) é fixa, sem
+//  caixa, igual à "linguagem visual de sistema" combinada.
 // ============================================================================
 $color 255 255 255
 $fadein 0.3
