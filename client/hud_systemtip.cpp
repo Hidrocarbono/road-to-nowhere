@@ -14,9 +14,19 @@ holdtime) vem do proprio titles.txt (TextMessageGet), igual o hud_dialog.
 #include "triangleapi.h"
 #include "texture_handle.h"
 #include "gl_local.h"
+#include "hud_titlefont.h"
 
 extern void OrthoQuad( int x1, int y1, int x2, int y2 );		// tri.cpp
 extern void RTN_Utf8ToCp1252( char *szText );				// mesmo fix do hud_radio/hud_dialog
+
+// RTN F10 fix: mesma fonte custom do hud_dialog.cpp (Roboto) - a creditsFont
+// nativa do engine nao tem acento latino de verdade em nenhuma variante
+// cp1252 disponivel neste projeto. Cai pra DrawHudString nativo se o asset
+// nao carregar.
+#define SYSTIP_FONT_NAME	"roboto"
+
+static CRTNTitleFont *s_pSysTipFont = NULL;
+static float s_flSysTipFontScale = 1.0f;
 
 // nomes fixos dos assets - so existe UMA variante por icone (o "_1024"/"_640"
 // original do Paranoia 2 era por faixa de resolucao de tela; aqui o HUD ja
@@ -119,14 +129,22 @@ int CHudSystemTip::MsgFunc_SystemTip( const char *pszName, int iSize, void *pbuf
 	return 1;
 }
 
-// RTN F10 fix: largura REAL do texto (soma de gHUD.m_scrinfo.charWidths[]
-// - a mesma tabela de fonte variavel que CHud::DrawHudString usa), nao
-// mais uma estimativa de ~11px/char.
+// RTN F10 fix: largura REAL do texto - da fonte custom (s_pSysTipFont)
+// quando carregada, senao gHUD.m_scrinfo.charWidths[] (a mesma tabela que
+// CHud::DrawHudString usa), nao mais uma estimativa de ~11px/char.
 static int SysTip_MeasureString( const char *sz )
 {
 	int width = 0;
-	for( const byte *p = (const byte *)sz; *p; p++ )
-		width += gHUD.m_scrinfo.charWidths[*p];
+	if( s_pSysTipFont )
+	{
+		for( const byte *p = (const byte *)sz; *p; p++ )
+			width += RTN_TitleFont_CharWidth( s_pSysTipFont, *p, s_flSysTipFontScale );
+	}
+	else
+	{
+		for( const byte *p = (const byte *)sz; *p; p++ )
+			width += gHUD.m_scrinfo.charWidths[*p];
+	}
 	return width;
 }
 
@@ -157,7 +175,11 @@ static int SysTip_MaxLineWidth( const char *szText )
 // - o bloco "icone + texto" inteiro e que fica centralizado (ver Draw()),
 // nao cada linha de texto individualmente (o icone fica fixo a esquerda,
 // igual a referencia do Paranoia 2). Devolve quantas linhas desenhou.
-static int SysTip_DrawLeftAligned( int x, int y, int lineGap, const char *szText, int r, int g, int b )
+//
+// RTN F10 fix: com a fonte custom, o alpha agora acompanha o fade do icone
+// de verdade (alpha passado em 'a') - DrawHudString (fallback nativo) nao
+// aceita alpha, entao SO nesse caminho o texto ainda entra/sai "seco".
+static int SysTip_DrawLeftAligned( int x, int y, int lineGap, const char *szText, int r, int g, int b, int a )
 {
 	char buf[SYSTIP_MAX_TEXT];
 	Q_strncpy( buf, szText, sizeof( buf ));
@@ -169,7 +191,21 @@ static int SysTip_DrawLeftAligned( int x, int y, int lineGap, const char *szText
 		char *nl = strchr( sptr, '\n' );
 		if( nl ) *nl = '\0';
 
-		gHUD.DrawHudString( x, y + lines * lineGap, ScreenWidth, sptr, r, g, b );
+		int ly = y + lines * lineGap;
+
+		if( s_pSysTipFont )
+		{
+			int xcur = x;
+			for( const byte *p = (const byte *)sptr; *p; p++ )
+			{
+				RTN_TitleFont_DrawChar( s_pSysTipFont, xcur, ly, *p, s_flSysTipFontScale, r, g, b, a );
+				xcur += RTN_TitleFont_CharWidth( s_pSysTipFont, *p, s_flSysTipFontScale );
+			}
+		}
+		else
+		{
+			gHUD.DrawHudString( x, ly, ScreenWidth, sptr, r, g, b );
+		}
 		lines++;
 
 		if( !nl )
@@ -221,11 +257,27 @@ int CHudSystemTip::Draw( float flTime )
 		fFadeAlpha = ( m_fHideTime - curtime ) / m_fFadeOut;
 	fFadeAlpha = Q_min( 1.0f, Q_max( 0.0f, fFadeAlpha ));
 
+	// RTN: mesma fonte custom do hud_dialog.cpp (Roboto) - ver comentario
+	// no topo do arquivo. NULL cai pro caminho nativo automaticamente.
+	s_pSysTipFont = RTN_GetTitleFont( SYSTIP_FONT_NAME );
+
+	int nFontHeight;
+	if( s_pSysTipFont )
+	{
+		int iSize = XRES( 16 );
+		s_flSysTipFontScale = (float)iSize / (float)s_pSysTipFont->iBakeSize;
+		nFontHeight = RTN_TitleFont_LineHeight( s_pSysTipFont, s_flSysTipFontScale );
+	}
+	else
+	{
+		s_flSysTipFontScale = 1.0f;
+		nFontHeight = Q_max( 12, gHUD.m_iFontHeight );
+	}
+
 	// RTN F10 fix: layout era icone GRANDE empilhado ACIMA do texto (ficava
 	// por cima/colado nele). Referencia do Paranoia 2 (print mandado) e
 	// icone PEQUENO ao lado esquerdo do texto, os dois lado a lado - o
 	// bloco inteiro (icone+texto) e que fica centralizado na tela.
-	int nFontHeight = Q_max( 12, gHUD.m_iFontHeight );
 	int lineGap = nFontHeight + 2;
 	int iconSize = nFontHeight;			// do tamanho da fonte, nao 2x - "pequeno" como pedido
 	int iconTextGap = 8;
@@ -253,13 +305,9 @@ int CHudSystemTip::Draw( float flTime )
 
 	// texto a direita do icone, alinhado a esquerda dentro do bloco. Sem
 	// caixa, sem centralizar linha a linha - e um bloco unico com o icone.
-	// DrawHudString nao aceita alpha (so cor) - o fade in/out fica visivel
-	// no icone; o texto entra/sai "seco" junto dele, mesma limitacao do
-	// resto do HUD 2D do RTN (hud_radio/hud_dialog tambem nao esmaecem
-	// texto letra a letra).
 	int textX = blockX + iconSize + iconTextGap;
 	int textY = y + ( blockTall - textTall ) / 2;
-	SysTip_DrawLeftAligned( textX, textY, lineGap, m_szText, m_iR, m_iG, m_iB );
+	SysTip_DrawLeftAligned( textX, textY, lineGap, m_szText, m_iR, m_iG, m_iB, (int)( 255.0f * fFadeAlpha ));
 
 	return 1;
 }

@@ -17,9 +17,24 @@ linha 2+ ($color2) = a fala.
 #include "triangleapi.h"
 #include "texture_handle.h"
 #include "gl_local.h"
+#include "hud_titlefont.h"
 
 extern void OrthoQuad( int x1, int y1, int x2, int y2 );		// tri.cpp
 extern void RTN_Utf8ToCp1252( char *szText );				// mesmo fix do hud_radio
+
+// RTN F10 fix: a creditsFont nativa do engine nao tem acento latino de
+// verdade em NENHUMA variante cp1252 disponivel neste projeto (conferido
+// renderizando o atlas de cada uma - so tinha digito/simbolo lixo nos bytes
+// 0x80-0xFF). Diálogo usa a Roboto (fonte custom RTN, client/hud_titlefont.h)
+// por padrao agora - se o asset nao carregar por algum motivo, cai pra
+// DrawHudString nativo (mesmo texto, so sem garantia de acento certo).
+#define DLG_FONT_NAME	"roboto"
+
+// resolvidos 1x no topo de Draw() e lidos por DLG_MeasureString/
+// DLG_DrawMultilineCentered - evita passar fonte+escala por parametro em
+// toda chamada (as duas funcoes so sao chamadas de dentro de Draw() mesmo).
+static CRTNTitleFont *s_pDlgFont = NULL;
+static float s_flDlgFontScale = 1.0f;
 
 DECLARE_MESSAGE( m_Dialog, DialogShow )
 
@@ -159,24 +174,32 @@ void CHudDialog::SelectOption( int iSlot )
 
 // RTN F10 fix: a largura de texto era so uma estimativa (~11px/char), e
 // numa linha longa o erro acumulado (fonte real e mais estreita) jogava o
-// texto visivelmente pra esquerda do centro de verdade. O engine ja tem a
-// largura REAL de cada glifo (fonte de largura variavel) em
-// gHUD.m_scrinfo.charWidths[] - e a mesma tabela que CHud::DrawHudString
-// (client/hud_redraw.cpp) usa pra desenhar. Soma-la da a largura exata.
+// texto visivelmente pra esquerda do centro de verdade. Usa a largura REAL
+// de cada glifo - da fonte custom (s_pDlgFont) quando carregada, senao a
+// tabela nativa gHUD.m_scrinfo.charWidths[] (a mesma que CHud::DrawHudString
+// usa, client/hud_redraw.cpp) - os dois casos dao a largura exata.
 static int DLG_MeasureString( const char *sz )
 {
 	int width = 0;
-	for( const byte *p = (const byte *)sz; *p; p++ )
-		width += gHUD.m_scrinfo.charWidths[*p];
+	if( s_pDlgFont )
+	{
+		for( const byte *p = (const byte *)sz; *p; p++ )
+			width += RTN_TitleFont_CharWidth( s_pDlgFont, *p, s_flDlgFontScale );
+	}
+	else
+	{
+		for( const byte *p = (const byte *)sz; *p; p++ )
+			width += gHUD.m_scrinfo.charWidths[*p];
+	}
 	return width;
 }
 
-// DrawHudString NAO quebra "\n" sozinho (quem faz isso e o menu nativo,
-// client/menu.cpp, percorrendo a string na mao) - e npc_line pode ter
-// varias linhas de fala (mesma convencao do titles.txt normal). Desenha
-// cada pedaco separado por '\n' CENTRALIZADO (meio da tela, com a largura
-// REAL medida acima) numa linha propria e devolve quantas linhas desenhou,
-// pra Draw() somar na altura.
+// DrawHudString (e RTN_TitleFont_DrawChar) NAO quebram "\n" sozinhos (quem
+// faz isso e o menu nativo, client/menu.cpp, percorrendo a string na mao) -
+// e npc_line pode ter varias linhas de fala (mesma convencao do titles.txt
+// normal). Desenha cada pedaco separado por '\n' CENTRALIZADO (meio da tela,
+// com a largura REAL medida acima) numa linha propria e devolve quantas
+// linhas desenhou, pra Draw() somar na altura.
 static int DLG_DrawMultilineCentered( int y, int lineGap, const char *szText, int r, int g, int b )
 {
 	char buf[256];
@@ -190,7 +213,21 @@ static int DLG_DrawMultilineCentered( int y, int lineGap, const char *szText, in
 		if( nl ) *nl = '\0';
 
 		int x = ( ScreenWidth - DLG_MeasureString( sptr )) / 2;
-		gHUD.DrawHudString( x, y + lines * lineGap, ScreenWidth, sptr, r, g, b );
+		int ly = y + lines * lineGap;
+
+		if( s_pDlgFont )
+		{
+			int xcur = x;
+			for( const byte *p = (const byte *)sptr; *p; p++ )
+			{
+				RTN_TitleFont_DrawChar( s_pDlgFont, xcur, ly, *p, s_flDlgFontScale, r, g, b, 255 );
+				xcur += RTN_TitleFont_CharWidth( s_pDlgFont, *p, s_flDlgFontScale );
+			}
+		}
+		else
+		{
+			gHUD.DrawHudString( x, ly, ScreenWidth, sptr, r, g, b );
+		}
 		lines++;
 
 		if( !nl )
@@ -219,8 +256,26 @@ int CHudDialog::Draw( float flTime )
 	if( !m_bActive )
 		return 0;
 
-	int nFontHeight = Q_max( 12, gHUD.m_iFontHeight );
-	int lineGap = nFontHeight + 4;
+	// RTN: resolve a fonte custom 1x por frame - se o asset nao carregar
+	// (arquivo faltando/corrompido), s_pDlgFont fica NULL e todo o resto
+	// desta funcao cai pro caminho nativo automaticamente (ver
+	// DLG_MeasureString/DLG_DrawMultilineCentered acima).
+	s_pDlgFont = RTN_GetTitleFont( DLG_FONT_NAME );
+
+	int nFontHeight, lineGap;
+	if( s_pDlgFont )
+	{
+		int iSize = XRES( 16 );
+		s_flDlgFontScale = (float)iSize / (float)s_pDlgFont->iBakeSize;
+		nFontHeight = RTN_TitleFont_LineHeight( s_pDlgFont, s_flDlgFontScale );
+		lineGap = nFontHeight + 4;
+	}
+	else
+	{
+		s_flDlgFontScale = 1.0f;
+		nFontHeight = Q_max( 12, gHUD.m_iFontHeight );
+		lineGap = nFontHeight + 4;
+	}
 
 	int falaLines = ( m_szSpeaker[0] ? 1 : 0 ) + DLG_CountLines( m_szLine );
 	int falaTall = falaLines * lineGap;
