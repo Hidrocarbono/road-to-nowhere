@@ -167,16 +167,30 @@ int CHudStatus::Draw( float flTime )
 	int marginX = XRES( 12 );
 	int bottomMargin = YRES( 12 );
 
-	// Silhueta do soldado (vida): sprite 142x168, no canto inferior esquerdo
-	int sw = SPR_Width( m_hHealthEmpty, 0 );
-	int sh = SPR_Height( m_hHealthEmpty, 0 );
-	int sx = marginX;
-	int sy = ScreenHeight - bottomMargin - sh;
-
 	// barras: 240x10 originais, escaladas; armor em cima, stamina embaixo
 	int bw = XRES( 96 );
 	int bh = YRES( 8 );
 	int barGap = YRES( 3 );	// espaco vertical entre as duas barras
+
+	// stamina embaixo (mesma margem inferior da silhueta), armor em cima dela
+	int staminaBy = ScreenHeight - bottomMargin - bh;
+	int armorBy = staminaBy - bh - barGap;
+
+	// Silhueta do soldado (vida): sprite 142x168, no canto inferior esquerdo
+	int sw = SPR_Width( m_hHealthEmpty, 0 );
+	int sh = SPR_Height( m_hHealthEmpty, 0 );
+	int sx = marginX;
+	// RTN F10 fix (pedido do usuario): o topo da silhueta precisa ficar
+	// SEMPRE acima do topo da barra de armor, com uma folga visivel - antes
+	// sy vinha SO da altura nativa do sprite (bottomMargin - sh), entao se o
+	// sprite convertido fosse mais baixo que o 142x168 original a silhueta
+	// podia ficar do tamanho da pilha de barras, sem "destacar" dela. Usa o
+	// menor entre a posicao natural (alinhada pela base) e um topo forcado
+	// acima do armor - nao regride quando o sprite ja e alto o suficiente.
+	int healthTopClearance = YRES( 4 );
+	int syNatural = ScreenHeight - bottomMargin - sh;
+	int syAboveArmor = armorBy - healthTopClearance;
+	int sy = Q_min( syNatural, syAboveArmor );
 
 	// RTN F10 fix: a barra comecava em XRES(12) mas o icone era desenhado em
 	// XRES(6) com ~14 unidades de largura - o icone TERMINAVA depois da barra
@@ -188,10 +202,6 @@ int CHudStatus::Draw( float flTime )
 	int iconSlotW = Q_max( iconWArmor, iconWStam );
 	int iconBarGap = XRES( 4 );	// espaco entre o icone e a barra
 	int bx = marginX + iconSlotW + iconBarGap;
-
-	// stamina embaixo (mesma margem inferior da silhueta), armor em cima dela
-	int staminaBy = ScreenHeight - bottomMargin - bh;
-	int armorBy = staminaBy - bh - barGap;
 
 	// RTN F10 fix: icones agora centralizados na ALTURA REAL de cada barra
 	// (SPR_Height do proprio icone), nao numa estimativa fixa de 14 unidades -
