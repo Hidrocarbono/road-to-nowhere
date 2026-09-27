@@ -195,7 +195,14 @@ int CHudStatus::Draw( float flTime )
 	// ancora a silhueta de baixo pra cima a partir do PROPRIO armor: a base
 	// do sprite (sy+sh) fica exatamente barGap acima do topo do armor,
 	// sempre - a moldura transparente vira folga EXTRA, nunca sobreposicao.
-	int sy = armorBy - barGap - sh;
+	//
+	// RTN F11 fix (pedido do usuario): aproxima a silhueta do armor um
+	// pouco mais - a moldura transparente de ~26px na base do sprite (ver
+	// comentario acima) ja sobra bastante folga sobre o barGap "oficial",
+	// entao aparar uns pixels aqui so reduz esse respiro visual A MAIS,
+	// nao chega a tocar o barGap de verdade entre armor/stamina.
+	int healthGapTrim = YRES( 10 );
+	int sy = armorBy - barGap - sh + healthGapTrim;
 
 	// RTN F10 fix: a barra comecava em XRES(12) mas o icone era desenhado em
 	// XRES(6) com ~14 unidades de largura - o icone TERMINAVA depois da barra
