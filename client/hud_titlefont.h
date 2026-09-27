@@ -32,6 +32,7 @@ class CRTNTitleFont
 {
 public:
 	char				szName[32];		// nome curto usado em "$font <nome>"
+	char				szSpritePath[128];	// caminho do atlas (linha "sprite" do .rtnfont) - guardado pra RTN_TitleFont_VidInit poder recarregar sem reler o .rtnfont
 	SpriteHandle		hSprite;		// atlas (game_dir/sprites/fonts/<nome>.spr)
 	int					iBakeSize;		// tamanho (px) em que o atlas foi rasterizado
 	int					iLineHeight;	// altura de linha, mesma unidade do bake
@@ -45,6 +46,22 @@ public:
 // fonts/<nome>.rtnfont nao existem ou sao invalidos (mensagem no console
 // nesse caso - nao trava o jogo, so cai de volta pra fonte do engine).
 CRTNTitleFont *RTN_GetTitleFont( const char *pszName );
+
+// RTN F11 fix (fonte quebra/some depois de recarregar o mapa): o SpriteHandle
+// de cada fonte custom e um recurso de GPU/model-cache do engine, igual a
+// QUALQUER OUTRO sprite deste client (ver client/hud.cpp CHud::VidInit - o
+// comentario nativo do proprio SDK ja diz "we need to make sure all the
+// sprites have been loaded, we've gone through a transition, or loaded a
+// save game" e recarrega TODOS os sprites de hud.txt a cada VidInit, nao so
+// na primeira vez). RTN_GetTitleFont() cacheia CRTNTitleFont por nome e
+// NUNCA recarregava hSprite depois da primeira vez - apos uma transicao de
+// mapa (changelevel, reload, novo load) o handle antigo fica invalido
+// (aponta pra outra textura ja reciclada, ou pra nada), e desenhar com ele
+// via DrawSpriteAsPoly amostra lixo (os "quadradinhos") ou nada. Chamado de
+// CHud::VidInit() junto com todos os outros LoadSprite() do HUD - so
+// re-chama LoadSprite() pro caminho ja conhecido de cada fonte ja carregada,
+// nao reparseia o .rtnfont inteiro (metricas de glifo nao mudam entre mapas).
+void RTN_TitleFont_VidInit( void );
 
 // Consulta as diretivas $font/$fontsize do bloco de titles.txt cujo nome eh
 // pszMessageName (ver formato no comentario de RTN_ParseTitleFontDirectives,
