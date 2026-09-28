@@ -36,6 +36,7 @@ private:
 	bool	m_bActive;
 	int	m_iIcon;
 	char	m_szText[SYSTIP_MAX_TEXT];
+	char	m_szTextKey[SYSTIP_MAX_TEXT];	// RTN F12: chave titles.txt (guardada p/ Draw() consultar $fontsize/$font via RTN_GetTitleFontOverride)
 	int	m_iR, m_iG, m_iB;
 	float	m_fShowTime;
 	float	m_fHideTime;
@@ -46,6 +47,7 @@ private:
 	bool	m_bHasNext;
 	int	m_iNextIcon;
 	char	m_szNextText[SYSTIP_MAX_TEXT];
+	char	m_szNextTextKey[SYSTIP_MAX_TEXT];
 	int	m_iNextR, m_iNextG, m_iNextB;
 	float	m_fNextHold, m_fNextFadeIn, m_fNextFadeOut;
 

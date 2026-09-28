@@ -40,6 +40,7 @@ private:
 
 	char	m_szSpeaker[64];		// linha 1 do bloco titles.txt (nome do falante)
 	char	m_szLine[256];			// linha 2+ (a fala em si)
+	char	m_szLineKey[DLG_HUD_MAX_TEXT];	// RTN F12: chave de npc_line (guardada p/ Draw() consultar $fontsize/$font via RTN_GetTitleFontOverride)
 
 	int	m_iNumSlots;
 	char	m_szOptions[DLG_HUD_MAX_SLOTS][DLG_HUD_MAX_TEXT];
