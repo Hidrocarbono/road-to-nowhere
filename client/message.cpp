@@ -418,7 +418,17 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time, i
 		m_parms.width = 0;
 		m_parms.useColor2 = ( i > 0 );  // RTN F10: linha 0 = titulo (cor1), resto = mensagem (cor2)
 
-		while( *pText && *pText != '\n' )
+		// RTN F12 fix (crash): "line" e um array FIXO de 80 bytes (declarado no
+		// topo da funcao) - sem este teto, uma linha de titles.txt com 80+
+		// caracteres (sem quebra manual de "\n") estourava a pilha aqui,
+		// escrevendo por cima de memoria vizinha sem nenhum aviso - o jogo so
+		// crashava, sem log nenhum apontando a causa. Isso e herdado do
+		// message.cpp original do SDK da HL (o buffer de 80 bytes ja existia),
+		// so nunca estourava porque titles.txt classico era sempre curto.
+		// Linha mais longa que o buffer agora so trunca em vez de corromper a
+		// pilha - sem mudanca de comportamento pra qualquer linha dentro do
+		// limite.
+		while( *pText && *pText != '\n' && m_parms.lineLength < sizeof( line ) - 1 )
 		{
 			byte c = *pText;
 			line[m_parms.lineLength] = c;
@@ -426,6 +436,13 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time, i
 			m_parms.lineLength++;
 			pText++;
 		}
+
+		// RTN F12 fix: se a linha truncou (ainda nao chegou no '\n' nem no fim
+		// da string), consome o resto da linha original SEM desenha-la - senao
+		// o restante vira a PROXIMA linha desenhada (texto embaralhado), em vez
+		// de simplesmente sumir (comportamento esperado de truncamento).
+		while( *pText && *pText != '\n' )
+			pText++;
 
 		pText++; // Skip LF
 		line[m_parms.lineLength] = 0;
