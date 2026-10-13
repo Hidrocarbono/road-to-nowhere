@@ -70,6 +70,7 @@ void CHudDialog::ResetState( void )
 	m_bActive = false;
 	m_iTurn = 0;
 	m_szSpeaker[0] = m_szLine[0] = 0;
+	m_szLineKey[0] = 0;
 	m_iNumSlots = 0;
 	for( int i = 0; i < DLG_HUD_MAX_SLOTS; i++ )
 		m_szOptions[i][0] = 0;
@@ -158,6 +159,11 @@ int CHudDialog::MsgFunc_DialogShow( const char *pszName, int iSize, void *pbuf )
 	DLG_ResolveSpeaker( npcLineKey, m_szSpeaker, sizeof( m_szSpeaker ), m_szLine, sizeof( m_szLine ));
 	RTN_Utf8ToCp1252( m_szSpeaker );
 	RTN_Utf8ToCp1252( m_szLine );
+
+	// RTN F12: guarda a chave (nao o texto) - Draw() usa pra consultar
+	// $font/$fontsize desse bloco especifico em titles.txt (RTN_GetTitleFontOverride,
+	// mesma diretiva que message.cpp ja suporta pra HudText generico).
+	Q_strncpy( m_szLineKey, npcLineKey, sizeof( m_szLineKey ));
 
 	for( int i = 0; i < numSlots; i++ )
 	{
@@ -268,11 +274,22 @@ int CHudDialog::Draw( float flTime )
 	if( !m_bActive )
 		return 0;
 
+	// RTN F12: permite "$font"/"$fontsize" no bloco de npc_line (titles.txt)
+	// sobrescrever a fonte/tamanho padrao deste dialogo especifico - mesma
+	// diretiva e mesma funcao que message.cpp ja usa pra HudText generico
+	// (RTN_GetTitleFontOverride). Sem "$font" no bloco, szFontName continua
+	// DLG_FONT_NAME e iFontSizeOverride continua 0 (usa o padrao abaixo).
+	char szFontName[32];
+	Q_strncpy( szFontName, DLG_FONT_NAME, sizeof( szFontName ));
+	int iFontSizeOverride = 0;
+	if( m_szLineKey[0] )
+		RTN_GetTitleFontOverride( m_szLineKey, szFontName, sizeof( szFontName ), &iFontSizeOverride );
+
 	// RTN: resolve a fonte custom 1x por frame - se o asset nao carregar
 	// (arquivo faltando/corrompido), s_pDlgFont fica NULL e todo o resto
 	// desta funcao cai pro caminho nativo automaticamente (ver
 	// DLG_MeasureString/DLG_DrawMultilineCentered acima).
-	s_pDlgFont = RTN_GetTitleFont( DLG_FONT_NAME );
+	s_pDlgFont = RTN_GetTitleFont( szFontName );
 
 	// RTN F11 fix (tamanho): a formula antiga (Q_max(8, Q_max(12,
 	// gHUD.m_iFontHeight) - 7)) tinha DOIS problemas empilhados. Primeiro,
@@ -289,7 +306,9 @@ int CHudDialog::Draw( float flTime )
 	// de 24px = escala 0.58, testado legivel em simulacao (13-18px checados,
 	// ver conversa) e do lado pequeno da faixa por causa do padrao repetido
 	// de feedback "ainda esta grande" nas rodadas anteriores.
-	int nFontHeight = 14;
+	// RTN F12: "$fontsize" no bloco de npc_line (ver acima) sobrescreve esse
+	// 14 padrao, se presente.
+	int nFontHeight = ( iFontSizeOverride > 0 ) ? iFontSizeOverride : 14;
 	int lineGap = nFontHeight + 4;
 
 	if( s_pDlgFont )

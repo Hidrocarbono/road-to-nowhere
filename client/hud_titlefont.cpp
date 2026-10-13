@@ -140,7 +140,25 @@ static bool RTN_LoadTitleFontFile( CRTNTitleFont *pFont, const char *pszName )
 		pFont->iLineHeight = pFont->iBakeSize; // fallback razoavel
 
 	Q_strncpy( pFont->szName, pszName, sizeof( pFont->szName ));
+	Q_strncpy( pFont->szSpritePath, szSpritePath, sizeof( pFont->szSpritePath )); // RTN F11: guardado pra RTN_TitleFont_VidInit recarregar depois
 	return true;
+}
+
+// RTN F11 fix: ver comentario completo em hud_titlefont.h, na declaracao.
+// Chamado de CHud::VidInit() (client/hud.cpp) - mesma hora em que TODO outro
+// sprite do HUD e recarregado apos uma transicao de mapa/load de save.
+void RTN_TitleFont_VidInit( void )
+{
+	for( int i = 0; i < g_iTitleFontCount; i++ )
+	{
+		CRTNTitleFont *pFont = &g_TitleFonts[i];
+		if( !pFont->IsValid() || !pFont->szSpritePath[0] )
+			continue; // nunca carregou de verdade (nome so reservado apos falha) - nada pra recarregar
+
+		pFont->hSprite = LoadSprite( pFont->szSpritePath );
+		if( !pFont->hSprite )
+			gEngfuncs.Con_Printf( "RTN titlefont: '%s' - falha ao recarregar o atlas %s apos transicao de mapa\n", pFont->szName, pFont->szSpritePath );
+	}
 }
 
 CRTNTitleFont *RTN_GetTitleFont( const char *pszName )

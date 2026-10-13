@@ -67,6 +67,7 @@ void CHudSystemTip::ResetState( void )
 	m_bHasNext = false;
 	m_iIcon = 0;
 	m_szText[0] = 0;
+	m_szTextKey[0] = 0;
 	m_iR = m_iG = m_iB = 255;
 	m_fShowTime = m_fHideTime = 0.0f;
 	m_fFadeIn = 0.3f;
@@ -111,6 +112,7 @@ int CHudSystemTip::MsgFunc_SystemTip( const char *pszName, int iSize, void *pbuf
 		// mostra agora
 		m_iIcon = iIcon;
 		Q_strncpy( m_szText, szText, sizeof( m_szText ));
+		Q_strncpy( m_szTextKey, szKey, sizeof( m_szTextKey ));	// RTN F12: p/ Draw() consultar $fontsize/$font
 		m_iR = r; m_iG = g; m_iB = b;
 		m_fFadeIn = fadein;
 		m_fFadeOut = fadeout;
@@ -124,6 +126,7 @@ int CHudSystemTip::MsgFunc_SystemTip( const char *pszName, int iSize, void *pbuf
 		// ja tem um na tela - enfileira (mesma logica do hud_radio)
 		m_iNextIcon = iIcon;
 		Q_strncpy( m_szNextText, szText, sizeof( m_szNextText ));
+		Q_strncpy( m_szNextTextKey, szKey, sizeof( m_szNextTextKey ));
 		m_iNextR = r; m_iNextG = g; m_iNextB = b;
 		m_fNextFadeIn = fadein;
 		m_fNextFadeOut = fadeout;
@@ -241,6 +244,7 @@ int CHudSystemTip::Draw( float flTime )
 		{
 			m_iIcon = m_iNextIcon;
 			Q_strncpy( m_szText, m_szNextText, sizeof( m_szText ));
+			Q_strncpy( m_szTextKey, m_szNextTextKey, sizeof( m_szTextKey ));
 			m_iR = m_iNextR; m_iG = m_iNextG; m_iB = m_iNextB;
 			m_fFadeIn = m_fNextFadeIn;
 			m_fFadeOut = m_fNextFadeOut;
@@ -262,9 +266,18 @@ int CHudSystemTip::Draw( float flTime )
 		fFadeAlpha = ( m_fHideTime - curtime ) / m_fFadeOut;
 	fFadeAlpha = Q_min( 1.0f, Q_max( 0.0f, fFadeAlpha ));
 
+	// RTN F12: "$font"/"$fontsize" no bloco do texto atual (titles.txt)
+	// sobrescreve a fonte/tamanho padrao - mesma diretiva/funcao que
+	// hud_dialog.cpp e message.cpp ja usam (RTN_GetTitleFontOverride).
+	char szFontName[32];
+	Q_strncpy( szFontName, SYSTIP_FONT_NAME, sizeof( szFontName ));
+	int iFontSizeOverride = 0;
+	if( m_szTextKey[0] )
+		RTN_GetTitleFontOverride( m_szTextKey, szFontName, sizeof( szFontName ), &iFontSizeOverride );
+
 	// RTN: mesma fonte custom do hud_dialog.cpp (Roboto) - ver comentario
 	// no topo do arquivo. NULL cai pro caminho nativo automaticamente.
-	s_pSysTipFont = RTN_GetTitleFont( SYSTIP_FONT_NAME );
+	s_pSysTipFont = RTN_GetTitleFont( szFontName );
 
 	// RTN F11 fix (tamanho): mesma causa raiz e mesma solucao do
 	// hud_dialog.cpp (ver comentario completo la, perto do #define
@@ -272,7 +285,8 @@ int CHudSystemTip::Draw( float flTime )
 	// bake de 63px do "roboto" (~8x de minificacao, ilegivel via
 	// DrawSpriteAsPoly). Com "roboto_small" (bake 24px), alvo fixo de 14px
 	// = escala 0.58, testado legivel em simulacao.
-	int nFontHeight = 14;
+	// RTN F12: "$fontsize" (ver acima) sobrescreve esse 14 padrao, se presente.
+	int nFontHeight = ( iFontSizeOverride > 0 ) ? iFontSizeOverride : 14;
 
 	if( s_pSysTipFont )
 		s_flSysTipFontScale = (float)nFontHeight / (float)s_pSysTipFont->iBakeSize;

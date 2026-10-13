@@ -5,6 +5,7 @@
 #include "hud.h"
 #include "utils.h"
 #include "parsemsg.h"
+#include "hud_titlefont.h"
 
 void CHud :: Init( void )
 {
@@ -207,6 +208,16 @@ void CHud :: VidInit( void )
 	m_Radio.VidInit();  // RTN F10: radio_sentence (icone do speaker + talker)
 	m_Dialog.VidInit(); // RTN: dialogo com escolhas do jogador
 	m_SystemTip.VidInit(); // RTN: aviso de sistema (save/dica) com icone
+
+	// RTN F11 fix: sem isso, o atlas da fonte custom (Roboto) fica com um
+	// SpriteHandle invalido depois de qualquer transicao de mapa/load de
+	// save - texto some ou vira ruido (ver comentario completo em
+	// hud_titlefont.h, RTN_TitleFont_VidInit). Mesma logica que ja se aplica
+	// a TODOS os sprites de hud.txt acima (recarregados aqui, nao so na
+	// primeira vez) e a cada outro LoadSprite() do HUD (m_Status, m_RTNItems
+	// etc, cada um dentro do proprio VidInit) - a fonte custom so nao seguia
+	// esse padrao ainda.
+	RTN_TitleFont_VidInit();
 }
 
 void CHud::AddHudElem( CHudBase *phudelem )

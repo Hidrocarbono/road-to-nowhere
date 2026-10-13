@@ -141,6 +141,15 @@ public:
 	void SetYawSpeed ( void );
 	int  Classify ( void );
 	int ISoundMask ( void );
+	// RTN: sem isso o "+USE" (e a maozinha de interacao) nunca reage ao
+	// grunt, mesmo com "dialog_target" setado - CBaseMonster/CSquadMonster
+	// nao declaram nenhuma capacidade de USE (so CTalkMonster/CScientist
+	// fazem isso nativamente, ver scientist.h). player.cpp filtra por
+	// ObjectCaps() ANTES de chamar Use() (PlayerUse(), linha ~1466) e antes
+	// de mandar gmsgCanUse pro cliente (linha ~1921) - sem o bit aqui, os
+	// dois gates rejeitam o grunt antes mesmo do hook de dialogo em
+	// CBaseMonster::Use() (monsters.cpp) ser alcançado.
+	int ObjectCaps( void ) { return CSquadMonster :: ObjectCaps() | FCAP_IMPULSE_USE | FCAP_DISTANCE_USE; }
 	void HandleAnimEvent( MonsterEvent_t *pEvent );
 	BOOL FCanCheckAttacks ( void );
 	BOOL CheckMeleeAttack1 ( float flDot, float flDist );
