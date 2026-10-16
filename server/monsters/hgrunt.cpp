@@ -106,44 +106,12 @@ int CHGrunt::IRelationship ( CBaseEntity *pTarget )
 }
 
 //=========================================================
-// GibMonster - make gun fly through the air.
+// GibMonster - RTN: nao dropa mais arma classica do HL (weapon_shotgun/
+// weapon_9mmAR/ammo_ARgrenades) - ver DropRandomLoot()/Killed() abaixo, que
+// ja decide o loot (e o bodygroup da arma) ANTES deste gib acontecer.
 //=========================================================
 void CHGrunt :: GibMonster ( void )
 {
-	Vector	vecGunPos;
-	Vector	vecGunAngles;
-
-	if ( GetBodygroup( 2 ) != 2 && !( pev->spawnflags & SF_MONSTER_NO_WPN_DROP ))
-	{
-		// throw a gun if the grunt has one
-		GetAttachment( 0, vecGunPos, vecGunAngles );
-		
-		CBaseEntity *pGun;
-		if( HasWeapon( HGRUNT_SHOTGUN ))
-		{
-			pGun = DropItem( "weapon_shotgun", vecGunPos, vecGunAngles );
-		}
-		else
-		{
-			pGun = DropItem( "weapon_9mmAR", vecGunPos, vecGunAngles );
-		}
-		if ( pGun )
-		{
-			pGun->SetLocalVelocity( Vector( RANDOM_FLOAT( -100, 100 ), RANDOM_FLOAT( -100, 100 ), RANDOM_FLOAT( 200, 300 )));
-			pGun->SetLocalAvelocity( Vector( 0, RANDOM_FLOAT( 200, 400 ), 0 ));
-		}
-	
-		if( HasWeapon( HGRUNT_GRENADELAUNCHER ))
-		{
-			pGun = DropItem( "ammo_ARgrenades", vecGunPos, vecGunAngles );
-			if ( pGun )
-			{
-				pGun->SetLocalVelocity( Vector( RANDOM_FLOAT( -100, 100 ), RANDOM_FLOAT( -100, 100 ), RANDOM_FLOAT( 200, 300 )));
-				pGun->SetLocalAvelocity( Vector( 0, RANDOM_FLOAT( 200, 400 ), 0 ));
-			}
-		}
-	}
-
 	CBaseMonster :: GibMonster();
 }
 
@@ -334,8 +302,9 @@ void CHGrunt :: DropRandomLoot( entvars_t *pevAttacker )
 		return;
 
 	const char *pszClassname = "ammo_9mmclip";
+	int iLootType = HGrunt_PickWeightedLootType();
 
-	switch ( HGrunt_PickWeightedLootType() )
+	switch ( iLootType )
 	{
 	case HGRUNT_LOOT_AMMO:
 		pszClassname = HGrunt_AmmoClassnameForKiller( pevAttacker );
@@ -352,6 +321,16 @@ void CHGrunt :: DropRandomLoot( entvars_t *pevAttacker )
 	}
 
 	CBaseEntity::Create( (char *)pszClassname, GetAbsOrigin(), GetAbsAngles() );
+
+	// RTN: so troca pro corpo sem arma na mao quando o sorteio foi MUNICAO -
+	// nos outros resultados (bateria/painkiller/estimulante) e nos 70% que nao
+	// dropam nada, o cadaver fica com a arma visivel. Da variedade visual
+	// (uns corpos armados, outros nao) e funciona como pista indireta pro
+	// jogador: corpo desarmado = "a municao dele foi usada", por assim dizer.
+	// SF_MONSTER_NO_WPN_DROP continua sendo respeitado - mapper que marcar
+	// essa flag garante o corpo sempre armado, nao importa o sorteio.
+	if ( iLootType == HGRUNT_LOOT_AMMO && !( pev->spawnflags & SF_MONSTER_NO_WPN_DROP ))
+		SetBodygroup( GUN_GROUP, GUN_NONE );
 }
 
 //=========================================================
@@ -1012,34 +991,11 @@ void CHGrunt :: HandleAnimEvent( MonsterEvent_t *pEvent )
 	switch( pEvent->event )
 	{
 		case HGRUNT_AE_DROP_GUN:
-			{
-
-			if( pev->spawnflags & SF_MONSTER_NO_WPN_DROP )
-				break; //LRC
-
-			Vector	vecGunPos;
-			Vector	vecGunAngles;
-
-			GetAttachment( 0, vecGunPos, vecGunAngles );
-
-			// switch to body group with no gun.
-			SetBodygroup( GUN_GROUP, GUN_NONE );
-
-			// now spawn a gun.
-			if (HasWeapon( HGRUNT_SHOTGUN ))
-			{
-				 DropItem( "weapon_shotgun", vecGunPos, vecGunAngles );
-			}
-			else
-			{
-				 DropItem( "weapon_9mmAR", vecGunPos, vecGunAngles );
-			}
-			if (HasWeapon( HGRUNT_GRENADELAUNCHER ))
-			{
-				DropItem( "ammo_ARgrenades", BodyTarget( GetAbsOrigin() ), vecGunAngles );
-			}
-
-			}
+			// RTN: nao dropa mais arma classica do HL aqui - a decisao de
+			// soltar algo (e de trocar o bodygroup pra GUN_NONE) ja aconteceu
+			// antes, em Killed()/DropRandomLoot(), no momento da morte (nao
+			// no meio da animacao). Mantido como no-op explicito pra nao cair
+			// no default do switch (CSquadMonster::HandleAnimEvent).
 			break;
 
 		case HGRUNT_AE_RELOAD:
