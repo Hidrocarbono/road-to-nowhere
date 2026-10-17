@@ -47,6 +47,7 @@ BEGIN_DATADESC( CHGrunt )
 	DEFINE_FIELD( m_iSentence, FIELD_INTEGER ),
 	DEFINE_FIELD( m_hFlashlight, FIELD_EHANDLE ),
 	DEFINE_FIELD( m_flNextWanderTime, FIELD_TIME ),
+	DEFINE_FIELD( m_vecPostOrigin, FIELD_POSITION_VECTOR ),
 //	DEFINE_FIELD( m_iLastFireCheckResult, FIELD_INTEGER ), // não salva, é recalculado a cada CheckRangeAttack1
 END_DATADESC()
 
@@ -559,6 +560,13 @@ BOOL CHGrunt :: WanderRandomly ( void )
 	{
 		int iCandidate = RANDOM_LONG( 0, WorldGraph.m_cNodes - 1 );
 		if ( iCandidate == iMyNode )
+			continue;
+
+		// RTN: mesma coleira do combate (HGRUNT_LEASH_RADIUS) - não deixa o
+		// wander ocioso ir sortear destino do outro lado do mapa, longe do
+		// posto. Sem isso o grunt podia já estar longe antes mesmo de ver
+		// o jogador.
+		if ( IsPastLeash( WorldGraph.Node( iCandidate ).m_vecOrigin ) )
 			continue;
 
 		float flPathLength = WorldGraph.PathLength( iMyNode, iCandidate, iMyHullIndex, m_afCapability );
@@ -1116,6 +1124,11 @@ void CHGrunt :: Spawn()
 	pev->movetype		= MOVETYPE_STEP;
 	m_bloodColor		= BLOOD_COLOR_RED;
 	pev->effects		= 0;
+
+	// RTN: centro da coleira territorial - capturado uma unica vez aqui,
+	// antes de qualquer AI mover o grunt. Ver HGRUNT_LEASH_RADIUS (hgrunt.h).
+	if ( m_vecPostOrigin == g_vecZero )
+		m_vecPostOrigin = GetAbsOrigin();
 
 	if (!pev->health) 
 		pev->health	= gSkillData.hgruntHealth;

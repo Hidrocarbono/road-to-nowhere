@@ -995,6 +995,15 @@ void CBaseMonster :: StartTask ( Task_t *pTask )
 		}
 	case TASK_GET_PATH_TO_ENEMY_LKP:
 		{
+			// RTN: coleira territorial - ver IsPastLeash() em basemonster.h.
+			// Default FALSE pra quem nao sobrescreve, entao nao muda nada
+			// pra ninguem alem de quem opta (hoje so CHGrunt).
+			if ( IsPastLeash( m_vecEnemyLKP ) )
+			{
+				TaskFail();
+				break;
+			}
+
 			if ( BuildRoute ( m_vecEnemyLKP, bits_MF_TO_LOCATION, NULL ) )
 			{
 				TaskComplete();
@@ -1019,6 +1028,13 @@ void CBaseMonster :: StartTask ( Task_t *pTask )
 			{
 				TaskFail();
 				return;
+			}
+
+			// RTN: coleira territorial - mesmo ponto unico do _LKP acima.
+			if ( IsPastLeash( pEnemy->GetAbsOrigin() ) )
+			{
+				TaskFail();
+				break;
 			}
 
 			if ( BuildRoute ( pEnemy->GetAbsOrigin(), bits_MF_TO_ENEMY, pEnemy ) )

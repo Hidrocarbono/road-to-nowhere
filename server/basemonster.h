@@ -261,6 +261,14 @@ public:
 		virtual BOOL FValidateCover ( const Vector &vecCoverLocation ) { return TRUE; };
 		virtual float CoverRadius( void ) { return 784; } // Default cover radius
 
+		// RTN: coleira territorial - default sem coleira (comportamento igual
+		// a hoje pra quem nao sobrescrever). CHGrunt sobrescreve pra nao sair
+		// perseguindo o inimigo pra longe do posto. Checado num unico lugar
+		// (TASK_GET_PATH_TO_ENEMY/_LKP em schedule.cpp) que toda rota ate o
+		// inimigo passa, inclusive schedules de squad (carga/flanco) - ver
+		// squadmonster.cpp, que so coordena papeis, quem anda e cada monstro.
+		virtual bool IsPastLeash( const Vector &vecTarget ) { return false; }
+
 		// procura o node mais PERTO DE MIM (não do inimigo) que já tenha linha de tiro
 		// livre até o inimigo — pra não precisar sair andando pro meio do campo aberto
 		// só porque a rota "direto pro inimigo" não passa perto de nenhum ponto coberto.

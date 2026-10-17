@@ -83,6 +83,14 @@ int g_fGruntQuestion;				// true if an idle grunt asked a question. Cleared when
 #define SF_GRUNT_FLASHLIGHT_ON		8192	// começa ligada (só importa se HAS_FLASHLIGHT também estiver marcado)
 #define SF_GRUNT_NO_WANDER			16384	// não vaguear à toa por node quando ocioso (opt-out, ver WanderRandomly)
 
+// RTN: coleira territorial - raio em torno do posto (m_vecPostOrigin,
+// capturado no Spawn()) dentro do qual o grunt aceita se mover pra perseguir
+// o inimigo (combate) ou vaguear (WanderRandomly). Fora disso ele nao sai do
+// lugar - continua atirando se tiver alcance/linha de tiro dali mesmo, so
+// nao caminha na direcao do inimigo. Ver IsPastLeash() (basemonster.h) e o
+// checkpoint unico em schedule.cpp (TASK_GET_PATH_TO_ENEMY/_LKP).
+#define HGRUNT_LEASH_RADIUS			750.0f
+
 //=========================================================
 // Monster's Anim Events Go Here
 //=========================================================
@@ -157,6 +165,7 @@ public:
 	BOOL CheckRangeAttack2 ( float flDot, float flDist );
 	BOOL IsGrenadeSpotSafe ( void ); // false se tem obstáculo perto o bastante da granada quicar de volta
 	BOOL WanderRandomly ( void ); // sem patrulha no mapa, escolhe um node aleatório por perto e anda até lá
+	bool IsPastLeash( const Vector &vecTarget ) { return ( vecTarget - m_vecPostOrigin ).Length() > HGRUNT_LEASH_RADIUS; }
 	void CheckAmmo ( void );
 	void SetActivity ( Activity NewActivity );
 	void StartTask ( Task_t *pTask );
@@ -221,6 +230,8 @@ public:
 	EHANDLE	m_hFlashlight; // env_dynlight anexado à arma, ver InitFlashlight()
 
 	float	m_flNextWanderTime; // cooldown do WanderRandomly() — tanto pra esperar parado quanto pra tentar de novo se falhou
+
+	Vector	m_vecPostOrigin; // posição de spawn, capturada uma vez no Spawn() - centro da coleira (ver HGRUNT_LEASH_RADIUS/IsPastLeash)
 
 	static const char *pGruntSentences[];
 };
