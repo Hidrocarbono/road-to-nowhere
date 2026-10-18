@@ -65,6 +65,7 @@ cvar_t *gl_fog_sky_horizon;		// RTN: horizonte no ceu
 cvar_t *gl_sky_clouds;			// RTN: nuvem animada no skybox
 cvar_t *gl_sky_clouds_scale;		// RTN: nuvem animada - tiling
 cvar_t *gl_sky_clouds_speed;		// RTN: nuvem animada - velocidade
+cvar_t *gl_sky_clouds_tint;		// RTN: nuvem animada - tingimento pela cor do sol/ceu
 cvar_t *gl_sky_clouds_opacity;		// RTN: nuvem animada - opacidade
 cvar_t *r_dof_fstop;
 cvar_t *r_dof_debug;
@@ -303,5 +304,13 @@ void R_InitializeConVars()
 	gl_sky_clouds_scale = CVAR_REGISTER("gl_sky_clouds_scale", "0.08", FCVAR_ARCHIVE);
 	gl_sky_clouds_speed = CVAR_REGISTER("gl_sky_clouds_speed", "0.006", FCVAR_ARCHIVE);
 	gl_sky_clouds_opacity = CVAR_REGISTER("gl_sky_clouds_opacity", "0.09", FCVAR_ARCHIVE);
+
+	// gl_sky_clouds_tint: a nuvem era mix() para vec3(1.0), branco puro, que
+	// ignora a iluminacao do ceu - num por-do-sol ela clareia e dessatura o
+	// fundo. Agora o matiz vem de u_LightDiffuse (cor do sol, ou ambiente do
+	// ceu se o mapa nao tem sol), normalizado para o canal maior = 1.0, entao
+	// SO O MATIZ muda, o brilho continua o mesmo de antes.
+	// 0 = branco puro (comportamento antigo), 1 = totalmente tingida.
+	gl_sky_clouds_tint = CVAR_REGISTER("gl_sky_clouds_tint", "1.0", FCVAR_ARCHIVE);
 }
 

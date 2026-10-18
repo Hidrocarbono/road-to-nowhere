@@ -26,6 +26,7 @@ uniform vec3		u_ViewOrigin;
 uniform vec4		u_FogParams;
 uniform vec4		u_FogParams2;	// RTN: aqui .x = forca do gradiente de horizonte (0..1) - campos diferentes de fog.h, ver comentario abaixo
 uniform vec4		u_CloudParams;	// RTN: .xy = offset de scroll (UV), .z = tiling, .w = opacidade (0 = camada desligada)
+uniform vec4		u_CloudParams2;	// RTN: .x = tint (0 = nuvem branca pura, 1 = matiz do sol/ceu)
 
 varying vec4		var_Vertex;
 varying vec2		var_TexCoord;
@@ -62,7 +63,14 @@ void main()
 	vec3 cloudDir = normalize( var_Vertex.xyz - u_ViewOrigin );
 	vec2 cloudUV = ( cloudDir.xy / max( abs( cloudDir.z ) + 0.15, 0.15 )) * u_CloudParams.z + u_CloudParams.xy;
 	float cloudCoverage = colormap2D( u_CloudMap, cloudUV ).a * u_CloudParams.w;
-	diffuse.rgb = mix( diffuse.rgb, vec3( 1.0 ), cloudCoverage );
+	// RTN: matiz da nuvem vem de u_LightDiffuse (sol, ou ambiente do ceu sem sol),
+	// normalizado pelo canal maior - so o MATIZ muda, o brilho segue 1.0 como
+	// quando era vec3( 1.0 ). Piso em 0.001 evita dividir por ~0 (mapa sem sol
+	// e sem ambiente) - cai em branco, nunca em nuvem preta.
+	float cloudTintMax = max( max( u_LightDiffuse.r, u_LightDiffuse.g ), u_LightDiffuse.b );
+	vec3 cloudTint = ( cloudTintMax > 0.001 ) ? ( u_LightDiffuse / cloudTintMax ) : vec3( 1.0 );
+	vec3 cloudColor = mix( vec3( 1.0 ), cloudTint, clamp( u_CloudParams2.x, 0.0, 1.0 ));
+	diffuse.rgb = mix( diffuse.rgb, cloudColor, cloudCoverage );
 
 	if( bool( u_FogParams.w > 0.0 ))
 	{

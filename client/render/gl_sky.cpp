@@ -26,6 +26,44 @@ static TextureHandle RTN_GetCloudTexture()
 	return g_cloudTexture;
 }
 
+// RTN: ponto de partida do scroll, derivado do nome do mapa.
+//
+// O scroll era fmodf(tr.time * speed, 1.0), e tr.time parte de ~0 a cada
+// carga de mapa - entao a nuvem sempre comecava em UV (0,0). Olhando pro
+// zenite (xy ~ 0) o UV amostrado E o scroll, e (0,0) e o canto da textura,
+// onde clouds.tga tem alpha ~0 (a arte esmaece nas 4 bordas; 85% do alpha
+// esta no quadrado central). Resultado: ceu vazio ate o aglomerado "chegar"
+// sempre do mesmo lado.
+//
+// Parte-se de uma base dentro da regiao densa (0.4) mais um jitter de +-0.1
+// vindo de um hash FNV-1a do nome do mapa: cada mapa comeca num ponto
+// diferente e reproduzivel, sem cair no canto vazio. A base fica ANTES do
+// centro (0.5) de proposito, porque o scroll anda no sentido +UV - assim o
+// aglomerado atravessa o centro em vez de ja ter passado dele.
+static void RTN_CloudSeed( float &seedX, float &seedY )
+{
+	static char cachedName[64] = "";
+	static float cachedX = 0.4f, cachedY = 0.4f;
+	const char *name = world ? world->name : "";
+
+	if( Q_strncmp( cachedName, name, sizeof( cachedName ) - 1 ))
+	{
+		unsigned int h = 2166136261u;
+		for( const char *p = name; *p; p++ )
+			h = ( h ^ (unsigned char)tolower( *p )) * 16777619u;
+
+		// dois valores 0..1 independentes do mesmo hash
+		float jx = (float)( h & 0xFFFFu ) / 65535.0f;
+		float jy = (float)(( h >> 16 ) & 0xFFFFu ) / 65535.0f;
+		cachedX = 0.4f + ( jx - 0.5f ) * 0.2f;
+		cachedY = 0.4f + ( jy - 0.5f ) * 0.2f;
+		Q_strncpy( cachedName, name, sizeof( cachedName ));
+	}
+
+	seedX = cachedX;
+	seedY = cachedY;
+}
+
 static const int		r_skyTexOrder[6] = { 0, 2, 1, 3, 4, 5 };
 
 static const Vector	skyclip[6] = 
@@ -360,11 +398,16 @@ static void GL_DrawSkySide( word hProgram, int skyside )
 			float speed = gl_sky_clouds_speed ? gl_sky_clouds_speed->value : 0.0f;
 			float scale = gl_sky_clouds_scale ? gl_sky_clouds_scale->value : 1.0f;
 			float opacity = clouds_on && gl_sky_clouds_opacity ? gl_sky_clouds_opacity->value : 0.0f;
-			float scrollX = fmodf( tr.time * speed, 1.0f );
-			float scrollY = fmodf( tr.time * speed * 0.6f, 1.0f );	// eixo Y mais lento: da direcao de "vento"
+			float seedX, seedY;
+			RTN_CloudSeed( seedX, seedY );
+			float scrollX = fmodf( seedX + tr.time * speed, 1.0f );
+			float scrollY = fmodf( seedY + tr.time * speed * 0.6f, 1.0f );	// eixo Y mais lento: da direcao de "vento"
 			u->SetValue( scrollX, scrollY, scale, opacity );
 			break;
 		}
+		case UT_CLOUDPARAMS2:
+			u->SetValue( bound( 0.0f, gl_sky_clouds_tint ? gl_sky_clouds_tint->value : 0.0f, 1.0f ), 0.0f, 0.0f, 0.0f );
+			break;
 		case UT_ZFAR:
 			u->SetValue( RI->view.farClip );
 			break;

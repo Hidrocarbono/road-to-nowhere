@@ -119,6 +119,7 @@ typedef enum
 	UT_FOGPARAMS2,	// RTN: distancia inicial + fog de altura (mundo), ou horizonte (skybox) - ver fog.h/skybox_fp.glsl
 	UT_CLOUDMAP,	// RTN: mascara de cobertura de nuvem (clouds.tga), so no skybox
 	UT_CLOUDPARAMS,	// RTN: scrollX, scrollY, tiling, opacity - ver skybox_fp.glsl
+	UT_CLOUDPARAMS2,	// RTN: tint (0..1), reservado x3 - ver skybox_fp.glsl
 	UT_SHADOWPARMS,
 	UT_TEXOFFSET,
 	UT_VIEWORIGIN,

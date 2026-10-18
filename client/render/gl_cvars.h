@@ -80,6 +80,7 @@ extern cvar_t *gl_fog_sky_horizon;		// RTN: 0..1, quanto o horizonte do ceu rece
 extern cvar_t *gl_sky_clouds;			// RTN: liga/desliga a camada de nuvem
 extern cvar_t *gl_sky_clouds_scale;		// RTN: tiling da textura sobre o domo (maior = nuvens menores/mais numerosas)
 extern cvar_t *gl_sky_clouds_speed;		// RTN: velocidade de deslocamento (unidades de UV por segundo)
+extern cvar_t *gl_sky_clouds_tint;		// RTN: 0..1, quanto a nuvem leva a cor do sol/ceu em vez de branco puro
 extern cvar_t *gl_sky_clouds_opacity;		// RTN: 0..1, o quanto a nuvem cobre o ceu por baixo dela
 extern cvar_t *r_dof_fstop;
 extern cvar_t *r_dof_debug;
