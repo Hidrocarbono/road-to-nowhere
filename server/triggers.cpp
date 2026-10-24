@@ -26,10 +26,13 @@ BEGIN_DATADESC( CBaseTrigger )
 	DEFINE_FUNCTION( MultiWaitOver ),
 	DEFINE_FUNCTION( CounterUse ),
 	DEFINE_FUNCTION( ToggleUse ),
+	DEFINE_FIELD( m_fTriggered, FIELD_BOOLEAN ),
 END_DATADESC()
 
 void CBaseTrigger::InitTrigger( )
 {
+	m_fTriggered = FALSE;	// RTN: ver GetState() em triggers.h
+
 	// trigger angles are used for one-way touches.  An angle of 0 is assumed
 	// to mean no restrictions, so use a yaw of 360 instead.
 	pev->solid = SOLID_TRIGGER;
@@ -293,6 +296,7 @@ void CBaseTrigger :: ActivateMultiTrigger( CBaseEntity *pActivator )
 // don't trigger again until reset
 // pev->takedamage = DAMAGE_NO;
 
+	m_fTriggered = TRUE;	// RTN: latch pra quem usa este trigger como master - ver GetState()
 	m_hActivator = pActivator;
 	SUB_UseTargets( m_hActivator, USE_TOGGLE, 0 );
 
