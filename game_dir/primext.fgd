@@ -2985,7 +2985,7 @@
 @PointClass size(-16 -16 0, 16 16 36) base(Weapon, Parent, Targetx, Reflection) studio("models/w_antidote.mdl") = item_antidote : "Poison antidote" [
 	master(target_destination) : "Master" 
 ]
-@PointClass size(-16 -16 0, 16 16 36) base(Weapon, Parent, Targetx, Reflection) studio("models/w_battery.mdl") = item_battery : "HEV battery" 
+@PointClass size(-16 -16 0, 16 16 36) base(Weapon, Parent, Targetx, Reflection) studio("models/w_armour.mdl") = item_battery : "HEV battery"
 [
 	master(target_destination) : "Master" 
 	model(studio) : "Alternative Model"
