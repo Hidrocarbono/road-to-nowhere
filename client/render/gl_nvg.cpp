@@ -128,6 +128,11 @@ bool RTN_NVG_IsActive( void )
 	return s_bActive;
 }
 
+int RTN_NVG_GetBattery( void )
+{
+	return s_iBattery;
+}
+
 float RTN_NVG_GetIntensity( void )
 {
 	float target = s_bActive ? 1.0f : 0.0f;

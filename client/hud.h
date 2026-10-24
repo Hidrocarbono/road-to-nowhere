@@ -422,6 +422,7 @@ private:
 	int m_fOn;
 	float m_fFade;
 	int m_iWidth; // width of the battery innards
+	SpriteHandle m_hNVGIcon;	// RTN: icone do NVG, mesmo canto - ver Draw()
 };
 
 //
