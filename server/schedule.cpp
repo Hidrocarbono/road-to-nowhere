@@ -536,7 +536,22 @@ void CBaseMonster :: RunTask ( Task_t *pTask )
 		{
 			if (m_fSequenceFinished)
 			{
-				m_pCine->SequenceDone( this );
+				// RTN: porte do "repeat" do Paranoia2 (LRC, dlls/schedule.cpp) -
+				// antes de considerar a sequencia terminada, se ainda sobra
+				// repeticao (m_iRepeats no scripted_sequence), volta a MESMA
+				// animacao pro frame m_fRepeatFrame em vez de chamar
+				// SequenceDone() - repete no lugar, sem precisar de um
+				// segundo scripted_sequence encadeado por donetrigger.
+				if ( m_pCine->m_iRepeatsLeft > 0 )
+				{
+					m_pCine->m_iRepeatsLeft--;
+					pev->frame = m_pCine->m_fRepeatFrame;
+					ResetSequenceInfo();
+				}
+				else
+				{
+					m_pCine->SequenceDone( this );
+				}
 			}
 			break;
 		}

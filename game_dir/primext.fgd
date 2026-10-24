@@ -4084,7 +4084,8 @@
 	m_iszPlay(string) : "Action Animation" : ""
 	m_iszIdle(string) : "Idle Animation" : ""
 	m_flRadius(integer) : "Search Radius" : 512
-	m_flRepeat(integer) : "Repeat Rate ms" : 0
+	m_iRepeats(integer) : "Repeat animation N times" : 0
+	m_fRepeatFrame(integer) : "Repeat from frame" : 0
 	m_fMoveTo(choices) : "Move to Position" : 0 =
 	[
 		0 : "No"
