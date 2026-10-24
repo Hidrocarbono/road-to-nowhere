@@ -134,6 +134,11 @@ int CHGrunt :: ISoundMask ( void )
 //=========================================================
 BOOL CHGrunt :: FOkToSpeak( void )
 {
+	// RTN: "No Use Radio" - diferente de SF_MONSTER_GAG (que só cala fora de
+	// combate), isto silencia incondicionalmente, em qualquer estado.
+	if ( pev->spawnflags & SF_GRUNT_NO_RADIO )
+		return FALSE;
+
 // if someone else is talking, don't speak
 	if (gpGlobals->time <= CTalkMonster::g_talkWaitTime)
 		return FALSE;

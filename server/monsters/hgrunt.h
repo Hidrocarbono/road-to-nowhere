@@ -82,6 +82,15 @@ int g_fGruntQuestion;				// true if an idle grunt asked a question. Cleared when
 #define SF_GRUNT_HAS_FLASHLIGHT		4096	// este grunt tem lanterna
 #define SF_GRUNT_FLASHLIGHT_ON		8192	// começa ligada (só importa se HAS_FLASHLIGHT também estiver marcado)
 #define SF_GRUNT_NO_WANDER			16384	// não vaguear à toa por node quando ocioso (opt-out, ver WanderRandomly)
+// RTN: silencia TODA sentença (HG_ALERT/HG_CHECK/HG_CLEAR/HG_ANSWER/HG_GREN/
+// HG_MONST/HG_THROW/HG_TAUNT/HG_PAIN/idle), em qualquer estado - inclusive em
+// combate. Diferente de SF_MONSTER_GAG (monsters.h, bit 2): aquele já existe
+// e é checado em FOkToSpeak(), mas só corta fala FORA de combate (olha
+// m_MonsterState != MONSTERSTATE_COMBAT) - continua falando normalmente
+// quando engajado. Toda chamada de SENTENCEG_PlayRndSz neste arquivo já
+// passa por FOkToSpeak() antes de tocar, então um único check aqui cobre
+// tudo - não precisa mexer em cada call site.
+#define SF_GRUNT_NO_RADIO			32768
 
 // RTN: coleira territorial - raio em torno do posto (m_vecPostOrigin,
 // capturado no Spawn()) dentro do qual o grunt aceita se mover pra perseguir
