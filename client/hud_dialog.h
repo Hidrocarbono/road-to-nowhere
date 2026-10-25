@@ -32,11 +32,22 @@ public:
 	bool IsActive( void ) { return m_bActive; }
 	void SelectOption( int iSlot );	// chamado por WeaponsResource::SelectSlot (client/ammo.cpp)
 
+	// RTN: navegacao por seta Cima/Baixo + Enter (ver rtn.cfg) - alternativa
+	// ao numero direto (1-9), que continua funcionando igual. So mexe no
+	// destaque (puramente visual, client-side) - a confirmacao ainda passa
+	// por SelectOption(), entao o "dlgselect" mandado pro servidor e
+	// IDENTICO ao caminho numerico, sem nenhuma mudanca de protocolo.
+	void UserCmd_DlgPrev( void );
+	void UserCmd_DlgNext( void );
+	void UserCmd_DlgConfirm( void );
+
 private:
 	void ResetState( void );
+	void MoveHighlight( int iDelta );
 
 	bool	m_bActive;
 	int	m_iTurn;
+	int	m_iHighlight;		// RTN: opcao destacada (1-based, igual SelectOption) - sempre 1..m_iNumSlots quando ativo
 
 	char	m_szSpeaker[64];		// linha 1 do bloco titles.txt (nome do falante)
 	char	m_szLine[256];			// linha 2+ (a fala em si)
