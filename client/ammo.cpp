@@ -1072,6 +1072,16 @@ void CHudAmmo::UserCmd_Close( void )
 // fazia no menu antigo.
 void CHudAmmo::UserCmd_NextWeapon( void )
 {
+	// RTN: rodinha do mouse tambem navega o menu de dialogo (mesma
+	// prioridade/mesmo motivo do intercept de slot1..9 em SlotInput() acima -
+	// fora do dialogo nada muda aqui, dentro dele a rodinha vira "proxima
+	// opcao" em vez de "proxima arma").
+	if( gHUD.m_Dialog.IsActive() )
+	{
+		gHUD.m_Dialog.UserCmd_DlgNext();
+		return;
+	}
+
 	if( gHUD.m_fPlayerDead || ( gHUD.m_iHideHUDDisplay & ( HIDEHUD_WEAPONS | HIDEHUD_ALL )))
 		return;
 
@@ -1105,6 +1115,13 @@ void CHudAmmo::UserCmd_NextWeapon( void )
 
 void CHudAmmo::UserCmd_PrevWeapon( void )
 {
+	// RTN: ver comentario em UserCmd_NextWeapon acima.
+	if( gHUD.m_Dialog.IsActive() )
+	{
+		gHUD.m_Dialog.UserCmd_DlgPrev();
+		return;
+	}
+
 	if( gHUD.m_fPlayerDead || ( gHUD.m_iHideHUDDisplay & ( HIDEHUD_WEAPONS | HIDEHUD_ALL )))
 		return;
 
