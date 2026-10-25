@@ -28,7 +28,12 @@ item (ex.: "item_antidote"), repassado direto pra CBasePlayer::GiveNamedItem().
 #ifndef DIALOGSCRIPT_H
 #define DIALOGSCRIPT_H
 
-#define DLG_MAX_NODES		64
+// RTN: subido de 64 pra 192 em preparacao pra instalar dialogo em todos os
+// inimigos principais - 11 nos hoje (medico+teste+ivo), mas uma dezena de
+// NPCs com arvores do tamanho da do medico (5 nos) ja passa de 50 nos so
+// nisso. 192 da folga confortavel sem custo (so o tamanho do array fixo
+// gDialogNodes[] abaixo).
+#define DLG_MAX_NODES		192
 #define DLG_MAX_OPTIONS		8	// teclas 1-8 (numeros do menu nativo, ver client/ammo.cpp SelectSlot)
 #define DLG_MAX_NAME		48
 #define DLG_MAX_TITLE_KEY	64
