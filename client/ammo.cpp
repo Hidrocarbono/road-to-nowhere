@@ -573,6 +573,22 @@ void CHudAmmo::Think( void )
 	if( gHUD.m_fPlayerDead )
 		return;
 
+	// RTN: barra de selecao de arma fecha (e fica fechada) enquanto o
+	// dialogo estiver ativo. Sem isso, se a barra ja estivesse aberta
+	// (gpActiveSel pendente) no instante em que o +USE abriu a conversa, ela
+	// continuava visivel por cima/do lado do painel de dialogo, E o confirm
+	// por clique do tiro (logo abaixo, IN_ATTACK na borda) nao sabe nada do
+	// dialogo - um clique de tiro durante a fala trocaria de arma de
+	// verdade, quebrando o freeze que o servidor ja aplica no jogador. O
+	// intercept da rodinha (UserCmd_NextWeapon/PrevWeapon) so impede CRIAR
+	// uma selecao nova durante o dialogo - nao fecha uma que ja estava
+	// pendente antes dele abrir.
+	if( gHUD.m_Dialog.IsActive() )
+	{
+		gpActiveSel = NULL;
+		return;
+	}
+
 	if( memcmp( gHUD.m_iWeaponBits, gWR.iOldWeaponBits, MAX_WEAPON_BYTES ))
 	{
 		memcpy( gWR.iOldWeaponBits, gHUD.m_iWeaponBits, MAX_WEAPON_BYTES );
