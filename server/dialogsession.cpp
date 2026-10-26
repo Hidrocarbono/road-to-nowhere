@@ -14,8 +14,29 @@ Fluxo:
 
 Sessao 100% server-authoritative: o cliente so mostra o que gmsgDialogShow
 manda e devolve um numero de 1 a 9 via "dlgselect N" - nunca sabe o nome do
-proximo no nem o conteudo de titles.txt referenciado por ele antes do
-servidor mandar.
+proximo no antes do servidor mandar.
+
+RTN F13: protocolo reescrito - gmsgDialogShow agora manda TEXTO de verdade
+(nao mais chave de titles.txt) e o ESTILO (font/fontsize/cor) do no, porque
+dialogscript.{h,cpp} tambem passou a guardar os dois direto (ver aquele
+arquivo). Formato, nesta ordem:
+
+    WRITE_BYTE   msgType      0=CLOSE  1=NODE  2=SEALED
+    -- CLOSE: nada mais.
+    -- NODE:
+       WRITE_BYTE    turn & 0xFF         (anti-replay, so importa em NODE)
+       WRITE_STRING  npc_text            (linha 1 = falante, por convencao)
+       WRITE_BYTE    numSlots
+       WRITE_STRING  label[0..numSlots)  (ja inclui o exit_option, se tiver)
+       <style, ver DLG_SendStyle abaixo>
+    -- SEALED:
+       WRITE_STRING  sealed_text
+       <style>
+
+msgType 2 (SEALED) existe pra tirar o "ja conversamos" do canal HudText
+antigo (UTIL_ShowMessage) e mandar pro MESMO painel 2D do resto do dialogo -
+o velho numSlots==0 double-duty como "fechar" nao dava pra tambem significar
+"mostra este texto, sem opcao, sem turn" ao mesmo tempo.
 */
 
 #include "extdll.h"
@@ -85,44 +106,83 @@ static void Dialog_MarkGiven( CBasePlayer *pPlayer, const char *pszNode )
 // rede
 // ---------------------------------------------------------------------
 
-// Manda a fala do NPC + ate DLG_MAX_OPTIONS+1 opcoes (as numeradas do
-// script, e por ultimo o exit_option se o no tiver um). O cliente resolve
-// cada chave em titles.txt sozinho (TextMessageGet) - so viajam nomes.
+enum dlgmsgtype_e
+{
+	DLG_MSG_CLOSE  = 0,
+	DLG_MSG_NODE   = 1,
+	DLG_MSG_SEALED = 2,
+};
+
+// Estilo do no/sealed - mesma logica em qualquer msgType que o use. Cores
+// usam -1,-1,-1 como sentinela de "sem override" (dialogstyle_t), que nao
+// cabe num BYTE sem sinal - por isso um byte de flags (bit0 = tem cor de
+// falante, bit1 = tem cor de texto) antes dos RGB condicionais.
+static void DLG_SendStyle( const dialogstyle_t *style )
+{
+	WRITE_STRING( style->font );				// vazio = fonte padrao do cliente
+	WRITE_BYTE( style->fontsize > 0 ? style->fontsize : 0 );	// 0 = tamanho padrao
+
+	int flags = 0;
+	if( style->color_speaker[0] >= 0 ) flags |= 1;
+	if( style->color_text[0] >= 0 ) flags |= 2;
+	WRITE_BYTE( flags );
+
+	if( flags & 1 )
+	{
+		WRITE_BYTE( style->color_speaker[0] );
+		WRITE_BYTE( style->color_speaker[1] );
+		WRITE_BYTE( style->color_speaker[2] );
+	}
+	if( flags & 2 )
+	{
+		WRITE_BYTE( style->color_text[0] );
+		WRITE_BYTE( style->color_text[1] );
+		WRITE_BYTE( style->color_text[2] );
+	}
+}
+
+// Manda a fala do NPC (texto pronto, nao mais chave) + ate DLG_MAX_OPTIONS+1
+// opcoes (as numeradas do script, e por ultimo o exit_option se o no tiver
+// um) + o estilo do no.
 static void Dialog_SendNode( CBasePlayer *pPlayer, dialognode_t *node )
 {
 	MESSAGE_BEGIN( MSG_ONE, gmsgDialogShow, NULL, pPlayer->pev );
+		WRITE_BYTE( DLG_MSG_NODE );
 		WRITE_BYTE( pPlayer->m_iDialogTurn & 0xFF );
-		WRITE_STRING( node->npc_line );
+		WRITE_STRING( node->npc_text );
 
 		int numSlots = node->num_options + ( node->exit_option_text[0] ? 1 : 0 );
 		WRITE_BYTE( numSlots );
 
 		for( int i = 0; i < node->num_options; i++ )
-			WRITE_STRING( node->options[i].text[0] ? node->options[i].text : "" );
+			WRITE_STRING( node->options[i].label[0] ? node->options[i].label : "" );
 
 		if( node->exit_option_text[0] )
 			WRITE_STRING( node->exit_option_text );
+
+		DLG_SendStyle( &node->style );
 	MESSAGE_END();
 }
 
-// numSlots 0 = esconde o HUD de dialogo no cliente.
+// Fecha/esconde o painel no cliente.
 static void Dialog_SendClose( CBasePlayer *pPlayer )
 {
 	MESSAGE_BEGIN( MSG_ONE, gmsgDialogShow, NULL, pPlayer->pev );
-		WRITE_BYTE( 0 );
-		WRITE_STRING( "" );
-		WRITE_BYTE( 0 );
+		WRITE_BYTE( DLG_MSG_CLOSE );
 	MESSAGE_END();
 }
 
-// Fala curta ("ja conversamos") quando o jogador reusa um NPC cuja arvore
-// ja foi selada. Nao abre sessao nenhuma - reusa UTIL_ShowMessage (mesmo
-// canal HudText que env_message/game_text ja usam pra puxar de titles.txt).
-static void Dialog_ShowSealedLine( CBasePlayer *pPlayer, const char *pszKey )
+// "Ja conversamos" - RTN F13: antes ia pro canal HudText (UTIL_ShowMessage,
+// chave de titles.txt), que e onde nascia o bug de posicao centralizada
+// (titles.txt STICKY aplicando $position de outro bloco em cima deste, ver
+// historico). Agora usa o MESMO painel 2D do resto do dialogo, sem opcoes.
+static void Dialog_SendSealed( CBasePlayer *pPlayer, dialognode_t *root )
 {
-	char buf[128];
-	Q_snprintf( buf, sizeof( buf ), "#%s", pszKey );
-	UTIL_ShowMessage( buf, pPlayer );
+	MESSAGE_BEGIN( MSG_ONE, gmsgDialogShow, NULL, pPlayer->pev );
+		WRITE_BYTE( DLG_MSG_SEALED );
+		WRITE_STRING( root->sealed_text );
+		DLG_SendStyle( &root->style );
+	MESSAGE_END();
 }
 
 // ---------------------------------------------------------------------
@@ -179,14 +239,14 @@ void CBasePlayer::Dialog_Start( CBaseMonster *pNPC, const char *pszStartNode )
 	dialognode_t *node = DialogScript_FindNode( pszStartNode );
 	if( !node )
 	{
-		ALERT( at_console, "Dialog: NPC aponta pra '%s', que nao existe em scripts/dialogs/dialogs.txt\n", pszStartNode );
+		ALERT( at_console, "Dialog: NPC aponta pra '%s', que nao existe em scripts/dialogs/dialog_*.txt\n", pszStartNode );
 		return;
 	}
 
 	if( !node->repeatable && Dialog_IsSealed( this, pszStartNode ))
 	{
-		if( node->sealed_line[0] )
-			Dialog_ShowSealedLine( this, node->sealed_line );
+		if( node->sealed_text[0] )
+			Dialog_SendSealed( this, node );
 		return;
 	}
 
@@ -238,7 +298,7 @@ void CBasePlayer::Dialog_Select( int iTurn, int iSlot )
 		return;
 	}
 
-	if( iSlot < 1 || iSlot > node->num_options || !node->options[iSlot-1].text[0] )
+	if( iSlot < 1 || iSlot > node->num_options || !node->options[iSlot-1].label[0] )
 		return;
 
 	dialogoption_t *opt = &node->options[iSlot-1];

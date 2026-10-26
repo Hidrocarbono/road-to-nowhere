@@ -3,11 +3,13 @@ hud_dialog.cpp - dialogo com escolhas do jogador (RTN)
 Copyright (C) 2026 Hermes e Hidrocarboneto
 
 Painel 2D no mesmo molde do hud_radio.cpp (sem VGUI, fundo translucido,
-sem caixa preta solida - ver a conversa que fechou esse formato). A fala
-do NPC e cada opcao vem de titles.txt, resolvidas aqui via TextMessageGet
-(engine) - o bloco titles.txt de npc_line usa a mesma convencao de
-titulo/mensagem ja documentada la: linha 1 ($color) = nome do falante,
-linha 2+ ($color2) = a fala.
+sem caixa preta solida - ver a conversa que fechou esse formato).
+
+RTN F13: o texto (fala do NPC, labels de opcao, "ja conversamos") e o
+estilo (font/fontsize/cor) chegam prontos do servidor em "DialogShow" -
+nao ha mais resolucao via titles.txt/TextMessageGet aqui. A fala usa a
+mesma convencao de antes (linha 1 = nome do falante, linha 2+ = a fala),
+so que agora e o PROPRIO texto que chega assim, nao um bloco titles.txt.
 */
 
 #include "hud.h"
@@ -42,6 +44,19 @@ extern void RTN_Utf8ToCp1252( char *szText );				// mesmo fix do hud_radio
 // tamanho final de tela agora precisa de uma minificacao muito mais branda.
 #define DLG_FONT_NAME	"roboto_small"
 
+// RTN F13: duracao do painel "ja conversamos" (msgType SEALED) na tela -
+// esse modo nao tem opcao nenhuma pra o jogador fechar com um clique, soo
+// turn/anti-replay (nao e uma sessao), entao precisa de um timeout proprio
+// (antes disso era o fade automatico do canal HudText, UTIL_ShowMessage).
+#define DLG_SEALED_SECONDS	3.0f
+
+enum dlgmsgtype_e
+{
+	DLG_MSG_CLOSE  = 0,
+	DLG_MSG_NODE   = 1,
+	DLG_MSG_SEALED = 2,
+};
+
 // resolvidos 1x no topo de Draw() e lidos por DLG_MeasureString/
 // DLG_DrawMultilineCentered - evita passar fonte+escala por parametro em
 // toda chamada (as duas funcoes so sao chamadas de dentro de Draw() mesmo).
@@ -69,105 +84,134 @@ void CHudDialog::ResetState( void )
 {
 	m_bActive = false;
 	m_iTurn = 0;
+	m_bSealedOnly = false;
+	m_flSealedHideTime = 0.0f;
 	m_szSpeaker[0] = m_szLine[0] = 0;
-	m_szLineKey[0] = 0;
 	m_iNumSlots = 0;
 	for( int i = 0; i < DLG_HUD_MAX_SLOTS; i++ )
 		m_szOptions[i][0] = 0;
+	m_szFont[0] = 0;
+	m_iFontSize = 0;
+	m_bHasColorSpeaker = m_bHasColorText = false;
+	m_iColorSpeaker[0] = m_iColorSpeaker[1] = m_iColorSpeaker[2] = 255;
+	m_iColorText[0] = m_iColorText[1] = m_iColorText[2] = 255;
 }
 
-// Separa o pMessage de titles.txt (linha 1 = nome, linha 2+ = fala) em
-// szSpeaker/szLine. Chave vazia ou nao encontrada = szSpeaker fica vazio
-// (Draw() so pula a linha do nome, ainda desenha o resto normalmente).
-static void DLG_ResolveSpeaker( const char *pszKey, char *szSpeaker, size_t speakerSz, char *szLine, size_t lineSz )
+// Separa o texto recebido (linha 1 = nome, linha 2+ = fala, mesma
+// convencao de antes) em szSpeaker/szLine. Sem "\n" nenhum, trata tudo
+// como fala sem falante (szSpeaker fica vazio, Draw() so pula essa linha).
+static void DLG_SplitSpeaker( const char *pszText, char *szSpeaker, size_t speakerSz, char *szLine, size_t lineSz )
 {
 	szSpeaker[0] = szLine[0] = 0;
-	if( !pszKey || !pszKey[0] )
+	if( !pszText || !pszText[0] )
 		return;
 
-	client_textmessage_t *pMsg = TextMessageGet( pszKey );
-	if( !pMsg || !pMsg->pMessage )
-	{
-		Q_strncpy( szLine, pszKey, lineSz );	// chave sem entrada em titles.txt - mostra o nome cru, nunca em branco
-		return;
-	}
-
-	const char *nl = strchr( pMsg->pMessage, '\n' );
+	const char *nl = strchr( pszText, '\n' );
 	if( nl )
 	{
-		size_t len = (size_t)( nl - pMsg->pMessage );
+		size_t len = (size_t)( nl - pszText );
 		if( len >= speakerSz ) len = speakerSz - 1;
-		memcpy( szSpeaker, pMsg->pMessage, len );
+		memcpy( szSpeaker, pszText, len );
 		szSpeaker[len] = 0;
 		Q_strncpy( szLine, nl + 1, lineSz );
 	}
 	else
 	{
-		Q_strncpy( szLine, pMsg->pMessage, lineSz );
+		Q_strncpy( szLine, pszText, lineSz );
 	}
 }
 
-static void DLG_ResolveLabel( const char *pszKey, char *out, size_t outSz )
+// Le font/fontsize/flags-de-cor+RGB na MESMA ordem que DLG_SendStyle
+// (server/dialogsession.cpp) escreveu - usado tanto por msgType NODE
+// quanto SEALED, os dois mandam o mesmo bloco de estilo por ultimo.
+void CHudDialog::ReadStyle( void )
 {
-	if( !pszKey || !pszKey[0] )
-	{
-		out[0] = 0;
-		return;
-	}
+	Q_strncpy( m_szFont, READ_STRING(), sizeof( m_szFont ));
+	m_iFontSize = READ_BYTE();
 
-	client_textmessage_t *pMsg = TextMessageGet( pszKey );
-	if( pMsg && pMsg->pMessage )
-		Q_strncpy( out, pMsg->pMessage, outSz );
-	else
-		Q_strncpy( out, pszKey, outSz );	// mesma logica do speaker - nunca em branco
+	int flags = READ_BYTE();
+	m_bHasColorSpeaker = ( flags & 1 ) != 0;
+	m_bHasColorText = ( flags & 2 ) != 0;
+
+	if( m_bHasColorSpeaker )
+	{
+		m_iColorSpeaker[0] = READ_BYTE();
+		m_iColorSpeaker[1] = READ_BYTE();
+		m_iColorSpeaker[2] = READ_BYTE();
+	}
+	if( m_bHasColorText )
+	{
+		m_iColorText[0] = READ_BYTE();
+		m_iColorText[1] = READ_BYTE();
+		m_iColorText[2] = READ_BYTE();
+	}
 }
 
 int CHudDialog::MsgFunc_DialogShow( const char *pszName, int iSize, void *pbuf )
 {
 	BEGIN_READ( pszName, pbuf, iSize );
+	int msgType = READ_BYTE();
+
+	if( msgType == DLG_MSG_CLOSE )
+	{
+		END_READ();
+		m_bActive = false;
+		m_bSealedOnly = false;
+		return 1;
+	}
+
+	if( msgType == DLG_MSG_SEALED )
+	{
+		char szText[DLG_HUD_MAX_TEXT];
+		Q_strncpy( szText, READ_STRING(), sizeof( szText ));
+		ReadStyle();
+		END_READ();
+
+		DLG_SplitSpeaker( szText, m_szSpeaker, sizeof( m_szSpeaker ), m_szLine, sizeof( m_szLine ));
+		RTN_Utf8ToCp1252( m_szSpeaker );
+		RTN_Utf8ToCp1252( m_szLine );
+
+		m_iNumSlots = 0;
+		m_bSealedOnly = true;
+		m_flSealedHideTime = gEngfuncs.GetClientTime() + DLG_SEALED_SECONDS;
+		m_bActive = true;
+		return 1;
+	}
+
+	// DLG_MSG_NODE
 	int turn = READ_BYTE();
 
 	// RTN F10 fix: READ_STRING() devolve ponteiro pra um buffer interno do
 	// engine que e REESCRITO a cada chamada dentro do mesmo BEGIN_READ -
-	// guardar so o ponteiro (sem copiar na hora) fazia npcLineKey virar a
-	// ultima string lida (a do ultimo slot) assim que o loop abaixo rodava,
+	// guardar so o ponteiro (sem copiar na hora) fazia npcText virar o
+	// ultimo texto lido (o do ultimo slot) assim que o loop abaixo rodava,
 	// entao a fala mostrada na tela era sempre a da ULTIMA opcao, nunca a
 	// do NPC. Copia pra um buffer proprio imediatamente.
-	char npcLineKey[DLG_HUD_MAX_TEXT];
-	Q_strncpy( npcLineKey, READ_STRING(), sizeof( npcLineKey ));
+	char npcText[DLG_HUD_MAX_TEXT];
+	Q_strncpy( npcText, READ_STRING(), sizeof( npcText ));
 
 	int numSlots = READ_BYTE();
-
-	char slotKeys[DLG_HUD_MAX_SLOTS][DLG_HUD_MAX_TEXT];
 	if( numSlots > DLG_HUD_MAX_SLOTS )
 		numSlots = DLG_HUD_MAX_SLOTS;	// defensivo - servidor ja respeita DLG_MAX_OPTIONS+1
 
+	char slotLabels[DLG_HUD_MAX_SLOTS][DLG_HUD_MAX_LABEL];
 	for( int i = 0; i < numSlots; i++ )
-		Q_strncpy( slotKeys[i], READ_STRING(), sizeof( slotKeys[i] ));
+		Q_strncpy( slotLabels[i], READ_STRING(), sizeof( slotLabels[i] ));
+
+	ReadStyle();
 	END_READ();
 
 	m_iTurn = turn;
 	m_iNumSlots = numSlots;
+	m_bSealedOnly = false;
 
-	if( numSlots == 0 )
-	{
-		// fecha a sessao (ver Dialog_SendClose em server/dialogsession.cpp)
-		m_bActive = false;
-		return 1;
-	}
-
-	DLG_ResolveSpeaker( npcLineKey, m_szSpeaker, sizeof( m_szSpeaker ), m_szLine, sizeof( m_szLine ));
+	DLG_SplitSpeaker( npcText, m_szSpeaker, sizeof( m_szSpeaker ), m_szLine, sizeof( m_szLine ));
 	RTN_Utf8ToCp1252( m_szSpeaker );
 	RTN_Utf8ToCp1252( m_szLine );
 
-	// RTN F12: guarda a chave (nao o texto) - Draw() usa pra consultar
-	// $font/$fontsize desse bloco especifico em titles.txt (RTN_GetTitleFontOverride,
-	// mesma diretiva que message.cpp ja suporta pra HudText generico).
-	Q_strncpy( m_szLineKey, npcLineKey, sizeof( m_szLineKey ));
-
 	for( int i = 0; i < numSlots; i++ )
 	{
-		DLG_ResolveLabel( slotKeys[i], m_szOptions[i], sizeof( m_szOptions[i] ));
+		Q_strncpy( m_szOptions[i], slotLabels[i], sizeof( m_szOptions[i] ));
 		RTN_Utf8ToCp1252( m_szOptions[i] );
 	}
 
@@ -220,7 +264,7 @@ static int DLG_MeasureString( const char *sz )
 // linhas desenhou, pra Draw() somar na altura.
 static int DLG_DrawMultilineCentered( int y, int lineGap, const char *szText, int r, int g, int b )
 {
-	char buf[256];
+	char buf[DLG_HUD_MAX_TEXT];
 	Q_strncpy( buf, szText, sizeof( buf ));
 
 	int lines = 0;
@@ -274,16 +318,20 @@ int CHudDialog::Draw( float flTime )
 	if( !m_bActive )
 		return 0;
 
-	// RTN F12: permite "$font"/"$fontsize" no bloco de npc_line (titles.txt)
-	// sobrescrever a fonte/tamanho padrao deste dialogo especifico - mesma
-	// diretiva e mesma funcao que message.cpp ja usa pra HudText generico
-	// (RTN_GetTitleFontOverride). Sem "$font" no bloco, szFontName continua
-	// DLG_FONT_NAME e iFontSizeOverride continua 0 (usa o padrao abaixo).
-	char szFontName[32];
-	Q_strncpy( szFontName, DLG_FONT_NAME, sizeof( szFontName ));
-	int iFontSizeOverride = 0;
-	if( m_szLineKey[0] )
-		RTN_GetTitleFontOverride( m_szLineKey, szFontName, sizeof( szFontName ), &iFontSizeOverride );
+	// msgType SEALED nao tem opcao pra o jogador fechar - sai sozinho apos
+	// DLG_SEALED_SECONDS (ver MsgFunc_DialogShow).
+	if( m_bSealedOnly && gEngfuncs.GetClientTime() >= m_flSealedHideTime )
+	{
+		m_bActive = false;
+		return 0;
+	}
+
+	// RTN F13: font/fontsize chegam prontos na mensagem (m_szFont/m_iFontSize)
+	// em vez de consultados em titles.txt ($font/$fontsize,
+	// RTN_GetTitleFontOverride) - vazio/0 = usa o padrao abaixo.
+	char szFontName[DLG_HUD_MAX_FONT_NAME];
+	Q_strncpy( szFontName, m_szFont[0] ? m_szFont : DLG_FONT_NAME, sizeof( szFontName ));
+	int iFontSizeOverride = m_iFontSize;
 
 	// RTN: resolve a fonte custom 1x por frame - se o asset nao carregar
 	// (arquivo faltando/corrompido), s_pDlgFont fica NULL e todo o resto
@@ -316,26 +364,41 @@ int CHudDialog::Draw( float flTime )
 	else
 		s_flDlgFontScale = 1.0f;
 
+	// RTN F13: cor do falante/texto vem pronta na mensagem (m_iColorSpeaker/
+	// m_iColorText) quando o estilo declara "color_speaker"/"color_text" -
+	// sem override, mantem o mesmo default visual de sempre (amarelo de
+	// acento / branco).
+	int rSpk = m_bHasColorSpeaker ? m_iColorSpeaker[0] : 255;
+	int gSpk = m_bHasColorSpeaker ? m_iColorSpeaker[1] : 210;
+	int bSpk = m_bHasColorSpeaker ? m_iColorSpeaker[2] : 64;
+	int rTxt = m_bHasColorText ? m_iColorText[0] : 255;
+	int gTxt = m_bHasColorText ? m_iColorText[1] : 255;
+	int bTxt = m_bHasColorText ? m_iColorText[2] : 255;
+
 	int falaLines = ( m_szSpeaker[0] ? 1 : 0 ) + DLG_CountLines( m_szLine );
 	int falaTall = falaLines * lineGap;
 
-	int optionsTall = m_iNumSlots * lineGap + 16;	// +16 = folga da caixa (8 em cima, 8 embaixo)
+	// msgType SEALED nao tem opcoes - so a fala, sem a caixa de menu abaixo.
+	int optionsTall = m_bSealedOnly ? 0 : ( m_iNumSlots * lineGap + 16 );	// +16 = folga da caixa (8 em cima, 8 embaixo)
 
-	int gapBetween = 8;
+	int gapBetween = m_bSealedOnly ? 0 : 8;
 	int totalTall = falaTall + gapBetween + optionsTall;
 	int y = ScreenHeight - totalTall - 48;	// acima da area de "say" / HUD inferior
 
 	// --- fala do NPC: sem caixa, centralizada ---
 	int falaY = y;
 	if( m_szSpeaker[0] )
-		falaY += DLG_DrawMultilineCentered( falaY, lineGap, m_szSpeaker, 255, 210, 64 ) * lineGap;	// mesmo amarelo do \y do menu nativo
-	falaY += DLG_DrawMultilineCentered( falaY, lineGap, m_szLine, 255, 255, 255 ) * lineGap;
+		falaY += DLG_DrawMultilineCentered( falaY, lineGap, m_szSpeaker, rSpk, gSpk, bSpk ) * lineGap;
+	falaY += DLG_DrawMultilineCentered( falaY, lineGap, m_szLine, rTxt, gTxt, bTxt ) * lineGap;
+
+	if( m_bSealedOnly )
+		return 1;
 
 	// --- opcoes: caixa translucida, centralizada, do tamanho do maior texto ---
 	int panelWide = 0;
 	for( int i = 0; i < m_iNumSlots; i++ )
 	{
-		char szOpt[DLG_HUD_MAX_TEXT + 8];
+		char szOpt[DLG_HUD_MAX_LABEL + 8];
 		Q_snprintf( szOpt, sizeof( szOpt ), "%d. %s", i + 1, m_szOptions[i] );
 		int optWide = DLG_MeasureString( szOpt );
 		if( optWide > panelWide ) panelWide = optWide;
@@ -361,7 +424,7 @@ int CHudDialog::Draw( float flTime )
 	int optTextY = optionsY + 8;
 	for( int i = 0; i < m_iNumSlots; i++ )
 	{
-		char szOpt[DLG_HUD_MAX_TEXT + 8];
+		char szOpt[DLG_HUD_MAX_LABEL + 8];
 		Q_snprintf( szOpt, sizeof( szOpt ), "%d. %s", i + 1, m_szOptions[i] );
 		optTextY += DLG_DrawMultilineCentered( optTextY, lineGap, szOpt, 200, 200, 200 ) * lineGap;
 	}
