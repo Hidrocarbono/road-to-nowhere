@@ -1,0 +1,46 @@
+dialog_teste
+{
+	repeatable	0
+	sealed
+	{
+	NPC Teste
+	Já conversamos. Este diálogo só acontece uma vez.
+	}
+
+	font		roboto
+	fontsize	22
+
+	node dialog_teste
+	{
+		npc_text
+		{
+		NPC Teste
+		Isso é um teste de diálogo. Escolha uma opção.
+		}
+		option 1 "Caminho A (recebe um item e termina)" -> dialog_teste_a
+		option 2 "Caminho B (volta ao início)" -> dialog_teste_b
+		exit_option "Sair sem terminar"
+	}
+
+	node dialog_teste_a
+	{
+		give "item_antidote"
+		npc_text
+		{
+		NPC Teste
+		Você escolheu A. Aqui está um item de teste.
+		}
+		option 1 "Encerrar" -> END
+	}
+
+	node dialog_teste_b
+	{
+		npc_text
+		{
+		NPC Teste
+		Você escolheu B. Quer voltar ao início?
+		}
+		option 1 "Voltar ao início" -> dialog_teste
+		exit_option "Sair sem terminar"
+	}
+}

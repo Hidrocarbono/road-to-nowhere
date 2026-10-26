@@ -1,0 +1,73 @@
+dialog_medico
+{
+	repeatable	0
+	sealed
+	{
+	Médico
+	Já conversamos. Vá com cuidado.
+	}
+
+	font		roboto
+	fontsize	22
+
+	node dialog_medico
+	{
+		npc_text
+		{
+		Médico
+		Vejo que sobreviveu até aqui. Precisa de ajuda?
+		}
+		option 1 "Perguntar sobre a vacina" -> dialog_medico_vacina
+		option 2 "Perguntar sobre a saída" -> dialog_medico_saida
+		exit_option "Encerrar conversa"
+	}
+
+	node dialog_medico_vacina
+	{
+		npc_text
+		{
+		Médico
+		Tenho uma vacina experimental. Não posso garantir que funcione, mas é a
+		única chance que temos contra a infecção.
+		}
+		option 1 "Como ela funciona?" -> dialog_medico_vacina_detalhe
+		option 2 "Aceito a vacina" -> dialog_medico_final
+		option 3 "Voltar" -> dialog_medico
+		exit_option "Encerrar conversa"
+	}
+
+	node dialog_medico_vacina_detalhe
+	{
+		npc_text
+		{
+		Médico
+		Ela foi feita a partir do sangue de quem sobreviveu à primeira onda. Os
+		efeitos colaterais são... imprevisíveis. Mas sem ela, você não dura muito.
+		}
+		option 1 "Voltar" -> dialog_medico_vacina
+		exit_option "Encerrar conversa"
+	}
+
+	node dialog_medico_saida
+	{
+		npc_text
+		{
+		Médico
+		A saída mais segura é pelo velho posto de controle, a nordeste. Vá com
+		cuidado - ainda há coisas lá fora.
+		}
+		option 1 "Voltar" -> dialog_medico
+		exit_option "Encerrar conversa"
+	}
+
+	node dialog_medico_final
+	{
+		give "item_antidote"
+		npc_text
+		{
+		Médico
+		Tome. Use com sabedoria. E boa sorte - vai precisar.
+		}
+		option 1 "Sair" -> END
+	}
+}

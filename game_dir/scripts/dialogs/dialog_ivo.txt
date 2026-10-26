@@ -1,0 +1,52 @@
+dialog_ivo
+{
+	repeatable	0
+	sealed
+	{
+	Ivo:
+	Tarde demais...
+	}
+
+	font		roboto
+	fontsize	22
+
+	node dialog_ivo
+	{
+		npc_text
+		{
+		Ivo:
+		Você... você não devia ter vindo. Ninguém devia.
+		Aqui a miséria gruda na pele, a morte assobia baixo nos ouvidos...
+		e a traição... a traição vem até dos seus.
+		Agora é tarde demais pra você. Tarde demais.
+		}
+		option 1 "Quem é você?" -> dialog_ivo_a
+	}
+
+	node dialog_ivo_a
+	{
+		npc_text
+		{
+		Ivo:
+		Ivo. Era caminhoneiro. Levava carga de Porto Alegre pra Curitiba.
+		Quando a névoa veio... eu tava na estrada. Vi a cidade desaparecer.
+		Tentei voltar. Não deu.
+		Agora... agora só espero.
+		}
+		option 1 "O que aconteceu aqui?" -> dialog_ivo_b
+	}
+
+	node dialog_ivo_b
+	{
+		npc_text
+		{
+		Ivo:
+		Ninguém sabe. Ninguém viu. Um dia a estrada tava lá. No outro... não tava mais.
+		O povo chama de Zona. Mas Zona é só uma palavra.
+		O que tem aqui... não cabe em palavra.
+		E você... você tá dentro dela. Respirando o que ela respira.
+		Andando onde ela quer que você ande.
+		}
+		option 1 "Vou embora." -> END
+	}
+}
