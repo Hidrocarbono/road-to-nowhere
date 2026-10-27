@@ -76,7 +76,19 @@ public:
 	string_t	m_iszFireOnBegin; // entity to fire when the sequence _starts_.
 	int	m_iFinishSchedule;
 	float	m_flRadius;		// range to search
-	float	m_flRepeat;	// repeat rate
+	float	m_flRepeat;	// repeat rate (RTN: nunca foi lido em lugar nenhum, nem no HL original - inerte, mantido so por compat de mapa velho)
+
+	// RTN: porte do "repeat" de verdade do Paranoia2 (LRC, dlls/scripted.cpp/
+	// schedule.cpp) - repete a MESMA animacao em loop por N vezes antes de
+	// considerar a sequencia terminada, sem precisar encadear varios
+	// scripted_sequence. m_iRepeats e o total por ativacao (0 = sem repeat,
+	// comportamento identico a hoje); m_iRepeatsLeft e o contador regressivo
+	// em runtime (resetado pra m_iRepeats no inicio de cada SequenceDone(),
+	// igual ao original); m_fRepeatFrame e o frame pro qual volta a cada
+	// repeticao (normalmente 0 = do inicio).
+	int	m_iRepeats;
+	int	m_iRepeatsLeft;
+	float	m_fRepeatFrame;
 
 	int m_iDelay;
 	float m_startTime;

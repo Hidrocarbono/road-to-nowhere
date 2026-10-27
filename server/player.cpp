@@ -3193,7 +3193,7 @@ void CBasePlayer::Spawn( void )
 	m_flNextAttack	= gpGlobals->time;
 	StartSneaking();
 
-	m_iFlashBattery = 99;
+	m_iFlashBattery = 100; // RTN: lanterna infinita, nasce cheia
 	m_flFlashLightTime = 1; // force first message
 
 	// RTN: o NVG sempre nasce desligado (respawn inclusive). m_bHasNVG e
@@ -4028,16 +4028,11 @@ void CBasePlayer :: NVGUpdateBattery( void )
 	}
 	else
 	{
-		if( m_iNVGBattery < 100 )
-		{
-			m_flNVGTime = NVG_CHARGE_TIME + gpGlobals->time;
-			m_iNVGBattery++;
-		}
-		else
-		{
-			m_flNVGTime = 0.0f;	// cheia e desligada: para de tiquear
-			return;
-		}
+		// RTN: NVG nao regenera mais sozinho - bateria so volta pegando
+		// item_nvgoggles (ver GiveNVG()). Desligado = para de tiquear, sem
+		// subir m_iNVGBattery.
+		m_flNVGTime = 0.0f;
+		return;
 	}
 
 	NVGSendState();
@@ -4744,30 +4739,16 @@ void CBasePlayer :: UpdateClientData( void )
 		m_bitsDamageType &= DMG_TIMEBASED;
 	}
 
-	// Update Flashlight
+	// RTN: lanterna infinita - nao drena nem precisa regenerar.
+	// m_iFlashBattery fica travado em 100 (so existe pro protocolo/HUD, que
+	// ainda le o byte). m_flFlashLightTime=1 no Spawn() ("force first
+	// message") ainda dispara ESTE bloco uma unica vez pra sincronizar a
+	// barra cheia no HUD ao nascer - depois disso m_flFlashLightTime fica
+	// 0 pra sempre, sem tique nenhum, nunca desliga sozinha por bateria.
 	if ((m_flFlashLightTime) && (m_flFlashLightTime <= gpGlobals->time))
 	{
-		if (FlashlightIsOn())
-		{
-			if (m_iFlashBattery)
-			{
-				m_flFlashLightTime = FLASH_DRAIN_TIME + gpGlobals->time;
-				m_iFlashBattery--;
-				
-				if (!m_iFlashBattery)
-					FlashlightTurnOff();
-			}
-		}
-		else
-		{
-			if (m_iFlashBattery < 100)
-			{
-				m_flFlashLightTime = FLASH_CHARGE_TIME + gpGlobals->time;
-				m_iFlashBattery++;
-			}
-			else
-				m_flFlashLightTime = 0;
-		}
+		m_iFlashBattery = 100;
+		m_flFlashLightTime = 0;
 
 		MESSAGE_BEGIN( MSG_ONE, gmsgFlashBattery, NULL, pev );
 		WRITE_BYTE(m_iFlashBattery);

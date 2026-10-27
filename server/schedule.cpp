@@ -536,7 +536,22 @@ void CBaseMonster :: RunTask ( Task_t *pTask )
 		{
 			if (m_fSequenceFinished)
 			{
-				m_pCine->SequenceDone( this );
+				// RTN: porte do "repeat" do Paranoia2 (LRC, dlls/schedule.cpp) -
+				// antes de considerar a sequencia terminada, se ainda sobra
+				// repeticao (m_iRepeats no scripted_sequence), volta a MESMA
+				// animacao pro frame m_fRepeatFrame em vez de chamar
+				// SequenceDone() - repete no lugar, sem precisar de um
+				// segundo scripted_sequence encadeado por donetrigger.
+				if ( m_pCine->m_iRepeatsLeft > 0 )
+				{
+					m_pCine->m_iRepeatsLeft--;
+					pev->frame = m_pCine->m_fRepeatFrame;
+					ResetSequenceInfo();
+				}
+				else
+				{
+					m_pCine->SequenceDone( this );
+				}
 			}
 			break;
 		}
@@ -995,6 +1010,15 @@ void CBaseMonster :: StartTask ( Task_t *pTask )
 		}
 	case TASK_GET_PATH_TO_ENEMY_LKP:
 		{
+			// RTN: coleira territorial - ver IsPastLeash() em basemonster.h.
+			// Default FALSE pra quem nao sobrescreve, entao nao muda nada
+			// pra ninguem alem de quem opta (hoje so CHGrunt).
+			if ( IsPastLeash( m_vecEnemyLKP ) )
+			{
+				TaskFail();
+				break;
+			}
+
 			if ( BuildRoute ( m_vecEnemyLKP, bits_MF_TO_LOCATION, NULL ) )
 			{
 				TaskComplete();
@@ -1019,6 +1043,13 @@ void CBaseMonster :: StartTask ( Task_t *pTask )
 			{
 				TaskFail();
 				return;
+			}
+
+			// RTN: coleira territorial - mesmo ponto unico do _LKP acima.
+			if ( IsPastLeash( pEnemy->GetAbsOrigin() ) )
+			{
+				TaskFail();
+				break;
 			}
 
 			if ( BuildRoute ( pEnemy->GetAbsOrigin(), bits_MF_TO_ENEMY, pEnemy ) )

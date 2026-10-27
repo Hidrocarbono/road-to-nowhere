@@ -39,6 +39,7 @@ void RTN_NVG_Reset( void );
 // bateria esta acabando. Zero = NVG sem nenhum efeito sobre o render.
 float RTN_NVG_GetIntensity( void );
 bool  RTN_NVG_IsActive( void );
+int   RTN_NVG_GetBattery( void );	// RTN: 0..100, para o icone de HUD (ver hud_flashlight.cpp)
 
 // parametros do auto-exposure (x = teto de exposicao, y = escala,
 // z = taxa de adaptacao ao escuro, w = taxa de adaptacao ao claro).

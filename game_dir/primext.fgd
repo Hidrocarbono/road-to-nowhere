@@ -1579,7 +1579,7 @@
 
 @PointClass base(Targetname, Parent) size (-4 -4 -4, 4 4 4) iconsprite("sprites/fgd/env_particle.spr") = env_particle : "Particle Effect"
 [
-	message(string) : "Particle File" : "aurora/smoke.aur"
+	message(string) : "Particle File" : "particles/p_smoke.aur"
 	attachment(string) : "Attachment Point"
 	spawnflags(flags) =
 	[
@@ -2985,7 +2985,7 @@
 @PointClass size(-16 -16 0, 16 16 36) base(Weapon, Parent, Targetx, Reflection) studio("models/w_antidote.mdl") = item_antidote : "Poison antidote" [
 	master(target_destination) : "Master" 
 ]
-@PointClass size(-16 -16 0, 16 16 36) base(Weapon, Parent, Targetx, Reflection) studio("models/w_battery.mdl") = item_battery : "HEV battery" 
+@PointClass size(-16 -16 0, 16 16 36) base(Weapon, Parent, Targetx, Reflection) studio("models/w_armour.mdl") = item_battery : "HEV battery"
 [
 	master(target_destination) : "Master" 
 	model(studio) : "Alternative Model"
@@ -3456,6 +3456,7 @@
 		4096 : "Has Flashlight" : 0
 		8192 : "Flashlight Starts On" : 0
 		16384 : "Don't Wander (stay put when idle)" : 0
+		32768 : "No Use Radio" : 0
 	]
 	netname(string) : "Squad Name"
 	weapons(Choices) : "Weapons" : 1 =
@@ -4084,7 +4085,8 @@
 	m_iszPlay(string) : "Action Animation" : ""
 	m_iszIdle(string) : "Idle Animation" : ""
 	m_flRadius(integer) : "Search Radius" : 512
-	m_flRepeat(integer) : "Repeat Rate ms" : 0
+	m_iRepeats(integer) : "Repeat animation N times" : 0
+	m_fRepeatFrame(integer) : "Repeat from frame" : 0
 	m_fMoveTo(choices) : "Move to Position" : 0 =
 	[
 		0 : "No"

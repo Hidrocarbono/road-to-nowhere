@@ -129,8 +129,18 @@ public:
 
 	virtual int ObjectCaps( void ) { return (BaseClass :: ObjectCaps() & ~FCAP_ACROSS_TRANSITION); }
 
+	// RTN: pra outra entidade poder apontar master pra este ambient_generic.
+	// Sem isso cai no default de CBaseEntity::GetState() (cbase.h) - OFF
+	// fixo, sempre, pra sempre - quem usasse este ambient como master ficava
+	// travado permanentemente. m_fActive ja existe e e mantido certinho por
+	// ToggleUse()/RampThink() (so TRUE enquanto um som EM LOOP esta tocando);
+	// som sem loop nunca liga m_fActive, entao continua reportando OFF -
+	// nao da pra representar "ON" de forma estavel pra um som que termina
+	// sozinho sem ninguem desligar.
+	virtual STATE GetState( void ) { return m_fActive ? STATE_ON : STATE_OFF; }
+
 	float m_flAttenuation;	// attenuation value
-	dynpitchvol_t m_dpv;	
+	dynpitchvol_t m_dpv;
 
 	BOOL	m_fActive;	// only TRUE when the entity is playing a looping sound
 	BOOL	m_fLooping;	// TRUE when the sound played will loop

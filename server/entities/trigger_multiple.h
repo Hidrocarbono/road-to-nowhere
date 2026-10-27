@@ -36,5 +36,10 @@ class CTriggerMultiple : public CBaseTrigger
 	DECLARE_CLASS( CTriggerMultiple, CBaseTrigger );
 public:
 	void Spawn( void );
-	STATE GetState( void ) { return ( pev->nextthink > gpGlobals->time ) ? STATE_OFF : STATE_ON; }
+	// RTN: GetState() antigo daqui reaproveitava pev->nextthink (so existe
+	// pra gatear o cooldown de novo toque em ActivateMultiTrigger) como se
+	// fosse "ja disparou". Bug real: um trigger NUNCA tocado tem nextthink
+	// == 0, e (0 > gpGlobals->time) e false -> reportava ON desde o spawn,
+	// antes do jogador sequer encostar. Removido - agora usa o
+	// CBaseTrigger::GetState() novo (m_fTriggered, latch de verdade).
 };

@@ -42,5 +42,16 @@ public:
 
 	virtual int ObjectCaps( void ) { return (BaseClass :: ObjectCaps() & ~FCAP_ACROSS_TRANSITION) | FCAP_SET_MOVEDIR; }
 
+	// RTN: "ja disparou pelo menos uma vez" - pra outra entidade poder usar
+	// este trigger como master (master "X" -> GetState() daqui). Sem isso
+	// cai no GetState() generico de CBaseToggle (le m_toggle_state, que
+	// trigger nenhum seta - reportava OFF pra sempre, mesmo depois de
+	// disparado). Nao e um estado "ligado/desligado" de verdade, e um latch:
+	// vira TRUE na primeira ativacao bem-sucedida (ActivateMultiTrigger) e
+	// nunca volta a FALSE - inclusive cobre trigger_counter via CounterUse,
+	// que tambem passa por ActivateMultiTrigger.
+	BOOL m_fTriggered;
+	virtual STATE GetState( void ) { return m_fTriggered ? STATE_ON : STATE_OFF; }
+
 	DECLARE_DATADESC();
 };

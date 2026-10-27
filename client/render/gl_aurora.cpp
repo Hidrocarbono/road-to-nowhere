@@ -363,6 +363,19 @@ CParticleSystem :: CParticleSystem( cl_entity_t *ent, const char *szFilename, in
 	m_pEntity = ent;
 	enable = true;
 
+	// RTN: os tres de baixo nao tinham init nenhum aqui - so eram setados
+	// depois do carregamento do .aur (AllocateParticles()/ParseType()). Se
+	// COM_LoadFile falhar (arquivo nao existe/caminho errado), o construtor
+	// da return cedo (ver "if( !afile )" abaixo) com esses ponteiros ainda
+	// lixo de heap. No frame seguinte UpdateSystems() (chamado de
+	// R_RenderFrame) desreferencia esse lixo - access violation. Agora o
+	// objeto fica num estado seguro mesmo se o arquivo nao carregar: o
+	// sistema so fica inerte (nunca spawna particula, nunca desenha nada),
+	// em vez de derrubar o client.
+	m_pAllParticles = NULL;
+	m_pFreeParticle = NULL;
+	m_pMainType = NULL;
+
 	entityMatrix.Identity();
 	ClearBounds(m_vecAbsMin, m_vecAbsMax);
 

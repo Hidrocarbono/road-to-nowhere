@@ -26,6 +26,9 @@ BEGIN_DATADESC( CCineMonster )
 	DEFINE_KEYFIELD( m_flRepeat, FIELD_FLOAT, "m_flRepeat" ),
 	DEFINE_KEYFIELD( m_flRadius, FIELD_FLOAT, "m_flRadius" ),
 	DEFINE_KEYFIELD( m_iszFireOnBegin, FIELD_STRING, "m_iszFireOnBegin" ),
+	DEFINE_KEYFIELD( m_iRepeats, FIELD_INTEGER, "m_iRepeats" ),
+	DEFINE_FIELD( m_iRepeatsLeft, FIELD_INTEGER ),
+	DEFINE_KEYFIELD( m_fRepeatFrame, FIELD_FLOAT, "m_fRepeatFrame" ),
 	DEFINE_FIELD( m_iDelay, FIELD_INTEGER ),
 	DEFINE_FIELD( m_startTime, FIELD_TIME ),
 
@@ -77,6 +80,17 @@ void CCineMonster :: KeyValue( KeyValueData *pkvd )
 	else if (FStrEq(pkvd->szKeyName, "m_flRepeat"))
 	{
 		m_flRepeat = atof( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if (FStrEq(pkvd->szKeyName, "m_iRepeats"))
+	{
+		m_iRepeats = atoi( pkvd->szValue );
+		m_iRepeatsLeft = m_iRepeats;
+		pkvd->fHandled = TRUE;
+	}
+	else if (FStrEq(pkvd->szKeyName, "m_fRepeatFrame"))
+	{
+		m_fRepeatFrame = atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
 	else if (FStrEq(pkvd->szKeyName, "m_flRadius"))
@@ -535,6 +549,12 @@ BOOL CCineMonster :: StartSequence( CBaseMonster *pTarget, int iszSeq, BOOL comp
 void CCineMonster :: SequenceDone ( CBaseMonster *pMonster )
 {
 	//ALERT( at_aiconsole, "Sequence %s finished\n", STRING( m_pCine->m_iszPlay ) );
+
+	// RTN: reseta o contador de repeticao pra proxima ativacao (porte do P2/
+	// LRC) - sem isso, uma entidade SF_SCRIPT_REPEATABLE so repetiria a
+	// animacao na primeira vez que fosse usada.
+	m_iRepeatsLeft = m_iRepeats;
+
 	m_iState = STATE_OFF; // we've finished.
 
 	if ( !( pev->spawnflags & SF_SCRIPT_REPEATABLE ) )

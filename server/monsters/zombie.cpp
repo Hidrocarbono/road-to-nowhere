@@ -338,6 +338,16 @@ void CZombie :: Spawn()
 	m_MonsterState		= MONSTERSTATE_NONE;
 	m_afCapability		= bits_CAP_DOORS_GROUP;
 
+	// RTN: zumbi enxerga só de perto (default da base e 2048 - longe demais
+	// pra ameaca de proximidade). A ideia e popular a Zona com zumbis vagando
+	// (WanderRandomly, sem coleira - eles PODEM se afastar do spawn, e devem)
+	// e so reagirem quando o jogador realmente esbarra neles, nao "avistarem"
+	// do outro lado do mapa. O alcance longo de alerta fica por conta do som
+	// (AlertSound ja insere bits_SOUND_COMBAT com raio proprio pra avisar
+	// outros zumbis por perto) - visao curta + som e o que da a sensacao de
+	// encontro incidental em vez de radar.
+	m_flDistLook		= 500.0f;
+
 	MonsterInit();
 }
 

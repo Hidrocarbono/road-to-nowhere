@@ -311,6 +311,78 @@ funcionando sem alteração). Referência completa de cvars e uso em
 
 ---
 
+# Nuvens animadas no skybox — arquitetura e armadilhas
+
+Segunda camada dentro de `game_dir/glsl/forward/skybox_fp.glsl`, por cima do
+skybox pintado de 6 faces. Sem passe novo: 1 `texture fetch` + 1 `mix` por
+fragmento de céu. O sistema nativo de nuvem do engine (`R_CloudTexCoord`,
+`gl_warp.c`) é mutuamente exclusivo com o skybox de 6 faces, por isso não é usado.
+
+- **Textura:** `game_dir/textures/clouds.tga` (512×512, 32 bits, sem RLE). Só o
+  **alpha** é lido (cobertura); RGB é branco neutro. Carregada sob demanda em
+  `client/render/gl_sky.cpp` (`RTN_GetCloudTexture()`), **sem** `TF_CLAMP` de
+  propósito — precisa repetir (GL_REPEAT) pro scroll.
+- **Projeção:** `cloudDir.xy / (|z| + 0.15) * scale + scroll` (plano de nuvens).
+  Perto do horizonte a textura é muito comprimida; olhando pro zênite a janela de
+  UV amostrada é minúscula (±~0.04 com `scale 0.05`) — poucos texels, ampliados.
+- **Scroll:** `fmodf(seed + tr.time * speed, 1.0)`, eixo Y a ×0.6. Tudo no cliente,
+  sem rede. `tr.time` parte de ~0 a cada carga de mapa.
+- **Cor da nuvem:** matiz de `u_LightDiffuse` (sol, ou ambiente do céu sem sol),
+  normalizado pelo canal maior (só o matiz muda, o brilho segue 1.0), misturado
+  com branco por `gl_sky_clouds_tint`. Mix feito **antes** do fog do céu.
+- **Cvars** (`FCVAR_ARCHIVE`, `gl_cvars.cpp`): `gl_sky_clouds`, `_scale`,
+  `_speed`, `_opacity`, `_tint`. Uniforms: `u_CloudParams` (scrollXY, scale,
+  opacity) e `u_CloudParams2` (`.x` = tint), este último `UT_CLOUDPARAMS2`.
+
+## Armadilhas já pagas
+
+1. **Início do scroll no canto vazio.** O scroll partia sempre de UV (0,0) e,
+   olhando pro zênite, o UV amostrado *é* o scroll — o canto da textura, onde o
+   alpha é ~0. Resultado: céu vazio até a nuvem "chegar" sempre do mesmo lado.
+   Corrigido por `RTN_CloudSeed()`: base 0.4 ± 0.1 (jitter de hash FNV-1a do
+   `world->name`), dentro da região densa e *antes* do centro, já que o scroll
+   anda no sentido +UV. Cada mapa começa num ponto diferente e reproduzível.
+2. **Textura-aglomerado não é campo de nuvens.** A arte original esmaecia a zero
+   nas 4 bordas (85% do alpha no quadrado central 256×256): a nuvem passava e o
+   céu ficava limpo até o próximo ladrilho (~1/speed s). Corrigido reconstruindo
+   a textura com `utils/gen_clouds_field.py`: cola 25 pedaços da arte original
+   (posição/giro/espelho/escala variados, janela elíptica, wrap por módulo →
+   tileável sem costura). Área vazia (janela 48 px) 76% → 9%; alpha médio
+   0.069 → 0.32. **Ao regenerar, o `gl_sky_clouds_opacity` provavelmente precisa
+   ser mais baixo** do que com a textura esparsa (era 0.35).
+3. **A arte original está em `game_dir/textures/clouds_original.tga`** — NÃO é
+   carregada pelo jogo, é a fonte do script e o backup. Pra voltar: copiar por
+   cima de `clouds.tga`. Não confundir com `utils/gen_clouds.py`, que gera uma
+   textura procedural própria (outro caminho, descarta a arte).
+4. **O sunshafts não é causa de fog clareando.** Hipótese investigada e descartada
+   em teste (`gl_sunshafts 0` não mudou nada). Não gastar tempo nisso de novo.
+
+## Limitações conhecidas (não implementadas, só avaliadas)
+
+- A nuvem tem brilho 1.0 fixo (só o matiz acompanha o sol): em pôr do sol escuro
+  ainda pode ficar mais clara que o céu pintado. Alternativa: escalar o brilho
+  pelo céu local ou pelo `day_factor`.
+- Uma camada, um vetor de vento, sem deformação → efeito "adesivo deslizando".
+  Duas camadas + domain warp (ideia C) só compensam com a textura nova; com duas
+  camadas deslocadas meio ladrilho da textura antiga, ~50% do céu ficaria vazio.
+- Offset `0.15` da projeção e mipmap/anisotropia perto do horizonte não foram
+  ajustados nem verificados em runtime.
+
+## Como compilar o client fora do Windows (validação rápida)
+
+O build oficial é Windows + vcpkg (`external/vcpkg` é submódulo, às vezes vazio).
+Para só checar que compila/linka no Linux, sem tocar no repo: `apt-get install
+libfmt-dev libimgui-dev`, um `vcpkg.cmake` vazio em `$VCPKG_ROOT/scripts/
+buildsystems/`, um `imgui-config.cmake` mínimo (target `imgui::imgui`) em um
+`CMAKE_PREFIX_PATH`, e `cmake -G Ninja -DBUILD_SERVER=OFF -DBUILD_UTILS=OFF
+-DBUILD_GAME_LAUNCHER=OFF -DENABLE_PHYSX=OFF -DENABLE_STATIC_CRT_LINKING=OFF`,
+depois `ninja client`. **Não valida o GLSL** (só compila em runtime). Para
+binário testável no Windows: disparar `nightly-builds.yml` (workflow_dispatch)
+numa branch — o job de release só roda em `master` e recria o release
+`continious`.
+
+---
+
 # Sistemas nativos já confirmados (não reinventar)
 
 Antes de propor um sistema novo, checar esta lista — várias ideias que parecem
