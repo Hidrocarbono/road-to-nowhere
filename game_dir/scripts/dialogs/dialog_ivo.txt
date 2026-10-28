@@ -7,7 +7,7 @@ dialog_ivo
 	Tarde demais...
 	}
 
-	font		roboto
+	font		roboto_small
 	fontsize	22
 
 	node dialog_ivo

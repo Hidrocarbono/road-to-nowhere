@@ -7,7 +7,7 @@ dialog_teste
 	Já conversamos. Este diálogo só acontece uma vez.
 	}
 
-	font		roboto
+	font		roboto_small
 	fontsize	22
 
 	node dialog_teste

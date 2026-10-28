@@ -79,7 +79,7 @@ dialog_ivo                     // label do arquivo - so documentacao,
         Tarde demais...
     }
 
-    font            roboto      // opcional - padrao do cliente se omitido
+    font            roboto_small // opcional - padrao do cliente se omitido
     fontsize        22          // opcional
     color_speaker   255 210 64  // opcional - RGB 0-255
     color_text      255 255 255 // opcional - RGB 0-255
@@ -107,6 +107,18 @@ dialog_ivo                     // label do arquivo - so documentacao,
     }
 }
 ```
+
+**Armadilha de `font`:** use sempre `roboto_small` (bake dedicado a 24px) pra
+diálogo, nunca `roboto` (bake de TÍTULO, 63px). `fontsize` é um tamanho
+nominal fixo (define só o `lineGap` entre linhas), mas o glifo em si é
+minificado a partir do tamanho de bake da fonte escolhida — pedir
+`fontsize 22` num atlas de 63px gera texto visivelmente menor que o
+esperado (minificação ~2.9x) com o MESMO espaçamento entre linhas de
+sempre, dando a impressão de "espaçamento gigante". Esse é o mesmo motivo
+pelo qual `roboto_small` existe (ver comentário `RTN F11 fix` em
+`client/hud_dialog.cpp`) — já aconteceu de `dialog_medico.txt`/
+`dialog_teste.txt`/`dialog_ivo.txt` herdarem `font roboto` por engano ao
+copiar a diretiva antiga do `titles.txt` pré-F13.
 
 Regras do formato:
 
