@@ -65,10 +65,22 @@ static float s_flDlgFontScale = 1.0f;
 
 DECLARE_MESSAGE( m_Dialog, DialogShow )
 
+// RTN: navegacao por seta - comandos de console discretos (disparam 1x por
+// toque, o engine nao repete "bind" normal enquanto a tecla fica segurada -
+// mesma premissa que ja vale pra slot1..slot9), bindados em rtn.cfg
+// (uparrow/downarrow/ENTER). Fora do dialogo (!IsActive()) sao no-op, custo
+// zero - mesmo padrao dos outros HOOK_COMMAND deste arquivo/client.
+DECLARE_COMMAND( m_Dialog, DlgPrev );
+DECLARE_COMMAND( m_Dialog, DlgNext );
+DECLARE_COMMAND( m_Dialog, DlgConfirm );
+
 int CHudDialog::Init( void )
 {
 	gHUD.AddHudElem( this );
 	HOOK_MESSAGE( DialogShow );
+	HOOK_COMMAND( "dlg_prev", DlgPrev );
+	HOOK_COMMAND( "dlg_next", DlgNext );
+	HOOK_COMMAND( "dlg_confirm", DlgConfirm );
 	m_iFlags |= HUD_ACTIVE;
 	ResetState();
 	return 1;
@@ -88,6 +100,7 @@ void CHudDialog::ResetState( void )
 	m_flSealedHideTime = 0.0f;
 	m_szSpeaker[0] = m_szLine[0] = 0;
 	m_iNumSlots = 0;
+	m_iHighlight = 1;
 	for( int i = 0; i < DLG_HUD_MAX_SLOTS; i++ )
 		m_szOptions[i][0] = 0;
 	m_szFont[0] = 0;
@@ -215,8 +228,45 @@ int CHudDialog::MsgFunc_DialogShow( const char *pszName, int iSize, void *pbuf )
 		RTN_Utf8ToCp1252( m_szOptions[i] );
 	}
 
+	// RTN: reseta o destaque a CADA no novo - sem isso, um indice de um no
+	// anterior com mais opcoes sobreviveria pro proximo no (com menos
+	// opcoes), destacando um slot que nem existe mais.
+	m_iHighlight = 1;
+
 	m_bActive = true;
 	return 1;
+}
+
+// RTN: anda o destaque por iDelta, dando a volta nas pontas (desce do 1 vai
+// pro ultimo, sobe do ultimo volta pro 1) - convencao comum de menu, evita
+// o jogador "preso" numa ponta tendo que segurar a tecla contraria.
+void CHudDialog::MoveHighlight( int iDelta )
+{
+	if( !m_bActive || m_iNumSlots <= 0 )
+		return;
+
+	m_iHighlight += iDelta;
+	if( m_iHighlight < 1 )
+		m_iHighlight = m_iNumSlots;
+	else if( m_iHighlight > m_iNumSlots )
+		m_iHighlight = 1;
+}
+
+void CHudDialog::UserCmd_DlgPrev( void )
+{
+	MoveHighlight( -1 );
+}
+
+void CHudDialog::UserCmd_DlgNext( void )
+{
+	MoveHighlight( 1 );
+}
+
+void CHudDialog::UserCmd_DlgConfirm( void )
+{
+	if( !m_bActive )
+		return;
+	SelectOption( m_iHighlight );
 }
 
 void CHudDialog::SelectOption( int iSlot )
@@ -398,8 +448,12 @@ int CHudDialog::Draw( float flTime )
 	int panelWide = 0;
 	for( int i = 0; i < m_iNumSlots; i++ )
 	{
-		char szOpt[DLG_HUD_MAX_LABEL + 8];
-		Q_snprintf( szOpt, sizeof( szOpt ), "%d. %s", i + 1, m_szOptions[i] );
+		// RTN: mede com o prefixo "> " sempre incluso (mesmo pras linhas que
+		// NAO estao destacadas agora) - senao a caixa fica larga certa so
+		// pra quem estava destacado no frame em que foi medida, e qualquer
+		// outra opcao virar a destacada (seta) estoura a borda por ~2 chars.
+		char szOpt[DLG_HUD_MAX_LABEL + 10];
+		Q_snprintf( szOpt, sizeof( szOpt ), "> %d. %s", i + 1, m_szOptions[i] );
 		int optWide = DLG_MeasureString( szOpt );
 		if( optWide > panelWide ) panelWide = optWide;
 	}
@@ -424,9 +478,17 @@ int CHudDialog::Draw( float flTime )
 	int optTextY = optionsY + 8;
 	for( int i = 0; i < m_iNumSlots; i++ )
 	{
-		char szOpt[DLG_HUD_MAX_LABEL + 8];
-		Q_snprintf( szOpt, sizeof( szOpt ), "%d. %s", i + 1, m_szOptions[i] );
-		optTextY += DLG_DrawMultilineCentered( optTextY, lineGap, szOpt, 200, 200, 200 ) * lineGap;
+		// RTN: opcao destacada (navegacao por seta) ganha cor de acento +
+		// marcador ">" - dois sinais independentes (cor E simbolo), nao so
+		// cor, pra nao depender so de percepcao de cor.
+		bool bHighlighted = ( ( i + 1 ) == m_iHighlight );
+		char szOpt[DLG_HUD_MAX_LABEL + 10];
+		Q_snprintf( szOpt, sizeof( szOpt ), "%s%d. %s", bHighlighted ? "> " : "", i + 1, m_szOptions[i] );
+
+		if( bHighlighted )
+			optTextY += DLG_DrawMultilineCentered( optTextY, lineGap, szOpt, rSpk, gSpk, bSpk ) * lineGap;	// mesma cor de acento do falante
+		else
+			optTextY += DLG_DrawMultilineCentered( optTextY, lineGap, szOpt, 200, 200, 200 ) * lineGap;
 	}
 
 	return 1;

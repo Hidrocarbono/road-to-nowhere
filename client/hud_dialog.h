@@ -38,12 +38,23 @@ public:
 	bool IsActive( void ) { return m_bActive; }
 	void SelectOption( int iSlot );	// chamado por WeaponsResource::SelectSlot (client/ammo.cpp)
 
+	// RTN: navegacao por seta Cima/Baixo + Enter (ver rtn.cfg) - alternativa
+	// ao numero direto (1-9), que continua funcionando igual. So mexe no
+	// destaque (puramente visual, client-side) - a confirmacao ainda passa
+	// por SelectOption(), entao o "dlgselect" mandado pro servidor e
+	// IDENTICO ao caminho numerico, sem nenhuma mudanca de protocolo.
+	void UserCmd_DlgPrev( void );
+	void UserCmd_DlgNext( void );
+	void UserCmd_DlgConfirm( void );
+
 private:
 	void ResetState( void );
 	void ReadStyle( void );	// le font/fontsize/flags de cor (mesma ordem de DLG_SendStyle, server/dialogsession.cpp)
+	void MoveHighlight( int iDelta );
 
 	bool	m_bActive;
 	int	m_iTurn;
+	int	m_iHighlight;		// RTN: opcao destacada (1-based, igual SelectOption) - sempre 1..m_iNumSlots quando ativo
 	bool	m_bSealedOnly;		// msgType SEALED (ver hud_dialog.cpp) - sem opcao, fecha por timeout, nao por "dlgselect"
 	float	m_flSealedHideTime;	// gEngfuncs.GetClientTime() em que m_bSealedOnly deve sair da tela
 
