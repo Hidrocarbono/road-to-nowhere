@@ -414,26 +414,6 @@ int CHudDialog::Draw( float flTime )
 	else
 		s_flDlgFontScale = 1.0f;
 
-	// RTN DEBUG TEMP: diagnostico do bug de espacamento entre linhas
-	// relatado em jogo (medido ~2x o lineGap calculado aqui). Imprime 1x por
-	// no (nao por frame) pra achar se o valor que CHEGA ja vem errado ou se
-	// o problema e so na hora de desenhar. Remover depois de confirmado.
-	{
-		static int s_iLastDebugTurn = -999;
-		static bool s_bLastDebugSealed = false;
-		bool bIsNewShow = m_bSealedOnly ? !s_bLastDebugSealed : ( s_iLastDebugTurn != m_iTurn );
-		if( bIsNewShow )
-		{
-			s_iLastDebugTurn = m_iTurn;
-			s_bLastDebugSealed = m_bSealedOnly;
-			ALERT( at_console, "DLG_DEBUG: wire_fontsize=%d nFontHeight=%d lineGap=%d font='%s' bakeSize=%d lineHeight=%d scale=%.4f ScreenWidth=%d ScreenHeight=%d\n",
-				m_iFontSize, nFontHeight, lineGap, szFontName,
-				s_pDlgFont ? s_pDlgFont->iBakeSize : -1,
-				s_pDlgFont ? s_pDlgFont->iLineHeight : -1,
-				s_flDlgFontScale, ScreenWidth, ScreenHeight );
-		}
-	}
-
 	// RTN F13: cor do falante/texto vem pronta na mensagem (m_iColorSpeaker/
 	// m_iColorText) quando o estilo declara "color_speaker"/"color_text" -
 	// sem override, mantem o mesmo default visual de sempre (amarelo de
