@@ -50,23 +50,31 @@ Limites atuais e o que eles significam:
 
 | Campo | Bits | Alcance | Observação |
 |---|---|---|---|
-| `clientdata_t.m_iId` | **5** | 0..31 | id da arma ativa |
-| `weapon_data_t.m_iId` | **5** | 0..31 | id por slot |
+| `clientdata_t.m_iId` | **6** | 0..63 | id da arma ativa |
+| `weapon_data_t.m_iId` | **6** | 0..63 | id por slot |
 | `clientdata_t.viewmodel` | 10 | 0..1023 | índice de modelo |
 | `clientdata_t.weapons` | 32 | 32 armas | **já contornado** pelo PrimeXT via `gmsgWeapons` (8 bytes = 64 bits) |
 
-**O engine é mais largo que o `delta.lst`:** em `engine/common/protocol.h` do fork,
-`MAX_WEAPON_BITS 6` → 64 armas previsíveis (e `MSG_WriteWeaponData` escreve o índice
-do slot com 6 bits), e `MAX_MODEL_BITS 12` → 4096 modelos. Quem estrangula é o
-`delta.lst` do mod, não o engine.
+**O engine e o `delta.lst` agora estão alinhados em 6 bits:** em
+`engine/common/protocol.h` do fork, `MAX_WEAPON_BITS 6` → 64 armas previsíveis (e
+`MSG_WriteWeaponData` escreve o índice do slot com 6 bits), e `MAX_MODEL_BITS 12` →
+4096 modelos. Os dois `m_iId` do `delta.lst` foram ampliados de 5 para 6 bits
+(`delta.lst` linhas 24 e 280), então o teto de armas deixou de ser o protocolo.
 
 **Consequência:** o sistema de armas por script atribui ids dinâmicos a partir de 31
-(`WEAPON_SCRIPT_ID_BASE`), e 31 é o **último** que cabe em 5 bits. Por isso
-`WEAPON_SCRIPT_ID_MAX` está fixado em **31** — ou seja, **uma arma de script por vez**;
-pedir uma segunda gera erro no log em vez de corromper estado em silêncio. Para ter
-mais: **primeiro** subir os dois `m_iId` para 6 bits no `delta.lst` (mudança de
-protocolo, merece rodada de teste própria), **depois** aumentar o `MAX` nos dois
-headers que o definem (`server/weaponscript.h` e `game_shared/weapons/mp5.h`).
+(`WEAPON_SCRIPT_ID_BASE`) até `WEAPON_SCRIPT_ID_MAX` = **62** (definido nos dois
+headers: `server/weaponscript.h` e `game_shared/weapons/mp5.h` — manter iguais) →
+**até 32 armas de script**. O id 63 é `WEAPON_SUIT` e fica reservado. Passar do
+teto gera erro no log em vez de corromper estado em silêncio.
+
+**Armadilha de distribuição:** `delta.lst` é dado do mod e **cliente e servidor
+precisam carregar a mesma versão**. Se divergirem, todo campo depois do `m_iId`
+desliza um bit e o sintoma NÃO parece "id errado" — aparece como vida, câmera, FOV e
+inclinação errados ao mesmo tempo. Distribuir `game_dir` e DLLs juntos.
+
+**Ainda sem rodada de teste dedicada:** não há registro de teste em jogo com mais de
+uma arma de script equipável ao mesmo tempo depois da ampliação (o código e o
+`delta.lst` estão prontos; o que falta é validar em partida).
 
 # Sistema de armas por script — estado e armadilhas
 

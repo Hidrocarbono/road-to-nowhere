@@ -12,11 +12,10 @@ holdtime) vem do proprio titles.txt (TextMessageGet), igual o hud_dialog.
 #include "utils.h"
 #include "parsemsg.h"
 #include "triangleapi.h"
-#include "texture_handle.h"
 #include "gl_local.h"
 #include "hud_titlefont.h"
+#include "hud_spriteutil.h"
 
-extern void OrthoQuad( int x1, int y1, int x2, int y2 );		// tri.cpp
 extern void RTN_Utf8ToCp1252( char *szText );				// mesmo fix do hud_radio/hud_dialog
 
 // RTN F10 fix: mesma fonte custom do hud_dialog.cpp (Roboto) - a creditsFont
@@ -38,8 +37,8 @@ static float s_flSysTipFontScale = 1.0f;
 // escala pela resolucao real, entao so precisamos de uma).
 static const char *SYSTIP_ICON_PATH[SYSTIP_NUM_ICONS] =
 {
-	"gfx/vgui/icon0_1024.tga",	// 0 = save
-	"gfx/vgui/icon1_1024.tga",	// 1 = atencao/dica
+	"sprites/rtn_hud_systip_save.spr",	// 0 = save   (de gfx/vgui/icon0_1024.tga)
+	"sprites/rtn_hud_systip_tip.spr",	// 1 = atencao/dica (de gfx/vgui/icon1_1024.tga)
 };
 
 DECLARE_MESSAGE( m_SystemTip, SystemTip )
@@ -57,7 +56,7 @@ int CHudSystemTip::VidInit( void )
 {
 	ResetState();
 	for( int i = 0; i < SYSTIP_NUM_ICONS; i++ )
-		m_hIcons[i] = LOAD_TEXTURE( SYSTIP_ICON_PATH[i], NULL, 0, TF_CLAMP | TF_IMAGE | TF_HAS_ALPHA );
+		m_hIcons[i] = RTN_LoadOptionalSprite( SYSTIP_ICON_PATH[i] );
 	return 1;
 }
 
@@ -313,12 +312,9 @@ int CHudSystemTip::Draw( float flTime )
 	int iconX = blockX;
 	int iconY = y + ( blockTall - iconSize ) / 2;	// icone centralizado verticalmente contra o texto
 
-	if( m_hIcons[m_iIcon].Initialized() )
+	if( m_hIcons[m_iIcon] )
 	{
-		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
-		gEngfuncs.pTriAPI->Color4f( 1.0f, 1.0f, 1.0f, fFadeAlpha );
-		GL_Bind( 0, m_hIcons[m_iIcon] );
-		OrthoQuad( iconX, iconY, iconX + iconSize, iconY + iconSize );
+		RTN_DrawSpriteStretched( m_hIcons[m_iIcon], iconX, iconY, iconX + iconSize, iconY + iconSize, 1.0f, 1.0f, 1.0f, fFadeAlpha );
 		gEngfuncs.pTriAPI->RenderMode( kRenderNormal );
 	}
 

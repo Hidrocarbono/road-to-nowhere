@@ -133,13 +133,23 @@ acerta.
 
 ## Limite de armas de script simultâneas
 
-`WEAPON_SCRIPT_ID_MAX` está fixado em **31** (`server/weaponscript.h`,
-`game_shared/weapons/mp5.h`) — só cabe **uma** arma de script carregada por
-vez. Pedir uma segunda gera erro no log, não corrompe estado. O teto vem do
-`clientdata_t.m_iId`/`weapon_data_t.m_iId` do `game_dir/delta.lst`, que hoje
-tem só 5 bits (0..31). Pra ter mais de uma, é preciso primeiro subir esses
-dois campos pra 6 bits no `delta.lst` (mudança de protocolo — merece rodada
-de teste própria) e só depois aumentar os `MAX` nos dois headers acima.
+`WEAPON_SCRIPT_ID_MAX` é **62** (`server/weaponscript.h` e
+`game_shared/weapons/mp5.h` — os dois precisam ter o mesmo valor). Os ids de
+arma de script começam em `WEAPON_SCRIPT_ID_BASE` = 31, então cabem **até 32
+armas de script**; o id 63 é `WEAPON_SUIT` e fica reservado. Passar do teto gera
+erro no log, não corrompe estado.
+
+Isso só é possível porque `clientdata_t.m_iId` e `weapon_data_t.m_iId` do
+`game_dir/delta.lst` agora têm **6 bits** (0..63; linhas 24 e 280), alinhados
+com o `MAX_WEAPON_BITS 6` do engine.
+
+**Cuidado ao distribuir:** o `delta.lst` precisa ser o MESMO no cliente e no
+servidor. Se divergirem, o sintoma não é "arma errada" e sim vida, câmera, FOV e
+inclinação errados ao mesmo tempo (todo campo depois do `m_iId` desliza um bit).
+Mande `game_dir` e as DLLs juntos.
+
+Ainda não há rodada de teste em jogo registrada com mais de uma arma de script
+equipável ao mesmo tempo — valide antes de contar com isso.
 
 ## Armadilhas de C++ (pra quem for mexer no parser/contexto, não no `.txt`)
 

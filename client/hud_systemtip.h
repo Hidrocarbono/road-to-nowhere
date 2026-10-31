@@ -17,7 +17,6 @@ so DEPOIS o novo aparece - nunca se sobrescrevem.
 #define HUD_SYSTEMTIP_H
 
 #include "hud.h"
-#include "texture_handle.h"
 
 #define SYSTIP_NUM_ICONS	2	// icon0 (save), icon1 (atencao/dica)
 #define SYSTIP_MAX_TEXT		256
@@ -51,7 +50,7 @@ private:
 	int	m_iNextR, m_iNextG, m_iNextB;
 	float	m_fNextHold, m_fNextFadeIn, m_fNextFadeOut;
 
-	TextureHandle	m_hIcons[SYSTIP_NUM_ICONS];
+	SpriteHandle	m_hIcons[SYSTIP_NUM_ICONS];
 };
 
 #endif // HUD_SYSTEMTIP_H

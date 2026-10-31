@@ -16,7 +16,6 @@ The document file (texts/<name>.txt) syntax (Paranoia 2 compatible):
 #define HUD_TEXTWINDOW_H
 
 #include "hud.h"
-#include "texture_handle.h"  // TextureHandle (membros)
 
 class CHudTextWindow : public CHudBase
 {
@@ -41,8 +40,8 @@ private:
 	char m_szButtonImage[64];	// imagem do botao fechar (imgbutton do HEAD)
 	int m_iXSize, m_iYSize;		// tamanho da janela (xsize/ysize do HEAD)
 	int m_iScrollX, m_iScrollY, m_iScrollW, m_iScrollH; // scrollpos (area da imagem)
-	TextureHandle m_hPanelTex;	// textura do painel (carregada no Open - NAO a cada frame)
-	TextureHandle m_hButtonTex;	// textura do botao fechar (idem)
+	SpriteHandle m_hPanelSpr;	// sprite do painel (carregado no Open - NAO a cada frame)
+	SpriteHandle m_hButtonSpr;	// sprite do botao fechar (idem)
 };
 
 #endif // HUD_TEXTWINDOW_H

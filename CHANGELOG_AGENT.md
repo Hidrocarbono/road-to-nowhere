@@ -85,3 +85,17 @@ Ciclo grande, todo em cima do branch `claude/chat-pc-code-k6p2z1` (agora mesclad
 - **Testei a compilação e o jogo rodou?** Parcial. Não consegui rodar o build local completo (CMake+vcpkg) neste sandbox - a política de rede do ambiente bloqueia (403) download direto de `github.com`/`codeload.github.com`, de onde o vcpkg busca `fmt`. Validei os arquivos novos/alterados do sistema de fonte (`hud_titlefont.cpp`, `message.cpp`, `hud.h` e os arquivos que dependem dele) com `g++ -fsyntax-only -std=c++17`, usando os mesmos include paths/defines do `client/CMakeLists.txt` - todos limpos, sem erro. **Também disparei a build oficial do GitHub Actions (`nightly-builds.yml`, preset `windows-x86-debug`) na branch antes de mesclar, e o usuário confirmou que baixou e testou com sucesso** antes de pedir a mesclagem final - portanto o build real (MSVC, link completo) passou.
 - **Funcionalidades implementadas estão 100%?** Sim, pra tudo que foi testado pelo usuário. As pendências da seção 5 (disparo de arma de script não portado, `WEAPON_SCRIPT_ID_MAX`) são features **não implementadas ainda**, não bugs do que já existe.
 - **O último commit pode ser puxado com segurança pelo próximo agente?** Sim - o usuário testou o build (via GitHub Actions) antes de autorizar esta mesclagem pra `master` com tag `v1.0.1`.
+
+---
+
+## 7. Atualização posterior (2026-10) — correções a este relatório
+
+Este relatório descreve o estado de 2026-08-23. Desde então, alguns itens da seção 4 e da seção 5 mudaram:
+
+- **`WEAPON_SCRIPT_ID_MAX` já foi subido para 62** (`server/weaponscript.h`, `game_shared/weapons/mp5.h`) e o `delta.lst` está em 6 bits (linhas 24 e 280). A pendência "subir `WEAPON_SCRIPT_ID_MAX`" da seção 5 está **feita no código**; falta apenas uma rodada de teste em jogo com mais de uma arma de script equipável ao mesmo tempo. `CLAUDE.md` e `GUIA_ARMAS_SCRIPT.md` foram corrigidos.
+- **`hud_radio`, `hud_textwindow` e `hud_systemtip` não usam mais textura crua** (a nota da seção 4 sobre `LOAD_TEXTURE` + `GL_Bind` + `OrthoQuad` não vale mais para eles). Agora desenham `.spr` v32 por `DrawSpriteAsPoly`, via o helper `client/hud_spriteutil.h` (que também concentra o prototipo de `DrawSpriteAsPoly`, antes repetido por `extern` em vários `.cpp`).
+  - Sprites novos: `sprites/rtn_hud_speaker4.spr`, `sprites/rtn_hud_systip_save.spr`, `sprites/rtn_hud_systip_tip.spr` (gerados com `python3 tools/tga2spr.py`).
+  - **Janela de documento (`hud_textwindow`):** os campos `background`/`imgbutton` do `<HEAD>` aceitam `.spr` direto ou um nome de `.tga`; neste caso o cliente procura `sprites/rtn_tw_<nome base>.spr`. Para um documento novo com imagem `.tga`, gere o sprite: `python3 tools/tga2spr.py <imagem.tga> game_dir/sprites/rtn_tw_<nome>.spr`. Sem o sprite, o documento abre sem a imagem e avisa no console.
+  - O `rtn_hud_style`/ícones continuam opcionais: se o `.spr` faltar, o elemento desenha sem o ícone, sem erro.
+  - **Não testado em jogo** — só checagem de sintaxe com `g++ -fsyntax-only`.
+- O sistema de diálogo com escolhas, o System Tip e a pipeline de fonte Roboto (`roboto`, `roboto_small`) foram mesclados na `master`; ver `game_dir/devkit/GUIA_DIALOGOS.md`.

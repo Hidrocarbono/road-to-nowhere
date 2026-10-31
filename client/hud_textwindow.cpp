@@ -3,11 +3,8 @@
 #include "utils.h"
 #include "parsemsg.h"
 #include "triangleapi.h"
-#include "texture_handle.h"
-#include "gl_local.h"      // GL_Bind
-
-// tri.cpp - quad ortogonal 2D com a textura atual bindada
-extern void OrthoQuad( int x1, int y1, int x2, int y2 );
+#include "gl_local.h"
+#include "hud_spriteutil.h"
 
 // RTN F10: JANELA DE DOCUMENTO (estilo Paranoia 2).
 // Recebe "TextWindow" (string = nome do arquivo) do trigger_textwindow,
@@ -21,6 +18,50 @@ DECLARE_MESSAGE( m_TextWindow, TextWindow );
 
 #define RTN_TW_BUTTON_SIZE	24	// tamanho do botao X (pixels)
 
+// Resolve o valor de "background"/"imgbutton" do <HEAD> do documento para um
+// sprite. O autor do documento pode ter escrito um caminho de .tga (como no
+// Paranoia 2) ou de .spr; este jogo so desenha .spr. Ordem de tentativa:
+//   1) o proprio valor, se ja termina em .spr
+//   2) valor + ".spr", se nao tem extensao (ex.: "sprites/vgui/backpane12")
+//   3) sprites/rtn_tw_<nome base>.spr - o .spr gerado de um .tga com
+//        python3 tools/tga2spr.py texts/images/foo.tga game_dir/sprites/rtn_tw_foo.spr
+// Devolve 0 e avisa no console se nenhum existir (documento abre sem a imagem).
+static SpriteHandle RTN_TW_ResolveSprite( const char *pszImage )
+{
+	if( !pszImage || !pszImage[0] )
+		return 0;
+
+	char szPath[128];
+	const char *pExt = strrchr( pszImage, '.' );
+	const char *pSlash = strrchr( pszImage, '/' );
+	bool hasExt = pExt && ( !pSlash || pExt > pSlash );
+
+	if( hasExt && !Q_stricmp( pExt, ".spr" ))
+	{
+		SpriteHandle h = RTN_LoadOptionalSprite( pszImage );
+		if( h ) return h;
+	}
+	else if( !hasExt )
+	{
+		Q_snprintf( szPath, sizeof( szPath ), "%s.spr", pszImage );
+		SpriteHandle h = RTN_LoadOptionalSprite( szPath );
+		if( h ) return h;
+	}
+
+	// nome base sem diretorio e sem extensao
+	const char *pBase = pSlash ? pSlash + 1 : pszImage;
+	char szBase[64];
+	Q_strncpy( szBase, pBase, sizeof( szBase ));
+	char *pDot = strrchr( szBase, '.' );
+	if( pDot ) *pDot = 0;
+
+	Q_snprintf( szPath, sizeof( szPath ), "sprites/rtn_tw_%s.spr", szBase );
+	SpriteHandle h = RTN_LoadOptionalSprite( szPath );
+	if( !h )
+		gEngfuncs.Con_Printf( "RTN TextWindow: sem sprite para '%s' (esperado %s - gere com tools/tga2spr.py)\n", pszImage, szPath );
+	return h;
+}
+
 int CHudTextWindow::Init( void )
 {
 	gHUD.AddHudElem( this );
@@ -28,12 +69,14 @@ int CHudTextWindow::Init( void )
 	m_iFlags |= HUD_ACTIVE;
 	m_bOpen = false;
 	m_bWasAttack = false;
+	m_hPanelSpr = m_hButtonSpr = 0;
 	return 1;
 }
 
 int CHudTextWindow::VidInit( void )
 {
 	m_bOpen = false;
+	m_hPanelSpr = m_hButtonSpr = 0;	// handles de .spr nao sobrevivem a troca de mapa
 	return 1;
 }
 
@@ -76,12 +119,11 @@ void CHudTextWindow::Open( const char *pszFileName )
 	Q_strncpy( m_szFileName, szName, sizeof( m_szFileName ));
 	ParseDocument();
 
-	// RTN F10 fix (analise pre-build): carrega as texturas UMA vez (no Open)
-	// - o LOAD_TEXTURE no Draw carregaria a CADA frame (custo de IO + risco
-	// de alocar texturas em loop). O P2 carregava no construtor; aqui no Open.
-	m_hPanelTex = LOAD_TEXTURE( m_szPanelImage, NULL, 0, TF_CLAMP | TF_IMAGE | TF_HAS_ALPHA );
-	if( m_szButtonImage[0] )
-		m_hButtonTex = LOAD_TEXTURE( m_szButtonImage, NULL, 0, TF_CLAMP | TF_IMAGE | TF_HAS_ALPHA );
+	// Carrega os sprites UMA vez (no Open), nao a cada frame. Textura crua
+	// (LOAD_TEXTURE de .tga) gera GL_INVALID_ENUM todo frame neste engine, entao
+	// as imagens do documento sao .spr v32 - ver RTN_TW_ResolveSprite().
+	m_hPanelSpr = RTN_TW_ResolveSprite( m_szPanelImage );
+	m_hButtonSpr = m_szButtonImage[0] ? RTN_TW_ResolveSprite( m_szButtonImage ) : 0;
 
 	// pausa o jogo e esconde o icone "Paused" da engine (showpause 0)
 	gEngfuncs.pfnClientCmd( "showpause 0\n" );
@@ -98,13 +140,9 @@ void CHudTextWindow::Close( void )
 
 	m_bOpen = false;
 
-	// libera as texturas do documento (nao acumula entre documentos)
-	if( m_hPanelTex.Initialized( ))
-		FREE_TEXTURE( m_hPanelTex );
-	if( m_hButtonTex.Initialized( ))
-		FREE_TEXTURE( m_hButtonTex );
-	m_hPanelTex = TextureHandle::Null();
-	m_hButtonTex = TextureHandle::Null();
+	// handles de .spr sao do engine, nao ha o que liberar - so esquece
+	m_hPanelSpr = 0;
+	m_hButtonSpr = 0;
 
 	// despausa e restaura o icone de pausa
 	gEngfuncs.pfnClientCmd( "showpause 1\n" );
@@ -219,23 +257,15 @@ int CHudTextWindow::Draw( float flTime )
 	// Se faltar contraste p/ ler, da pra voltar com alpha bem baixo (~0.12).
 
 	// painel do documento (a imagem - texts/images/*.tga ou o sprite)
-	if( m_hPanelTex.Initialized( ))
-	{
-		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
-		gEngfuncs.pTriAPI->Color4f( 1.0f, 1.0f, 1.0f, 1.0f );
-		GL_Bind( 0, m_hPanelTex );
-		OrthoQuad( x, y, x + w, y + h );
-	}
+	if( m_hPanelSpr )
+		RTN_DrawSpriteStretched( m_hPanelSpr, x, y, x + w, y + h, 1.0f, 1.0f, 1.0f, 1.0f );
 
 	// botao fechar (X) - no canto superior direito do painel
-	if( m_hButtonTex.Initialized( ))
+	if( m_hButtonSpr )
 	{
 		int btnX = x + w - RTN_TW_BUTTON_SIZE - 6;
 		int btnY = y + 6;
-		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
-		gEngfuncs.pTriAPI->Color4f( 1.0f, 1.0f, 1.0f, 1.0f );
-		GL_Bind( 0, m_hButtonTex );
-		OrthoQuad( btnX, btnY, btnX + RTN_TW_BUTTON_SIZE, btnY + RTN_TW_BUTTON_SIZE );
+		RTN_DrawSpriteStretched( m_hButtonSpr, btnX, btnY, btnX + RTN_TW_BUTTON_SIZE, btnY + RTN_TW_BUTTON_SIZE, 1.0f, 1.0f, 1.0f, 1.0f );
 
 		// clique no botao (mouse + IN_ATTACK, edge detect)
 		int mx = 0, my = 0;

@@ -12,8 +12,8 @@ fade 0.25s (RADIO_FADE_TIME) + hold time (health) + fila do proximo.
 #include "utils.h"
 #include "parsemsg.h"
 #include "triangleapi.h"
-#include "texture_handle.h"
 #include "gl_local.h"
+#include "hud_spriteutil.h"
 
 // tri.cpp - quad ortogonal 2D com a textura atual bindada
 extern void OrthoQuad( int x1, int y1, int x2, int y2 );
@@ -32,7 +32,10 @@ int CHudRadio::Init( void )
 int CHudRadio::VidInit( void )
 {
 	ResetState();
-	m_hSpeaker = LOAD_TEXTURE( "gfx/vgui/speaker4.tga", NULL, 0, TF_CLAMP | TF_IMAGE | TF_HAS_ALPHA );
+	// .spr v32 (tools/tga2spr.py) - textura crua via LOAD_TEXTURE gera GL_INVALID_ENUM
+	// todo frame neste engine (CHANGELOG_AGENT.md secao 4). Opcional: sem o arquivo
+	// o painel desenha so com o nome do talker.
+	m_hSpeaker = RTN_LoadOptionalSprite( "sprites/rtn_hud_speaker4.spr" );
 	return 1;
 }
 
@@ -167,14 +170,11 @@ int CHudRadio::Draw( float flTime )
 	OrthoQuad( x, y, x + bgWide, y + bgTall );
 
 	// icone do speaker (a direita do painel - do tamanho da fonte - branco)
-	if ( m_hSpeaker.Initialized( ))
+	if ( m_hSpeaker )
 	{
 		int iconX = x + bgWide - iconSize - border;
 		int iconY = y + (bgTall - iconSize) / 2;
-		gEngfuncs.pTriAPI->RenderMode( kRenderTransTexture );
-		gEngfuncs.pTriAPI->Color4f( 1.0f, 1.0f, 1.0f, fFadeAlpha );
-		GL_Bind( 0, m_hSpeaker );
-		OrthoQuad( iconX, iconY, iconX + iconSize, iconY + iconSize );
+		RTN_DrawSpriteStretched( m_hSpeaker, iconX, iconY, iconX + iconSize, iconY + iconSize, 1.0f, 1.0f, 1.0f, fFadeAlpha );
 	}
 
 	// nome do talker (Roboto - a esquerda - com folga p/ nao cortar)

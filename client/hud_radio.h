@@ -11,7 +11,6 @@ queue for the next radio sentence. HUD 2D (no VGUI - RTN style).
 #define HUD_RADIO_H
 
 #include "hud.h"
-#include "texture_handle.h"
 
 #define RADIO_FADE_TIME 0.25f
 
@@ -37,7 +36,7 @@ private:
 	char m_szNextTitle[128];
 	float m_fNextTime;
 	int m_iNextRed, m_iNextGreen, m_iNextBlue, m_iNextAlpha;
-	TextureHandle m_hSpeaker;	// icone do speaker4.tga (gfx/vgui/)
+	SpriteHandle m_hSpeaker;	// sprites/rtn_hud_speaker4.spr (gerado de gfx/vgui/speaker4.tga)
 };
 
 #endif // HUD_RADIO_H
