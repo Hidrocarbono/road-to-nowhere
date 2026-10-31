@@ -5,10 +5,10 @@ ambiente que não chega ali. **Desligado por padrão** (`gl_hbao 0`) até ser
 calibrado em jogo. Não é sombra dinâmica: não projeta sombra de objeto e não
 acende luz.
 
-> **Status:** implementado e checado só por `g++ -fsyntax-only` no C++. Os dois
-> shaders GLSL **nunca foram compilados nem rodados** (não há driver GL neste
-> ambiente). O primeiro teste em jogo pode mostrar erro de compilação de shader
-> no console — se mostrar, mande o log.
+> **Status:** testado em jogo pelo usuário (build do run nº 215, commit `e406dcb`):
+> os dois shaders compilam e o efeito funciona. Os valores padrão dos cvars
+> (raio 32, intensidade 1.5, bias 0.1) ainda são estimativas — calibre em mapas
+> internos e abertos antes de ligar por padrão (`gl_hbao 1`).
 
 ## Como ligar e ajustar
 
@@ -62,7 +62,7 @@ cena HDR linear. Mesmo molde do DOF (`RequestScreenColor`/`RequestScreenDepth`).
 
 | Sintoma | Causa provável |
 |---|---|
-| Console com erro de shader `postfx/genhbao` ou `drawhbao` | GLSL nunca compilado ainda — mande o log |
+| Console com erro de shader `postfx/genhbao` ou `drawhbao` | os shaders compilaram no teste do run nº 215; se aparecer, é uma regressão — mande o log |
 | Manchas em paredes lisas | `gl_hbao_bias` baixo demais |
 | Auréola escura em volta de objetos | o peso de profundidade em `drawhbao_fp.glsl` (`0.05 * zc + 2.0`) está frouxo; ou `gl_hbao_radius` grande demais |
 | Granulado visível | o blur 4×4 não está cancelando o padrão; verifique se o AO é mesmo de meia resolução (`m_hbaoWidth/Height`) |
