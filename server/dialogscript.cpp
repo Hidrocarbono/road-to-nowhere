@@ -485,15 +485,44 @@ static void DialogScript_ParseFile( const char *filename )
 		return;
 	}
 
-	// Troca todo \n/\r\n por separadores de string C consecutivos, pra dar
-	// pra andar com ponteiro (mesmo truque simples de strtok, sem perder o
-	// texto entre chamadas como strtok faria). fileLen guarda o limite real
-	// do buffer, ja que depois disso o texto vira uma sequencia de strings
-	// coladas e strlen() sozinho nao serve mais pra saber onde ele acaba.
-	for( char *p = text; *p; p++ )
+	// Troca toda quebra de linha por UM separador de string C (mesmo truque
+	// simples de strtok, sem perder o texto entre chamadas como strtok
+	// faria) - compactando em vez de so substituir byte a byte.
+	//
+	// RTN F13 fix (espacamento dobrado no corpo da fala, nao nas opcoes):
+	// a versao antiga fazia so "if \n ou \r, vira \0" SEM compactar. Num
+	// arquivo com CRLF - exatamente o que o `git checkout` produz no runner
+	// Windows da CI quando nao ha .gitattributes forcando LF nestes .txt
+	// (diferente de ammodesc.txt, que usa CRLF DE PROPOSITO, ver CLAUDE.md) -
+	// cada "\r\n" virava DOIS '\0' em sequencia: uma "linha" fantasma vazia
+	// entre cada linha real. DLG_ParseNodeBody/DLG_ParseTreeBody pulam linha
+	// vazia (e' estrutura - "option"/"node"/etc nunca e' linha em branco),
+	// mas DLG_ParseRawTextBlock NAO pula (linha em branco dentro de
+	// npc_text/sealed e conteudo legitimo da fala) - cada fantasma virava um
+	// '\n' extra bem no meio do texto, dobrando o gap visual SO no corpo da
+	// fala no cliente (confirmado em jogo: opcoes com o espaco certo, corpo
+	// da fala com o dobro). Agora colapsa CRLF (e, por seguranca, LFCR) num
+	// unico terminador.
 	{
-		if( *p == '\n' || *p == '\r' )
-			*p = '\0';
+		char *src = text;
+		char *dst = text;
+		while( *src )
+		{
+			if( *src == '\r' || *src == '\n' )
+			{
+				char first = *src++;
+				*dst++ = '\0';
+				char second = ( first == '\r' ) ? '\n' : '\r';
+				if( *src == second )
+					src++; // combo CRLF/LFCR - conta como UMA quebra so
+			}
+			else
+			{
+				*dst++ = *src++;
+			}
+		}
+		*dst = '\0';
+		fileLen = (int)( dst - text ); // novo limite real, ja sem os '\r' removidos
 	}
 
 	char *cursor = text;
