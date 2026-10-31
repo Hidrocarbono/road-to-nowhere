@@ -177,6 +177,9 @@ typedef enum
 	UT_LIGHTTHRESHOLD,
 	UT_NUMVISIBLEMODELS,
 	UT_NVGPARAMS,		// RTN: visao noturna (parametros do auto-exposure)
+	UT_HBAOMAP,			// RTN: HBAO - textura de AO de meia resolucao
+	UT_HBAOPARAMS,		// RTN: HBAO - tan(fovx/2), tan(fovy/2), raio, intensidade
+	UT_HBAOPARAMS2,		// RTN: HBAO - texel U/V do AO, debug, bias
 	UT_UNDEFINED,
 } uniformType_t;
 

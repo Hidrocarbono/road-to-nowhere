@@ -23,9 +23,14 @@ public:
 	word	blurMipShader;
 	word	bloomShader;
 	word	lensDirtShader;		// RTN F10: lens dirt (sujeira na luz)
+	word	hbaoGenShader;		// RTN: HBAO passe 1 (gera AO em meia resolucao)
+	word	hbaoDrawShader;		// RTN: HBAO passe 2 (blur com profundidade + composicao)
 
 	TextureHandle	target_rgb[2];
 	TextureHandle	m_dirtTexture;	// RTN F10: textura de sujeira (lensdirt.tga)
+	TextureHandle	m_hbaoTexture;	// RTN: AO de meia resolucao
+	gl_drawbuffer_t	*m_hbaoFbo;
+	int		m_hbaoWidth, m_hbaoHeight;
 	// RTN: proporcao largura/altura REAL do lensdirt.tga, lida do proprio
 	// cabecalho do arquivo em InitLensDirt() - nao dá pra assumir textura
 	// quadrada (a de referencia do usuario e 1920x1080, a gerada por script
@@ -61,6 +66,7 @@ public:
 	void InitializeTextures();
 	void InitializeShaders();
 	void InitLensDirt();		// RTN F10
+	void InitHBAO();		// RTN
 	void RequestScreenColor();
 	void RequestScreenDepth();
 	void RequestTargetCopy(int slot);

@@ -48,6 +48,11 @@ cvar_t *r_dof;
 cvar_t *r_dof_hold_time;
 cvar_t *r_dof_change_time;
 cvar_t *r_dof_focal_length;
+cvar_t *gl_hbao;			// RTN: HBAO
+cvar_t *gl_hbao_radius;
+cvar_t *gl_hbao_intensity;
+cvar_t *gl_hbao_bias;
+cvar_t *gl_hbao_debug;
 cvar_t *gl_lensdirt;		// RTN F10
 cvar_t *gl_lensdirt_scale;	// RTN F10
 cvar_t *gl_lensdirt_threshold;	// RTN F10

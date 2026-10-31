@@ -53,6 +53,11 @@ extern cvar_t *r_dof;
 extern cvar_t *r_dof_hold_time;
 extern cvar_t *r_dof_change_time;
 extern cvar_t *r_dof_focal_length;
+extern cvar_t *gl_hbao;				// RTN: HBAO (oclusao ambiental em espaco de tela) on/off
+extern cvar_t *gl_hbao_radius;		// RTN: HBAO - raio em unidades do mundo
+extern cvar_t *gl_hbao_intensity;	// RTN: HBAO - forca do escurecimento
+extern cvar_t *gl_hbao_bias;		// RTN: HBAO - folga contra auto-oclusao em superficie plana
+extern cvar_t *gl_hbao_debug;		// RTN: HBAO - 1 = mostra so o AO
 extern cvar_t *gl_lensdirt;			// RTN F10: lens dirt on/off
 extern cvar_t *gl_lensdirt_scale;	// RTN F10: lens dirt intensidade
 extern cvar_t *gl_lensdirt_threshold;	// RTN F10: lens dirt - brilho minimo p/ acender

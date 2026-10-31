@@ -319,6 +319,9 @@ static uniformTable_t glsl_uniformTable[] =
 { "u_LightThreshold",	UT_LIGHTTHRESHOLD,		UFL_GLOBAL_PARM },
 { "u_NumVisibleModels",	UT_NUMVISIBLEMODELS,	UFL_GLOBAL_PARM },
 { "u_NVGParams",		UT_NVGPARAMS,		0 },				// RTN: visao noturna
+{ "u_HBAOMap",			UT_HBAOMAP,			UFL_TEXTURE_UNIT },	// RTN: HBAO
+{ "u_HBAOParams",		UT_HBAOPARAMS,		0 },				// RTN: HBAO
+{ "u_HBAOParams2",		UT_HBAOPARAMS2,		0 },				// RTN: HBAO
 { "u_Undefined",		UT_UNDEFINED,		0 },
 };
 

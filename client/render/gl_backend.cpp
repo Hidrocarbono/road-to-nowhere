@@ -487,6 +487,7 @@ void GL_BackendEndFrame( ref_viewpass_t *rvp, RefParams params )
 		RenderAverageLuminance();
 	}
 
+	RenderHBAO();				// 2D (RTN) - ANTES do tonemap/bloom: multiplica na cena HDR linear
 	RenderDOF();				// 2D
 	RenderNerveGasBlur();		// 2D
 	RenderUnderwaterBlur();		// 2D

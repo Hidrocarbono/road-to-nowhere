@@ -26,6 +26,7 @@ void CBasePostEffects::InitializeTextures()
 	InitDepthOfField();
 	InitAutoExposure();
 	InitLensDirt();		// RTN F10
+	InitHBAO();		// RTN
 }
 
 void CBasePostEffects::InitializeShaders()
@@ -55,6 +56,10 @@ void CBasePostEffects::InitializeShaders()
 
 	// RTN F10: lens dirt (sujeira de lente na luz forte)
 	lensDirtShader = GL_FindShader("postfx/lensdirt", "postfx/generic", "postfx/lensdirt");
+
+	// RTN: HBAO (oclusao ambiental) - dois passes, ver RenderHBAO()
+	hbaoGenShader = GL_FindShader("postfx/genhbao", "postfx/generic", "postfx/genhbao");
+	hbaoDrawShader = GL_FindShader("postfx/drawhbao", "postfx/generic", "postfx/drawhbao");
 
 	// tonemapping
 	if (CVAR_TO_BOOL(r_show_luminance)) {
@@ -332,6 +337,32 @@ void CBasePostEffects :: InitDepthOfField( void )
 {
 
 }
+
+// RTN: alvo de meia resolucao do HBAO. Recriado junto com as demais texturas de
+// pos-processamento (troca de resolucao / vid_restart).
+void CBasePostEffects :: InitHBAO( void )
+{
+	if( m_hbaoFbo )
+	{
+		GL_FreeDrawbuffer( m_hbaoFbo );
+		m_hbaoFbo = NULL;
+	}
+
+	if( m_hbaoTexture.Initialized( ))
+	{
+		FREE_TEXTURE( m_hbaoTexture );
+		m_hbaoTexture = TextureHandle::Null();
+	}
+
+	m_hbaoWidth = Q_max( glState.width / 2, 1 );
+	m_hbaoHeight = Q_max( glState.height / 2, 1 );
+
+	// 8 bits bastam (AO e 0..1) e TF_IMAGE filtra linear, o que o blur espera
+	m_hbaoTexture = CREATE_TEXTURE( "*hbao", m_hbaoWidth, m_hbaoHeight, NULL, TF_IMAGE );
+	m_hbaoFbo = GL_AllocDrawbuffer( "*hbao_fbo", m_hbaoWidth, m_hbaoHeight, 1 );
+	GL_AttachColorTextureToFBO( m_hbaoFbo, m_hbaoTexture, 0 );
+	GL_CheckFBOStatus( m_hbaoFbo );
+}
  
 void CBasePostEffects::InitAutoExposure()
 {
@@ -520,6 +551,15 @@ void InitPostEffects()
 {
 	v_posteffects = CVAR_REGISTER( "gl_posteffects", "1", FCVAR_ARCHIVE );
 	v_sunshafts = CVAR_REGISTER( "gl_sunshafts", "1", FCVAR_ARCHIVE );
+	// RTN: HBAO. Desligado por padrao ate ser calibrado em jogo (ver
+	// game_dir/devkit/GUIA_HBAO.md). Os de ajuste sao ARCHIVE; o de debug NAO
+	// (chave de diagnostico nao deve sobreviver ao restart - mesma licao do
+	// rtn_hud_selectbar_icons, CHANGELOG_AGENT.md secao 4).
+	gl_hbao = CVAR_REGISTER( "gl_hbao", "0", FCVAR_ARCHIVE );
+	gl_hbao_radius = CVAR_REGISTER( "gl_hbao_radius", "32", FCVAR_ARCHIVE );
+	gl_hbao_intensity = CVAR_REGISTER( "gl_hbao_intensity", "1.5", FCVAR_ARCHIVE );
+	gl_hbao_bias = CVAR_REGISTER( "gl_hbao_bias", "0.1", FCVAR_ARCHIVE );
+	gl_hbao_debug = CVAR_REGISTER( "gl_hbao_debug", "0", 0 );
 	gl_lensdirt = CVAR_REGISTER( "gl_lensdirt", "1", FCVAR_ARCHIVE );			// RTN F10
 	// 1.2 (era 0.5): com a mascara antiga o valor nao importava - o teto do efeito
 	// era 1.4% de um pixel ja estourado. Agora a escala e o controle de verdade.
@@ -654,6 +694,17 @@ void V_RenderPostEffect( word hProgram )
 			break;
 		case UT_VIGNETTESCALE:
 			u->SetValue(post.fxParameters.GetVignetteScale());
+			break;
+		case UT_HBAOMAP:		// RTN: HBAO
+			u->SetValue( post.m_hbaoTexture.ToInt() );
+			break;
+		case UT_HBAOPARAMS:		// RTN: HBAO (tan(fovx/2), tan(fovy/2), raio, intensidade)
+			u->SetValue( tanf( RI->view.fov_x * ( M_PI / 360.0f )), tanf( RI->view.fov_y * ( M_PI / 360.0f )),
+				gl_hbao_radius->value, gl_hbao_intensity->value );
+			break;
+		case UT_HBAOPARAMS2:		// RTN: HBAO (texel do AO, debug, bias)
+			u->SetValue( 1.0f / (float)post.m_hbaoWidth, 1.0f / (float)post.m_hbaoHeight,
+				CVAR_TO_BOOL( gl_hbao_debug ) ? 1.0f : 0.0f, gl_hbao_bias->value );
 			break;
 		case UT_DIRTMAP:		// RTN F10: lens dirt
 			u->SetValue( post.m_dirtTexture.ToInt() );
@@ -1046,6 +1097,43 @@ void RTN_SetIronSightDOF( bool bActive )
 // Para trocar a textura: game_dir/textures/lensdirt.tga (TGA 32 bits sem RLE).
 // A atual e gerada por utils/gen_lensdirt.py - o cabecalho daquele script
 // explica por que a textura anterior deixava o efeito invisivel.
+// RTN: HBAO em dois passes.
+//   1) genhbao: AO a partir do buffer de profundidade, em METADE da resolucao,
+//      num alvo proprio (m_hbaoFbo).
+//   2) drawhbao: blur 4x4 ciente de profundidade + multiplica na cena.
+// Mesmo molde do RenderDOF (RequestScreenColor/RequestScreenDepth); chamado
+// ANTES do tonemap, entao o AO escurece a cena HDR linear. Desligado por
+// padrao (gl_hbao 0).
+void RenderHBAO( void )
+{
+	if( !CVAR_TO_BOOL( gl_hbao ))
+		return;
+
+	if( !post.hbaoGenShader || !post.hbaoDrawShader || !post.m_hbaoFbo || !post.m_hbaoTexture.Initialized( ))
+		return;
+
+	GL_DEBUG_SCOPE();
+	if( !post.Begin( ))
+		return;
+
+	post.RequestScreenColor();
+	post.RequestScreenDepth();
+
+	// passe 1: AO em meia resolucao. RenderFSQ continua com o tamanho cheio da
+	// tela (ortho do GL_Setup2D); o que muda e so o viewport - mesmo padrao do
+	// RenderAverageLuminance.
+	pglBindFramebuffer( GL_FRAMEBUFFER_EXT, post.m_hbaoFbo->id );
+	pglViewport( 0, 0, post.m_hbaoWidth, post.m_hbaoHeight );
+	V_RenderPostEffect( post.hbaoGenShader );
+
+	// passe 2: volta ao alvo da cena, resolucao cheia
+	pglBindFramebuffer( GL_FRAMEBUFFER_EXT, glState.frameBuffer );
+	pglViewport( 0, 0, glState.width, glState.height );
+	V_RenderPostEffect( post.hbaoDrawShader );
+
+	post.End();
+}
+
 void RenderLensDirt( void )
 {
 	if( !CVAR_TO_BOOL( gl_lensdirt ))
