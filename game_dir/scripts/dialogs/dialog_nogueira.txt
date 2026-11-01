@@ -1,0 +1,116 @@
+dialog_nogueira
+{
+	repeatable	0
+	sealed
+	{
+	Nogueira:
+	Já falei o que tinha a dizer
+	}
+
+	font		roboto_small
+	fontsize	22
+
+	node dialog_nogueira
+	{
+		npc_text
+		{
+		Nogueira:
+		Você não é daqui. Dá pra ver pela cara.
+		O que um merda como você tá fazendo na Zona?
+		}
+		option 1 "Carol me mandou aqui." -> dialog_nogueira_carol
+		option 2 "Vim atrás do drone da Vortex." -> dialog_nogueira_a
+	}
+
+	node dialog_nogueira_carol
+	{
+		npc_text
+		{
+		Nogueira:
+		Carol? Aquela que vive no buraco perto do rio?
+        Ela ainda manda gente pra cá? Interessante.
+		}
+		option 1 "Ela me disse que você podia ajudar." -> dialog_nogueira_carol_b
+		option 2 "Esquece. Vim atrás do drone." -> dialog_nogueira_a
+	}
+
+	node dialog_nogueira_carol_b
+	{
+		npc_text
+		{
+		Nogueira:
+		Ela sempre soube escolher as pessoas. 
+		Mas isso não muda nada. Você quer o drone, eu quero o disco.
+		}
+    option 1 "Então me diga logo." -> dialog_nogueira_a
+	}
+
+	node dialog_nogueira_a
+	{
+		npc_text
+		{
+		Nogueira:
+		Posso levar você até ele.
+		Mas antes, vai me trazer de volta o que a FLS roubou de mim.
+		}
+		option 1 "E a vila? Tem alguém lá?" -> dialog_nogueira_b
+	}
+	
+	node dialog_nogueira_b
+	{
+		npc_text
+		{
+		Nogueira:
+		Uns três quilômetros adiante, tem um canteiro de obras na beira da estrada.
+		Aqueles filhos da mãe se instalaram lá e levaram um disco rígido que era meu.
+		}
+		option 1 "O que tem nesse disco?" -> dialog_nogueira_c
+	}
+	
+		node dialog_nogueira_c
+	{
+		npc_text
+		{
+		Nogueira:
+		São planos de um purificador de água. Quem controla a água controla a Zona
+		e eu não vou deixar um bando de idealistas de merda ditar quem vive ou morre de sede.
+		}
+		option 1 "Não. Se vira." -> dialog_nogueira_c_a
+	}
+	
+			node dialog_nogueira_c_a
+	{
+		npc_text
+		{
+		Nogueira:
+		Então se vira. Não tenho tempo pra covarde.
+		Quando mudar de ideia, você sabe onde me encontrar.
+		}
+		option 1 "Tá bom. Vou buscar." -> dialog_nogueira_d
+	}
+	
+	
+		node dialog_nogueira_d
+	{
+		npc_text
+		{
+		Nogueira:
+		Já ouviu os tiros. Já conhece a FLS. Mas, acredite, daqui pra frente é pior. 
+		Tem cultista que acredita que esta merda é sagrada, mercenário que
+		vende a mãe por uma garrafa d’água... e bichos que já nem sei se eram animais antes.
+		}
+		option 1 "Algum conselho?" -> dialog_nogueira_e
+	}
+	
+			node dialog_nogueira_e
+	{
+		npc_text
+		{
+		Nogueira:
+		Espero que você tenha bastante munição. E sorte.
+		Quando tiver o disco, voltamos a conversar. Até lá... não encha meu saco.
+		}
+		option 1 "Boa sorte pra você também." -> END
+	}
+	
+}
