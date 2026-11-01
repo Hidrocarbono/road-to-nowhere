@@ -118,10 +118,21 @@ if(BUILD_CLIENT)
 	set_target_properties(client PROPERTIES RELWITHDEBINFO_POSTFIX "${XASH_BUILD_POSTFIX}")
 	set_target_properties(client PROPERTIES MINSIZEREL_POSTFIX "${XASH_BUILD_POSTFIX}")
 
-	set_target_properties(client PROPERTIES 
+	set_target_properties(client PROPERTIES
 		ARCHIVE_OUTPUT_DIRECTORY ${DIR_COMMON_OUTPUT}
 		LIBRARY_OUTPUT_DIRECTORY ${DIR_COMMON_OUTPUT}
 		RUNTIME_OUTPUT_DIRECTORY ${DIR_COMMON_OUTPUT}
+		# RTN: sem isso, MSVC escreve o .pdb num diretorio intermediario do
+		# CMake (fora de ${DIR_COMMON_OUTPUT}/${GAMEDIR}/), nao junto do
+		# client.dll publicado. A CI (nightly-builds.yml) so roda
+		# "cmake --build ." - nunca "cmake --install" - entao a regra
+		# install(FILES $<TARGET_PDB_FILE:...>) de client/CMakeLists.txt
+		# nunca executa, e o .pdb nunca entra no .zip do artifact. Resultado:
+		# TODO crash de client.dll reportado por um build baixado da CI so
+		# resolve ate o export mais proximo (ex.: "HUD_DrawTransparentTriangles"
+		# repetido na pilha inteira) - sintoma que ja se repetiu varias vezes
+		# nesta sessao sem diagnostico definitivo possivel por causa disso.
+		PDB_OUTPUT_DIRECTORY ${DIR_COMMON_OUTPUT}
 	)
 endif()
 
@@ -131,9 +142,10 @@ if(BUILD_SERVER)
 	set_target_properties(server PROPERTIES RELWITHDEBINFO_POSTFIX "${XASH_BUILD_POSTFIX}")
 	set_target_properties(server PROPERTIES MINSIZEREL_POSTFIX "${XASH_BUILD_POSTFIX}")
 
-	set_target_properties(server PROPERTIES 
+	set_target_properties(server PROPERTIES
 		ARCHIVE_OUTPUT_DIRECTORY ${DIR_COMMON_OUTPUT}
 		LIBRARY_OUTPUT_DIRECTORY ${DIR_COMMON_OUTPUT}
 		RUNTIME_OUTPUT_DIRECTORY ${DIR_COMMON_OUTPUT}
+		PDB_OUTPUT_DIRECTORY ${DIR_COMMON_OUTPUT}
 	)
 endif()
