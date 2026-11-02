@@ -35,7 +35,16 @@ protected:
 		// errada (onde o jogador esta encostado). Usa o GetVieworg() (o olho
 		// real da camera - inclinado pelo lean) p/ o trace do client bater
 		// com o FireBullets do server (pev->origin + view_ofs).
-		if( IsEventLocal( ))
+		//
+		// RTN: crash confirmado em jogo (CRpgFireEvent::Execute, access
+		// violation) rastreado ate aqui via .pdb - GetVieworg() desreferencia
+		// RI (ref_instance_t* global do renderer) sem checagem. RI so e valido
+		// durante um frame de render de verdade; um evento reproduzido fora
+		// dessa janela (fila atrasada, replay fora de ordem) lia RI nulo/stale
+		// e derrubava o client. m_arguments->origin e sempre seguro (vem direto
+		// do pacote de rede, nunca aponta pro renderer) - usa ele como
+		// fallback nesse caso em vez de crashar.
+		if( IsEventLocal( ) && RI != NULL )
 			return GetVieworg();
 		return Vector(m_arguments->origin);
 	};
