@@ -235,7 +235,9 @@ void R_InitializeConVars()
 	//     2.5  = padrao do RTN      50% a  800u (20 m)
 	//     5.0  =                    50% a  400u (10 m)
 	//    10.0  = o que estava aqui  50% a  200u (5 m)   - sufocante
-	gl_fog_density_scale = CVAR_REGISTER("gl_fog_density_scale", "2.5", FCVAR_ARCHIVE);
+	//
+	// PADRAO ATUAL = 1.6 (calibrado em jogo pelo usuario na zone04, 2026-11; era 2.5).
+	gl_fog_density_scale = CVAR_REGISTER("gl_fog_density_scale", "1.6", FCVAR_ARCHIVE);
 
 	// RTN: teto de quanto o fog cobre o SKYBOX (0..1). O ceu esta no infinito,
 	// entao nao existe distancia com que calcular a nevoa nele - o unico
@@ -247,7 +249,17 @@ void R_InitializeConVars()
 	//     0.0  = ceu limpo, sem fog nenhum
 	// O valor efetivo acompanha gl_fog_density_scale: com o fog no minimo o ceu
 	// quase nao e tocado.
-	gl_fog_sky_blend = CVAR_REGISTER("gl_fog_sky_blend", "0.85", FCVAR_ARCHIVE);
+	//
+	// PADRAO ATUAL = 150 (calibrado em jogo pelo usuario, 2026-11) - fora da faixa
+	// documentada de proposito. O peso final e skyBlend = blend * min(1, densidade
+	// / 0.005) (gl_sky.cpp, UT_FOGPARAMS) e o shader faz clamp em 0..1. Com 150 o
+	// produto passa de 1 para QUALQUER densidade real do mapa, entao o clamp
+	// resolve para 1.0 e o ceu fica SEMPRE com cobertura maxima, sem depender da
+	// densidade do fog. Com 1.0 (o maximo "documentado") o mesmo mapa (D=10,
+	// scale 1.6 => densidade 0.0008) daria so ~16% de cobertura. Tratar 150 como
+	// "1.0 sem escalar pela densidade" - se um dia isso virar um cvar proprio,
+	// este valor deve ser migrado.
+	gl_fog_sky_blend = CVAR_REGISTER("gl_fog_sky_blend", "150", FCVAR_ARCHIVE);
 
 	// RTN: diagnostico do "fog sempre clareia pra branco" - a cor do fog so
 	// muda recompilando o mapa (chave "fog" do worldspawn), entao nao dava pra
@@ -284,9 +296,13 @@ void R_InitializeConVars()
 	//   height_falloff: quantas unidades de altura acima de height_start
 	//     levam a densidade de altura a cair para ~37% (1/e). Maior = camada
 	//     de nevoa mais alta/grossa; menor = camada mais rasteira.
+	// Padroes atuais (calibrados em jogo pelo usuario na zone04, 2026-11): fog de
+	// altura DESLIGADO (density 0). height_start 100.062 e o Z do chao da zone04 -
+	// especifico daquele mapa e so tem efeito se height_density for > 0;
+	// height_falloff 900 = camada alta (cobre as encostas laterais).
 	gl_fog_height_density = CVAR_REGISTER("gl_fog_height_density", "0", FCVAR_ARCHIVE);
-	gl_fog_height_start = CVAR_REGISTER("gl_fog_height_start", "0", FCVAR_ARCHIVE);
-	gl_fog_height_falloff = CVAR_REGISTER("gl_fog_height_falloff", "128", FCVAR_ARCHIVE);
+	gl_fog_height_start = CVAR_REGISTER("gl_fog_height_start", "100.062", FCVAR_ARCHIVE);
+	gl_fog_height_falloff = CVAR_REGISTER("gl_fog_height_falloff", "900", FCVAR_ARCHIVE);
 
 	// gl_fog_sky_horizon: hoje o skybox_fp.glsl mistura o fog com o MESMO peso
 	// em qualquer ponto do domo (zenite = horizonte). Fog atmosferico de
@@ -296,7 +312,7 @@ void R_InitializeConVars()
 	// visivel como uma linha/mancha em vez de se perder. 0..1: 0 = sem
 	// gradiente (comportamento antigo, igual em qualquer direcao), 1 = so o
 	// horizonte recebe o fog do ceu, zenite fica limpo.
-	gl_fog_sky_horizon = CVAR_REGISTER("gl_fog_sky_horizon", "0.6", FCVAR_ARCHIVE);
+	gl_fog_sky_horizon = CVAR_REGISTER("gl_fog_sky_horizon", "0.45", FCVAR_ARCHIVE);	// 0.45 calibrado em jogo (era 0.6)
 
 	// gl_sky_clouds_*: camada de nuvem escorregando por cima do skybox de 6
 	// faces pintado (client/render/gl_sky.cpp calcula o UV a partir de
@@ -306,9 +322,11 @@ void R_InitializeConVars()
 	// bem mais baixos que o primeiro palpite - nuvem grande e discreta, nao
 	// um mosaico pequeno e chapado por cima do skybox pintado).
 	gl_sky_clouds = CVAR_REGISTER("gl_sky_clouds", "1", FCVAR_ARCHIVE);
-	gl_sky_clouds_scale = CVAR_REGISTER("gl_sky_clouds_scale", "0.08", FCVAR_ARCHIVE);
-	gl_sky_clouds_speed = CVAR_REGISTER("gl_sky_clouds_speed", "0.006", FCVAR_ARCHIVE);
-	gl_sky_clouds_opacity = CVAR_REGISTER("gl_sky_clouds_opacity", "0.09", FCVAR_ARCHIVE);
+	// 2026-11: usuario recalibrou em jogo (era scale 0.08 / speed 0.006 / opacity 0.09).
+	// A opacidade mais alta destacava a nuvem contra o terreno escuro da borda do mapa.
+	gl_sky_clouds_scale = CVAR_REGISTER("gl_sky_clouds_scale", "0.05", FCVAR_ARCHIVE);
+	gl_sky_clouds_speed = CVAR_REGISTER("gl_sky_clouds_speed", "0.005", FCVAR_ARCHIVE);
+	gl_sky_clouds_opacity = CVAR_REGISTER("gl_sky_clouds_opacity", "0.05", FCVAR_ARCHIVE);
 
 	// gl_sky_clouds_tint: a nuvem era mix() para vec3(1.0), branco puro, que
 	// ignora a iluminacao do ceu - num por-do-sol ela clareia e dessatura o

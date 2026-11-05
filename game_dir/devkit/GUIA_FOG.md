@@ -17,8 +17,8 @@ linear (não existe "start/end" fixo de OpenGL clássico aqui).
 
 | Cvar | Default | O que faz |
 |---|---|---|
-| `gl_fog_density_scale` | `2.5` | Multiplica a densidade `D` do worldspawn inteira. `1.0` = PrimeXT puro (quase sem fog); `10.0` = sufocante. Referência: com `D=10` do mapa, `2.5` dá 50% de fog a ~800u (20m). |
-| `gl_fog_sky_blend` | `0.85` | Teto de quanto o fog cobre o skybox (0 = céu sempre limpo, 1 = céu some por completo). Escala junto com a densidade — fog fraco toca pouco no céu mesmo com este valor alto. |
+| `gl_fog_density_scale` | `1.6` | Multiplica a densidade `D` do worldspawn inteira. `1.0` = PrimeXT puro (quase sem fog); `10.0` = sufocante. Referência: com `D=10` do mapa, `2.5` dá 50% de fog a ~800u (20m). |
+| `gl_fog_sky_blend` | `150` | Teto de quanto o fog cobre o skybox (0 = céu sempre limpo, 1 = céu some por completo). Escala junto com a densidade — fog fraco toca pouco no céu mesmo com este valor alto. **O padrão atual (`150`) é de propósito fora da faixa 0..1:** o peso final é `blend × min(1, densidade/0.005)` e o shader limita a 1, então `150` faz o céu receber a cobertura **máxima sempre**, sem depender da densidade do fog. Com `1.0` um mapa de densidade `0.0008` daria só ~16% de cobertura. |
 | `gl_fog_debug` | `0` | `1` = ignora o worldspawn inteiro e usa `gl_fog_debug_color`/`gl_fog_debug_density` direto. Pra testar cor/densidade sem recompilar o mapa. Não é `FCVAR_ARCHIVE` (não sobrevive a restart) — é ferramenta de diagnóstico, não preferência. |
 | `gl_fog_debug_color` | `"255 0 255"` | Cor de teste (R G B, 0-255) usada só quando `gl_fog_debug 1`. |
 | `gl_fog_debug_density` | `0.01` | Densidade de teste, mesma unidade de `D` do worldspawn já multiplicado — usada só quando `gl_fog_debug 1`. |
@@ -36,7 +36,7 @@ resolvem isso:
 | `gl_fog_height_density` | `0` | Densidade **extra** de fog, que só existe perto do chão e cai com a altura. `0` = desligado — precisa ligar por mapa/área. |
 | `gl_fog_height_start` | `0` | Altura Z do mundo (unidades do Hammer) onde o fog de altura está no **máximo** — normalmente o piso da área que quer disfarçar. Confira o Z real no editor antes de setar. |
 | `gl_fog_height_falloff` | `128` | Quantas unidades de altura **acima** de `gl_fog_height_start` levam a densidade de altura a cair pra ~37% (1/e). Menor = camada de nevoa mais rasteira/fina; maior = camada mais alta/grossa. |
-| `gl_fog_sky_horizon` | `0.6` | 0..1 — quanto o **horizonte** do céu recebe mais fog que o **zênite**. `0` = mistura igual em qualquer direção (comportamento antigo); `1` = só o horizonte pega fog, zênite fica sempre limpo. Já vem ligado por padrão porque o ganho visual é imediato. |
+| `gl_fog_sky_horizon` | `0.45` | 0..1 — quanto o **horizonte** do céu recebe mais fog que o **zênite**. `0` = mistura igual em qualquer direção (comportamento antigo); `1` = só o horizonte pega fog, zênite fica sempre limpo. Já vem ligado por padrão porque o ganho visual é imediato. |
 
 Todos são `FCVAR_ARCHIVE` (sobrevivem a restart, salvos no config).
 
@@ -60,7 +60,7 @@ Todos são `FCVAR_ARCHIVE` (sobrevivem a restart, salvos no config).
    ```
    Ajuste pra distância real que você quer ver limpo antes do fog começar a
    fechar.
-4. `gl_fog_sky_horizon` já vem em `0.6` — se ainda notar uma linha entre o
+4. `gl_fog_sky_horizon` já vem em `0.45` — se ainda notar uma linha entre o
    mundo e o céu, suba pra `0.8`~`1.0`; se o céu estiver ficando cinza demais
    perto do horizonte, desça.
 5. `gl_fog_debug 1` continua funcionando pra testar cor/densidade **base**
