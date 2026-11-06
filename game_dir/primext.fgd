@@ -3319,8 +3319,8 @@
 //
 // monsters
 //
-@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 72) studio("models/controller.mdl") = monster_alien_controller : "Controller"  []
-@PointClass base(Monster, Sequence) size(-32 -32 0, 32 32 64) studio("models/agrunt.mdl") = monster_alien_grunt : "Alien Grunt" 
+@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 72) studio() = monster_alien_controller : "Controller"  []
+@PointClass base(Monster, Sequence) size(-32 -32 0, 32 32 64) studio() = monster_alien_grunt : "Alien Grunt" 
 [
 	netname(string) : "Squad Name"
 	spawnflags(Flags) =
@@ -3329,7 +3329,7 @@
 		1024 : "Drop Hornetgun" : 0
 	]
 ]
-@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 72) studio("models/islave.mdl") = monster_alien_slave : "Vortigaunt" 
+@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 72) studio() = monster_alien_slave : "Vortigaunt" 
 [
 	netname(string) : "Squad Name"
 	spawnflags(Flags) =
@@ -3338,7 +3338,7 @@
 		64 : "IgnorePlayer" : 0
 	]
 ]
-@PointClass base(Monster, Sequence) size(-360 -360 -172, 360 360 8) studio("models/apache.mdl") = monster_apache : "Apache" 
+@PointClass base(Monster, Sequence) size(-360 -360 -172, 360 360 8) studio() = monster_apache : "Apache" 
 [
 	spawnflags(Flags) = 
 	[
@@ -3346,9 +3346,9 @@
 		64 : "Start Inactive" : 0
 	]
 ]
-@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 36) studio("models/baby_headcrab.mdl") = monster_babycrab : "Baby Headcrab" []
+@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 36) studio() = monster_babycrab : "Baby Headcrab" []
 @PointClass base(RenderFields, Reflection, Sequence) size(-16 -16 -36, 16 16 0) studio("models/barnacle.mdl") = monster_barnacle : "Barnacle Monster" []
-@PointClass base(Monster, TalkMonster, Sequence) size(-16 -16 0, 16 16 72) studio("models/barney.mdl") = monster_barney : "Barney"
+@PointClass base(Monster, TalkMonster, Sequence) size(-16 -16 0, 16 16 72) studio() = monster_barney : "Barney"
 [
 	frags(choices) : "Weapon" : 0 =
 	[
@@ -3369,14 +3369,14 @@
 		2 : "On stomach"
 	]
 ]
-@PointClass base(Monster, Sequence) size(-95 -95 0, 95 95 190) studio("models/big_mom.mdl") = monster_bigmomma : "Big Mamma" 
+@PointClass base(Monster, Sequence) size(-95 -95 0, 95 95 190) studio() = monster_bigmomma : "Big Mamma" 
 [
 	netname(string) : "First node" : ""
 ]
-@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 72) studio("models/floater.mdl") = monster_bloater : "Bloater" []
-@PointClass base(Monster, Sequence) size(-32 -32 0, 32 32 64) studio("models/bullsquid.mdl") = monster_bullchicken : "BullChicken" []
-@PointClass base(Monster, Sequence) size(-3 -3 0, 3 3 3) studio("models/roach.mdl") = monster_cockroach : "Cockroach" []
-@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 16) studio("models/boid.mdl") = monster_flyer_flock : "Flock of Flyers" 
+@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 72) studio() = monster_bloater : "Bloater" []
+@PointClass base(Monster, Sequence) size(-32 -32 0, 32 32 64) studio() = monster_bullchicken : "BullChicken" []
+@PointClass base(Monster, Sequence) size(-3 -3 0, 3 3 3) studio() = monster_cockroach : "Cockroach" []
+@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 16) studio() = monster_flyer_flock : "Flock of Flyers" 
 [
 	iFlockSize(Integer) : "Flock Size" : 8
 	flFlockRadius(Integer) : "Flock Radius" : 128
@@ -3386,7 +3386,7 @@
 	model(studio) : "model"
 
 ]
-@PointClass base(Monster, Sequence) size(-32 -32 0, 32 32 128) studio("models/garg.mdl") = monster_gargantua : "Gargantua" []
+@PointClass base(Monster, Sequence) size(-32 -32 0, 32 32 128) studio() = monster_gargantua : "Gargantua" []
 @PointClass base(Monster, RenderFields, Sequence) size(-16 -16 -36, 16 16 36) studio() = monster_generic : "Generic Script Monster" 
 [
 	spawnflags(Flags) = 
@@ -3402,10 +3402,10 @@
 		195 : "Yellow (Alien)"
 	]
 ]
-@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 72) studio("models/gman.mdl") = monster_gman : "G-Man" []
-@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 72) studio("models/hgrunt.mdl") = monster_grunt_repel : "Human Grunt (Repel)" []
+@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 72) studio() = monster_gman : "G-Man" []
+@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 72) studio() = monster_grunt_repel : "Human Grunt (Repel)" []
 @PointClass base(Weapon, Reflection, Targetx, RenderFields, Sequence) studio("models/w_grenade.mdl") = monster_handgrenade : "Live Handgrenade" []
-@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 36) studio("models/headcrab.mdl") = monster_headcrab : "Head Crab" []
+@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 36) studio() = monster_headcrab : "Head Crab" []
 @PointClass base(Reflection, Appearflags, RenderFields, Angles, Sequence) size(-16 -16 0, 16 16 72) = monster_hevsuit_dead : "Dead HEV Suit" 
 [
       pose(Choices) : "Pose" : 0 =
@@ -3438,7 +3438,7 @@
 		46 : "deadsitting"
 	]
 ]
-@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 36) studio("models/houndeye.mdl") = monster_houndeye : "Houndeye" 
+@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 36) studio() = monster_houndeye : "Houndeye" 
 [
 	netname(string) : "Squad Name"
 	spawnflags(Flags) =
@@ -3446,8 +3446,8 @@
 		32 : "SquadLeader" : 0
 	]
 ]
-@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 72) studio("models/hassassin.mdl") = monster_human_assassin : "Human Assassin" []
-@PointClass base(Monster) size(-16 -16 0, 16 16 72) studio("models/hgrunt.mdl") = monster_human_grunt : "Human Grunt (camo)" 
+@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 72) studio() = monster_human_assassin : "Human Assassin" []
+@PointClass base(Monster) size(-16 -16 0, 16 16 72) studio() = monster_human_grunt : "Human Grunt (camo)" 
 [
 	spawnflags(Flags) =
 	[
@@ -3553,9 +3553,9 @@
 		81 : "plunger"
 	]
 ]
-@PointClass base(Monster, Sequence) size(-32 -32 0, 32 32 64) studio("models/icky.mdl") = monster_ichthyosaur : "Ichthyosaur" []
-@PointClass base(Monster, Sequence) size(-6 -6 0, 6 6 6) studio("models/leech.mdl") = monster_leech : "Leech" []
-@PointClass base(Monster, Sequence) size(-16 -16 -32, 16 16 32) studio("models/miniturret.mdl") = monster_miniturret : "Mini Auto Turret"
+@PointClass base(Monster, Sequence) size(-32 -32 0, 32 32 64) studio() = monster_ichthyosaur : "Ichthyosaur" []
+@PointClass base(Monster, Sequence) size(-6 -6 0, 6 6 6) studio() = monster_leech : "Leech" []
+@PointClass base(Monster, Sequence) size(-16 -16 -32, 16 16 32) studio() = monster_miniturret : "Mini Auto Turret"
 [
 	orientation(Choices) : "Orientation" : 0 =
 	[
@@ -3568,17 +3568,17 @@
 		64 : "Start Inactive" : 0
 	]
 ]
-@PointClass base(Monster, Sequence) size(-192 -192 0, 192 192 384) studio("models/nihilanth.mdl") = monster_nihilanth : "Nihilanth"  []
-@PointClass base(Monster, Sequence) size(-480 -480 -112, 480 480 24) studio("models/osprey.mdl") = monster_osprey : "Osprey"
+@PointClass base(Monster, Sequence) size(-192 -192 0, 192 192 384) studio() = monster_nihilanth : "Nihilanth"  []
+@PointClass base(Monster, Sequence) size(-480 -480 -112, 480 480 24) studio() = monster_osprey : "Osprey"
 [
 	spawnflags(Flags) = 
 	[
 		64 : "Start Inactive" : 0
 	]
 ]
-@PointClass base(Monster, Sequence) size(-6 -6 0, 6 6 6) studio("models/bigrat.mdl") = monster_rat : "Rat (no ai)" []
+@PointClass base(Monster, Sequence) size(-6 -6 0, 6 6 6) studio() = monster_rat : "Rat (no ai)" []
 @PointClass base(Weapon,Targetx, Reflection,RenderFields, Sequence) studio("models/w_satchel.mdl") = monster_satchel : "Live Satchel Charge" []
-@PointClass base(MonsterNoBody, TalkMonster) size(-16 -16 0, 16 16 72) studio("models/scientist.mdl") = monster_scientist : "Scared Scientist" 
+@PointClass base(MonsterNoBody, TalkMonster) size(-16 -16 0, 16 16 72) studio() = monster_scientist : "Scared Scientist" 
 [
     body(Choices) : "Body" : -1 =
 	[
@@ -3754,7 +3754,7 @@
 		42 : "dead_table3"
 	]
 ]
-@PointClass base(MonsterNoBody) size(-14 -14 22, 14 14 72) studio("models/scientist.mdl") = monster_sitting_scientist : "Sitting Scientist" 
+@PointClass base(MonsterNoBody) size(-14 -14 22, 14 14 72) studio() = monster_sitting_scientist : "Sitting Scientist" 
 [
 	body(Choices) : "Body" : -1 =
 	[
@@ -3773,7 +3773,7 @@
 		75 : "sitting3"
 	]
 ]
-@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 72) studio("models/sentry.mdl") = monster_sentry : "Sentry Turret Gun"
+@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 72) studio() = monster_sentry : "Sentry Turret Gun"
 [
 	spawnflags(Flags) = 
 	[
@@ -3781,7 +3781,7 @@
 		64 : "Start Inactive" : 0
 	]
 ]
-@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 36) studio("models/w_squeak.mdl") = monster_snark : "Armed Snark" []
+@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 36) studio() = monster_snark : "Armed Snark" []
 @PointClass color(0 200 200) base(Targetname, Global, Parent) iconsprite("sprites/fgd/monster_target.spr") size(-16 -16 -16, 16 16 16) = monster_target : "Target for monsters to attack"
 [
 	frags(choices) : "Behave as" : 0 =
@@ -3811,7 +3811,7 @@
 	]
 ]
 
-@PointClass base(Monster, Sequence) size(-32 -32 0, 32 32 64) studio("models/tentacle2.mdl") = monster_tentacle : "Tentacle Arm" 
+@PointClass base(Monster, Sequence) size(-32 -32 0, 32 32 64) studio() = monster_tentacle : "Tentacle Arm" 
 [
 	sweeparc(integer) : "Sweep Arc" : 130
 	sound(Choices) : "Tap Sound" : -1 =
@@ -3829,7 +3829,7 @@
 		1 : "Instant On" : 1
 	]
 ]
-@PointClass base(Monster, Sequence) size(-32 -32 -32, 32 32 32) studio("models/turret.mdl") = monster_turret : "Auto Turret"
+@PointClass base(Monster, Sequence) size(-32 -32 -32, 32 32 32) studio() = monster_turret : "Auto Turret"
 [
 	orientation(Choices) : "Orientation" : 0 =
 	[
@@ -3842,7 +3842,7 @@
 		64 : "Start Inactive" : 0
 	]
 ]
-@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 72) studio("models/zombie.mdl") = monster_zombie : "Scientist Zombie"
+@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 72) studio() = monster_zombie : "Scientist Zombie"
 [
 	spawnflags(Flags) =
 	[
@@ -3850,7 +3850,7 @@
 		4096 : "Don't Wander (stay put when idle)" : 0
 	]
 ]
-@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 40) studio("models/cerberus.mdl") = monster_cerberus : "Cerberus (stray contaminated dog)"
+@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 40) studio() = monster_cerberus : "Cerberus (stray contaminated dog)"
 [
 	spawnflags(Flags) =
 	[
