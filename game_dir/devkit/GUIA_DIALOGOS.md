@@ -50,6 +50,26 @@ declara isso por padrão. Se um novo tipo de monstro não mostrar a
 mãozinha mesmo com `dialog_target` setado, é esse o primeiro lugar a
 checar.
 
+## Diálogo por trigger (`scripted_dialog`) — cutscenes, `env_model`
+
+Para abrir uma árvore **sem** monstro com `dialog_target` (ex.: o
+"personagem" é um `env_model`), use a entidade `scripted_dialog`:
+
+| Key | Efeito |
+|---|---|
+| `targetname` | quem a dispara (trigger, `scripted_sequence`, etc.) |
+| `dialog_target` | nó inicial da árvore, igual ao do monstro |
+| `speaker` | opcional: targetname do falante (`env_model` ou monstro). Se sumir/morrer no meio, o diálogo é **cancelado e nada é disparado**. Vazio = sem falante |
+| `target` | disparado quando o diálogo termina num `END` |
+| `target_exit` | disparado ao sair pelo `exit_option`, ou se a árvore **já estava selada** (diálogo pulado, pra cutscene não travar) |
+| flag "Release player control at end" | desligado (padrão) = **não mexe no controle do jogador** (a cutscene já controla). Ligado = comportamento do `+USE` (trava no início, destrava no fim) |
+| flag "Fire Once" | só dispara uma vez |
+
+Cuidados: a árvore é selada pelo **nome do nó raiz**, para o jogador todo —
+se a cutscene usar o mesmo raiz de um NPC já conversado por `+USE`, cai no
+texto de `sealed`. Use raízes próprias ou `repeatable 1`. Cancelamento
+(falante morto) não dispara `target` nem `target_exit`.
+
 ## Como os arquivos são carregados
 
 Todo arquivo em `game_dir/scripts/dialogs/` cujo nome comece com

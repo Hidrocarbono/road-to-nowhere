@@ -4086,6 +4086,19 @@
 	]
 ]
 
+@PointClass base(Targetname) size(-2 -2 -2, 2 2 2) color(255 64 255) iconsprite("sprites/fgd/scripted_sentence.spr") = scripted_dialog : "Scripted Dialog (dialogo com escolhas por trigger)"
+[
+	spawnflags(Flags) =
+	[
+		1 : "Release player control at end" : 0
+		2 : "Fire Once" : 0
+	]
+	dialog_target(string) : "Dialog Target" : "" : "Nome do NO INICIAL em game_dir/scripts/dialogs/dialog_*.txt (ver GUIA_DIALOGOS.md)."
+	speaker(string) : "Speaker (targetname)" : "" : "Opcional. env_model ou monstro que 'fala'. Se sumir/morrer no meio, o dialogo e cancelado e nada e disparado. Vazio = sem falante."
+	target(target_destination) : "Fire on END" : "" : "Disparado quando o dialogo termina escolhendo uma opcao que leva a END."
+	target_exit(target_destination) : "Fire on exit / already done" : "" : "Disparado ao sair pelo exit_option, ou se a arvore ja estava selada (dialogo pulado)."
+]
+
 @PointClass base(Targetname, Targetx, Parent, Angles) size(-2 -2 0, 2 2 8) color(255 0 255) iconsprite("sprites/fgd/scripted_sequence.spr") = scripted_sequence : "Scripted Sequence"
 [
 	m_iszFireOnBegin(string): "Fire On Begin Sequence"

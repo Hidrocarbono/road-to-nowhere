@@ -145,6 +145,16 @@ void DialogScript_Init( void );
 // do servidor).
 dialognode_t *DialogScript_FindNode( const char *name );
 
+// Retorno de CBasePlayer::Dialog_Start
+enum { DLG_START_FAILED = 0, DLG_START_OK = 1, DLG_START_SEALED = 2 };
+
+// Como a sessao terminou (Dialog_NotifyEnded)
+enum { DLG_END_NATURAL = 0, DLG_END_EXIT = 1, DLG_END_CANCEL = 2 };
+
+// Avisa o scripted_dialog que abriu a sessao (server/entities/scripted_dialog.cpp)
+// que ela terminou - ele dispara target (NATURAL) / target_exit (EXIT).
+void Dialog_NotifyEnded( class CBaseEntity *pOwner, class CBasePlayer *pPlayer, int iReason );
+
 // Chamado de CBaseMonster::Killed() (server/combat.cpp) pra fechar (sem
 // "give" pendente) a conversa do jogador com esse NPC, se ele morrer no
 // meio dela - sem isso o jogador ficaria travado pra sempre (EnableControl

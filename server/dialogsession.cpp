@@ -209,7 +209,7 @@ static void Dialog_EnterNode( CBasePlayer *pPlayer, dialognode_t *node )
 // escolhendo uma opcao) - sair pelo exit_option ou a sessao ser cancelada
 // (NPC morreu) NAO sela, pra nao trancar uma conversa que o jogador nunca
 // terminou.
-static void Dialog_CloseSession( CBasePlayer *pPlayer, bool bSeal )
+static void Dialog_CloseSession( CBasePlayer *pPlayer, bool bSeal, int iReason )
 {
 	if( bSeal && !FStringNull( pPlayer->m_iszDialogRoot ))
 	{
@@ -218,44 +218,61 @@ static void Dialog_CloseSession( CBasePlayer *pPlayer, bool bSeal )
 			Dialog_MarkSealed( pPlayer, root->name );
 	}
 
-	pPlayer->EnableControl( TRUE );
+	// scripted_dialog em cutscene: o mapa ja controla o jogador, nao destravar
+	if( !pPlayer->m_bDialogKeepControl )
+		pPlayer->EnableControl( TRUE );
+
+	CBaseEntity *pOwner = pPlayer->m_hDialogOwner;
+
 	pPlayer->m_bInDialog = FALSE;
 	pPlayer->m_hDialogNPC = NULL;
+	pPlayer->m_bDialogHasSpeaker = FALSE;
+	pPlayer->m_bDialogKeepControl = FALSE;
+	pPlayer->m_hDialogOwner = NULL;
 	pPlayer->m_iszDialogRoot = iStringNull;
 	pPlayer->m_iszDialogNode = iStringNull;
 
 	Dialog_SendClose( pPlayer );
+
+	// por ultimo: o target pode abrir outro dialogo/cutscene, o estado ja esta limpo
+	if( pOwner )
+		Dialog_NotifyEnded( pOwner, pPlayer, iReason );
 }
 
 // ---------------------------------------------------------------------
 // API de CBasePlayer (player.h)
 // ---------------------------------------------------------------------
 
-void CBasePlayer::Dialog_Start( CBaseMonster *pNPC, const char *pszStartNode )
+int CBasePlayer::Dialog_Start( CBaseEntity *pSpeaker, const char *pszStartNode, CBaseEntity *pOwner, bool bKeepControl )
 {
 	if( m_bInDialog )
-		return; // ja conversando com alguem - +USE duplo nao reabre por cima
+		return DLG_START_FAILED; // ja conversando com alguem - +USE duplo nao reabre por cima
 
 	dialognode_t *node = DialogScript_FindNode( pszStartNode );
 	if( !node )
 	{
 		ALERT( at_console, "Dialog: NPC aponta pra '%s', que nao existe em scripts/dialogs/dialog_*.txt\n", pszStartNode );
-		return;
+		return DLG_START_FAILED;
 	}
 
 	if( !node->repeatable && Dialog_IsSealed( this, pszStartNode ))
 	{
 		if( node->sealed_text[0] )
 			Dialog_SendSealed( this, node );
-		return;
+		return DLG_START_SEALED;
 	}
 
-	EnableControl( FALSE );
+	m_bDialogKeepControl = bKeepControl;
+	if( !bKeepControl )
+		EnableControl( FALSE );
 	m_bInDialog = TRUE;
-	m_hDialogNPC = pNPC;
+	m_hDialogNPC = pSpeaker;
+	m_bDialogHasSpeaker = ( pSpeaker != NULL );
+	m_hDialogOwner = pOwner;
 	m_iszDialogRoot = ALLOC_STRING( pszStartNode );
 
 	Dialog_EnterNode( this, node );
+	return DLG_START_OK;
 }
 
 void CBasePlayer::Dialog_Select( int iTurn, int iSlot )
@@ -272,19 +289,28 @@ void CBasePlayer::Dialog_Select( int iTurn, int iSlot )
 	if( iTurn != ( m_iDialogTurn & 0xFF ))
 		return;
 
-	CBaseEntity *pNPC = m_hDialogNPC;
-	if( !pNPC || !((CBaseMonster *)pNPC)->IsAlive() )
+	// Falante: monstro precisa estar vivo; outra entidade (env_model...) so
+	// precisa existir - IsAlive() dela e health 0 -> "morta" por engano.
+	// Sem falante (scripted_dialog sem "speaker"): nada a checar.
+	if( m_bDialogHasSpeaker )
 	{
-		// o NPC devia ter cancelado a sessao ao morrer (Dialog_NotifyNPCDied) -
-		// se chegou aqui mesmo assim, fecha sem selar por seguranca.
-		Dialog_CloseSession( this, false );
-		return;
+		CBaseEntity *pNPC = m_hDialogNPC;
+		bool bAlive = pNPC && !FBitSet( pNPC->pev->flags, FL_KILLME ) &&
+			( !pNPC->IsMonster() || pNPC->IsAlive() );
+
+		if( !bAlive )
+		{
+			// o NPC devia ter cancelado a sessao ao morrer (Dialog_NotifyNPCDied) -
+			// se chegou aqui mesmo assim, fecha sem selar por seguranca.
+			Dialog_CloseSession( this, false, DLG_END_CANCEL );
+			return;
+		}
 	}
 
 	dialognode_t *node = DialogScript_FindNode( STRING( m_iszDialogNode ));
 	if( !node )
 	{
-		Dialog_CloseSession( this, false );
+		Dialog_CloseSession( this, false, DLG_END_CANCEL );
 		return;
 	}
 
@@ -305,7 +331,7 @@ void CBasePlayer::Dialog_Select( int iTurn, int iSlot )
 
 	if( !Q_stricmp( opt->target, "END" ))
 	{
-		Dialog_CloseSession( this, true );
+		Dialog_CloseSession( this, true, DLG_END_NATURAL );
 		return;
 	}
 
@@ -313,7 +339,7 @@ void CBasePlayer::Dialog_Select( int iTurn, int iSlot )
 	if( !next )
 	{
 		ALERT( at_console, "Dialog: no '%s', opcao %d aponta pra '%s', que nao existe\n", node->name, iSlot, opt->target );
-		Dialog_CloseSession( this, false );
+		Dialog_CloseSession( this, false, DLG_END_CANCEL );
 		return;
 	}
 
@@ -324,14 +350,14 @@ void CBasePlayer::Dialog_End( void )
 {
 	if( !m_bInDialog )
 		return;
-	Dialog_CloseSession( this, false ); // saida manual pelo exit_option - nao sela
+	Dialog_CloseSession( this, false, DLG_END_EXIT ); // saida manual pelo exit_option - nao sela
 }
 
 void CBasePlayer::Dialog_Cancel( void )
 {
 	if( !m_bInDialog )
 		return;
-	Dialog_CloseSession( this, false ); // sessao interrompida de fora (NPC morreu) - nao sela
+	Dialog_CloseSession( this, false, DLG_END_CANCEL ); // sessao interrompida de fora (NPC morreu) - nao sela
 }
 
 // ---------------------------------------------------------------------

@@ -145,7 +145,10 @@ public:
 	BOOL		m_bInDialog;
 	string_t	m_iszDialogRoot;	// no INICIAL da arvore (o que "dialog_target" do NPC aponta) - usado pra selar
 	string_t	m_iszDialogNode;	// no ATUAL da conversa (dialogscript.h)
-	EHANDLE		m_hDialogNPC;		// quem estamos "conversando"
+	EHANDLE		m_hDialogNPC;		// quem estamos "conversando" (monstro OU qualquer entidade, ex.: env_model)
+	BOOL		m_bDialogHasSpeaker;	// FALSE = dialogo sem falante (scripted_dialog sem "speaker"): nao checa vida
+	BOOL		m_bDialogKeepControl;	// TRUE = nao mexe em EnableControl (cutscene ja controla o jogador)
+	EHANDLE		m_hDialogOwner;		// scripted_dialog que abriu a sessao (recebe o aviso de fim); vazio = +USE em monstro
 	int		m_iDialogTurn;		// anti-replay: incrementa a cada DialogShow
 
 	string_t	m_iszDialogSealed[MAX_DIALOG_SEALED];	// nos-inicio com repeatable 0 ja concluidos
@@ -312,7 +315,8 @@ public:
 
 	// RTN: dialogo com escolhas (server/dialogsession.cpp)
 	BOOL		InDialog( void ) { return m_bInDialog; }
-	void		Dialog_Start( class CBaseMonster *pNPC, const char *pszStartNode );
+	// retorna DLG_START_* (dialogscript.h). pSpeaker pode ser NULL (sem falante).
+	int		Dialog_Start( CBaseEntity *pSpeaker, const char *pszStartNode, CBaseEntity *pOwner = NULL, bool bKeepControl = false );
 	void		Dialog_Select( int iTurn, int iSlot );	// vindo do client command "dlgselect <turn> <slot>"
 	void		Dialog_End( void );		// fecha a sessao e destrava o jogador
 	void		Dialog_Cancel( void );		// como Dialog_End, mas chamado de fora (NPC sumiu/morreu)
