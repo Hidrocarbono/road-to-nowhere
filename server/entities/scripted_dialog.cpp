@@ -65,7 +65,7 @@ void CScriptedDialog :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_
 				STRING( pev->targetname ), STRING( m_iszSpeaker ));
 	}
 
-	bool bKeepControl = !FBitSet( pev->spawnflags, SF_SCRIPTDIALOG_RELEASE_CONTROL );
+	bool bKeepControl = !FBitSet( pev->spawnflags, SF_SCRIPTDIALOG_FREEZE );
 	int iResult = pPlayer->Dialog_Start( pSpeaker, STRING( m_iszDialogTarget ), this, bKeepControl );
 
 	if( iResult == DLG_START_OK )

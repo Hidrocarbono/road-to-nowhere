@@ -10,7 +10,7 @@
 #include "util.h"
 #include "cbase.h"
 
-#define SF_SCRIPTDIALOG_RELEASE_CONTROL	1	// DESLIGADO (default) = nao mexe no controle do jogador
+#define SF_SCRIPTDIALOG_FREEZE		1	// ligado = trava o jogador no inicio e destrava no fim; desligado (default) = nao mexe
 #define SF_SCRIPTDIALOG_ONCE			2	// dispara so uma vez
 
 class CScriptedDialog : public CPointEntity

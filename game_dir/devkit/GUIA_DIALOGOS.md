@@ -62,7 +62,7 @@ Para abrir uma árvore **sem** monstro com `dialog_target` (ex.: o
 | `speaker` | opcional: targetname do falante (`env_model` ou monstro). Se sumir/morrer no meio, o diálogo é **cancelado e nada é disparado**. Vazio = sem falante |
 | `target` | disparado quando o diálogo termina num `END` |
 | `target_exit` | disparado ao sair pelo `exit_option`, ou se a árvore **já estava selada** (diálogo pulado, pra cutscene não travar) |
-| flag "Release player control at end" | desligado (padrão) = **não mexe no controle do jogador** (a cutscene já controla). Ligado = comportamento do `+USE` (trava no início, destrava no fim) |
+| flag "Freeze player during dialog" | desligado (padrão) = **não mexe no controle do jogador**, nem ao abrir nem ao fechar (a cutscene já controla). Ligado = comportamento do `+USE` (trava no início, destrava no fim) |
 | flag "Fire Once" | só dispara uma vez |
 
 Cuidados: a árvore é selada pelo **nome do nó raiz**, para o jogador todo —

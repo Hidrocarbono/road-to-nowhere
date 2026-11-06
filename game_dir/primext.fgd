@@ -4090,7 +4090,7 @@
 [
 	spawnflags(Flags) =
 	[
-		1 : "Release player control at end" : 0
+		1 : "Freeze player during dialog" : 0
 		2 : "Fire Once" : 0
 	]
 	dialog_target(string) : "Dialog Target" : "" : "Nome do NO INICIAL em game_dir/scripts/dialogs/dialog_*.txt (ver GUIA_DIALOGOS.md)."
