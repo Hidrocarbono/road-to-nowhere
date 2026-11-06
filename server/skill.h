@@ -82,6 +82,10 @@ struct skilldata_t
 	float snarkDmgBite;
 	float snarkDmgPop;
 
+	float cerberusHealth;
+	float cerberusDmgBite;
+	float cerberusDmgLeap;
+
 	float zombieHealth;
 	float zombieDmgOneSlash;
 	float zombieDmgBothSlash;

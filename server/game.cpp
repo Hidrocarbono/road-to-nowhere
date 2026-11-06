@@ -264,6 +264,19 @@ cvar_t	sk_snark_dmg_pop3 = {"sk_snark_dmg_pop3","0"};
 
 
 
+// Cerberus (cao vadio contaminado)
+cvar_t	sk_cerberus_health1 = {"sk_cerberus_health1","40"};
+cvar_t	sk_cerberus_health2 = {"sk_cerberus_health2","50"};
+cvar_t	sk_cerberus_health3 = {"sk_cerberus_health3","65"};
+
+cvar_t	sk_cerberus_dmg_bite1 = {"sk_cerberus_dmg_bite1","6"};
+cvar_t	sk_cerberus_dmg_bite2 = {"sk_cerberus_dmg_bite2","8"};
+cvar_t	sk_cerberus_dmg_bite3 = {"sk_cerberus_dmg_bite3","12"};
+
+cvar_t	sk_cerberus_dmg_leap1 = {"sk_cerberus_dmg_leap1","8"};
+cvar_t	sk_cerberus_dmg_leap2 = {"sk_cerberus_dmg_leap2","12"};
+cvar_t	sk_cerberus_dmg_leap3 = {"sk_cerberus_dmg_leap3","18"};
+
 // Zombie
 cvar_t	sk_zombie_health1 = {"sk_zombie_health1","0"};
 cvar_t	sk_zombie_health2 = {"sk_zombie_health2","0"};
@@ -774,6 +787,17 @@ void GameDLLInit( void )
 	CVAR_REGISTER ( &sk_snark_dmg_pop3 );// {"sk_snark_dmg_pop3","0"};
 
 
+
+	// Cerberus
+	CVAR_REGISTER ( &sk_cerberus_health1 );
+	CVAR_REGISTER ( &sk_cerberus_health2 );
+	CVAR_REGISTER ( &sk_cerberus_health3 );
+	CVAR_REGISTER ( &sk_cerberus_dmg_bite1 );
+	CVAR_REGISTER ( &sk_cerberus_dmg_bite2 );
+	CVAR_REGISTER ( &sk_cerberus_dmg_bite3 );
+	CVAR_REGISTER ( &sk_cerberus_dmg_leap1 );
+	CVAR_REGISTER ( &sk_cerberus_dmg_leap2 );
+	CVAR_REGISTER ( &sk_cerberus_dmg_leap3 );
 
 	// Zombie
 	CVAR_REGISTER ( &sk_zombie_health1 );// {"sk_zombie_health1","0"};

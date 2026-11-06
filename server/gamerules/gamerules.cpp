@@ -213,6 +213,11 @@ void CGameRules::RefreshSkillData ( void )
 	gSkillData.snarkDmgBite = GetSkillCvar( "sk_snark_dmg_bite");
 	gSkillData.snarkDmgPop = GetSkillCvar( "sk_snark_dmg_pop");
 
+	// Cerberus
+	gSkillData.cerberusHealth = GetSkillCvar( "sk_cerberus_health");
+	gSkillData.cerberusDmgBite = GetSkillCvar( "sk_cerberus_dmg_bite");
+	gSkillData.cerberusDmgLeap = GetSkillCvar( "sk_cerberus_dmg_leap");
+
 	// Zombie
 	gSkillData.zombieHealth = GetSkillCvar( "sk_zombie_health");
 	gSkillData.zombieDmgOneSlash = GetSkillCvar( "sk_zombie_dmg_one_slash");

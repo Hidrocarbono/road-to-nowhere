@@ -3850,6 +3850,14 @@
 		4096 : "Don't Wander (stay put when idle)" : 0
 	]
 ]
+@PointClass base(Monster, Sequence) size(-16 -16 0, 16 16 40) studio("models/cerberus.mdl") = monster_cerberus : "Cerberus (stray contaminated dog)"
+[
+	spawnflags(Flags) =
+	[
+		2048 : "Invincible to player" : 0
+		4096 : "Don't Wander (stay put when idle)" : 0
+	]
+]
 @PointClass base(Targetname, Parent, Reflection, Angles) size(-16 -16 -16, 16 16 16) iconsprite("sprites/fgd/monstermaker.spr") = monstermaker : "Monster Maker"
 [
 	target(string) : "Target On Release" 
