@@ -50,6 +50,22 @@ cvar_t	*cl_chasedist;
 cvar_t	*cl_weaponlag;
 cvar_t	*cl_vsmoothing;
 cvar_t	*cl_ironsight_raise;	// RTN: sobe o viewmodel na mira p/ alinhar com o tracante
+// RTN: pose de SPRINT da arma (100% cliente, nao depende do modelo). Valores
+// globais; unidades de mundo e graus. Sinais: yaw + = esquerda (mesma convencao
+// do hack antigo), pitch + = cano para baixo. Se algum eixo sair invertido em
+// jogo, basta inverter o sinal do cvar - nao precisa recompilar.
+cvar_t	*rtn_sprint;			// 1 liga / 0 desliga
+cvar_t	*rtn_sprint_minspeed;		// velocidade 2D minima p/ contar como sprint
+cvar_t	*rtn_sprint_down;		// quanto a arma desce (unidades)
+cvar_t	*rtn_sprint_side;		// amplitude do balanco lateral (unidades)
+cvar_t	*rtn_sprint_pitch;		// pose: pitch (graus)
+cvar_t	*rtn_sprint_yaw;		// pose: yaw (graus)
+cvar_t	*rtn_sprint_roll;		// pose: roll (graus)
+cvar_t	*rtn_sprint_sway;		// balanco ciclico: amplitude angular (graus)
+cvar_t	*rtn_sprint_freq;		// ciclos/s a 320 u/s
+cvar_t	*rtn_sprint_in;			// tempo de entrada (s)
+cvar_t	*rtn_sprint_out;		// tempo de saida (s)
+cvar_t	*rtn_sprint_resume;		// atraso p/ voltar ao sprint apos atirar/recarregar (s)
 cvar_t	*v_centermove;
 cvar_t	*v_centerspeed;
 cvar_t	*cl_viewsize;
@@ -111,7 +127,20 @@ void V_Init( void )
 	// atire e compare o furo com onde a mira do modelo aponta.
 	cl_ironsight_raise = CVAR_REGISTER( "cl_ironsight_raise", "1.5", FCVAR_ARCHIVE );
 	cl_viewsize = CVAR_GET_POINTER("viewsize");
-	
+
+	rtn_sprint		= CVAR_REGISTER( "rtn_sprint", "1", FCVAR_ARCHIVE );
+	rtn_sprint_minspeed	= CVAR_REGISTER( "rtn_sprint_minspeed", "210", FCVAR_ARCHIVE );
+	rtn_sprint_down		= CVAR_REGISTER( "rtn_sprint_down", "3.0", FCVAR_ARCHIVE );
+	rtn_sprint_side		= CVAR_REGISTER( "rtn_sprint_side", "1.5", FCVAR_ARCHIVE );
+	rtn_sprint_pitch	= CVAR_REGISTER( "rtn_sprint_pitch", "14", FCVAR_ARCHIVE );
+	rtn_sprint_yaw		= CVAR_REGISTER( "rtn_sprint_yaw", "12", FCVAR_ARCHIVE );
+	rtn_sprint_roll		= CVAR_REGISTER( "rtn_sprint_roll", "8", FCVAR_ARCHIVE );
+	rtn_sprint_sway		= CVAR_REGISTER( "rtn_sprint_sway", "4", FCVAR_ARCHIVE );
+	rtn_sprint_freq		= CVAR_REGISTER( "rtn_sprint_freq", "1.8", FCVAR_ARCHIVE );
+	rtn_sprint_in		= CVAR_REGISTER( "rtn_sprint_in", "0.22", FCVAR_ARCHIVE );
+	rtn_sprint_out		= CVAR_REGISTER( "rtn_sprint_out", "0.30", FCVAR_ARCHIVE );
+	rtn_sprint_resume	= CVAR_REGISTER( "rtn_sprint_resume", "0.5", FCVAR_ARCHIVE );
+
 	R_InitializeConVars();
 	ADD_COMMAND( "thirdperson", V_ThirdPerson );
 	ADD_COMMAND( "firstperson", V_FirstPerson );
@@ -367,17 +396,8 @@ void V_CalcGunAngle( struct ref_params_s *pparams )
 	viewent->angles[YAW] = pparams->viewangles[YAW] + pparams->crosshairangle[YAW];
 	viewent->angles[PITCH] = pparams->viewangles[PITCH] + pparams->crosshairangle[PITCH] * 0.25f;
 
-	// RTN F10: CORRIDA - segurando o SHIFT (IN_RUN) a arma vai para perto do
-	// corpo: rotacao sutil no YAW (eixo Z) para a ESQUERDA (+2 a +5 graus),
-	// com LERP suave (transicao andar<->correr nao da tapa). Le o IN_RUN do
-	// gHUD.m_iKeyBits (o ref_params nao expoe o button). +3.5 = meio do range.
-	// NOTA (fix do user): o -3.5 mandava a arma para a DIREITA na tela -
-	// a convencao do yaw do viewmodel e inversa; +3.5 vai para a ESQUERDA.
-	static float s_flGunYaw = 0.0f;
-	float flTargetYaw = ( gHUD.m_iKeyBits & IN_RUN ) ? 3.5f : 0.0f;
-	float flLerp = bound( 0.0f, pparams->frametime * 12.0f, 1.0f );
-	s_flGunYaw += ( flTargetYaw - s_flGunYaw ) * flLerp;
-	viewent->angles[YAW] += s_flGunYaw;
+	// (o antigo hack de +3.5 graus de yaw ao segurar IN_RUN foi substituido
+	// pela pose completa de sprint - ver V_ApplySprintPose)
 
 	viewent->angles[ROLL] -= v_idlescale * sin( pparams->time * v_iroll_cycle.value ) * v_iroll_level.value;
 	
@@ -387,6 +407,95 @@ void V_CalcGunAngle( struct ref_params_s *pparams )
 
 	viewent->latched.prevangles = viewent->angles;
 	viewent->curstate.angles = viewent->angles;
+}
+
+//==========================
+// V_ApplySprintPose
+//
+// RTN: pose de corrida da arma, calculada toda no cliente (o modelo nao tem
+// animacao de sprint). Tres fases:
+//   entrada - a arma desce e gira (rtn_sprint_in, smoothstep)
+//   ciclo   - balanco direita<->esquerda preso a velocidade (passos)
+//   saida   - a arma sobe de volta ao normal (rtn_sprint_out, smoothstep)
+// Atirar / recarregar / mirar CANCELA o sprint (o tiro funciona como sempre;
+// nada de servidor ou predicao). Depois de atirar ou recarregar a pose espera
+// rtn_sprint_resume s antes de voltar, pra arma nao "pular" no meio da recarga.
+// Chamada DEPOIS do V_CalcViewModelLag: o lag suaviza movimento de mira, e
+// aqui ele so amplificaria o balanco.
+//==========================
+static void V_ApplySprintPose( ref_params_t *pparams, Vector &origin, Vector &angles )
+{
+	static float s_flBlend = 0.0f;	// 0..1 (linear; suavizado no uso)
+	static float s_flPhase = 0.0f;	// fase do ciclo (radianos)
+	static float s_flHoldUntil = 0.0f;	// sprint suprimido ate este instante
+
+	const float dt = pparams->frametime;
+	if( dt <= 0.0f ) // pausado: congela
+	{
+		if( s_flBlend <= 0.0f ) return;
+	}
+	else
+	{
+		const int keys = gHUD.m_iKeyBits;
+
+		// mapa novo zera pparams->time; nao fica preso numa supressao antiga
+		if( s_flHoldUntil > pparams->time + rtn_sprint_resume->value )
+			s_flHoldUntil = 0.0f;
+
+		// atirar/recarregar cancela e segura o sprint por um tempo
+		if( keys & ( IN_ATTACK | IN_ATTACK2 | IN_RELOAD ))
+			s_flHoldUntil = pparams->time + rtn_sprint_resume->value;
+
+		Vector vVel = pparams->simvel;	// mesmo padrao do V_CalcBob
+		const float flSpeed = vVel.Length2D();
+
+		bool bWant = rtn_sprint->value != 0.0f
+			&& ( keys & IN_RUN ) && ( keys & IN_FORWARD )
+			&& !( keys & ( IN_DUCK | IN_JUMP ))
+			&& pparams->onground != -1
+			&& flSpeed > rtn_sprint_minspeed->value
+			&& gHUD.m_Status.GetStamina() >= 1.0f	// sem folego: a arma ja sobe
+			&& g_flIronSightRaise < 0.05f		// mirando
+			&& pparams->time >= s_flHoldUntil
+			&& !g_bRTNLegs
+			&& !CL_IsThirdPerson();
+
+		if( bWant )
+			s_flBlend += dt / Q_max( 0.01f, rtn_sprint_in->value );
+		else
+			s_flBlend -= dt / Q_max( 0.01f, rtn_sprint_out->value );
+		s_flBlend = bound( 0.0f, s_flBlend, 1.0f );
+
+		if( s_flBlend > 0.0f )
+		{
+			// ciclo preso a velocidade (a 320 u/s = rtn_sprint_freq passos/s)
+			float flScale = bound( 0.5f, flSpeed / 320.0f, 1.3f );
+			s_flPhase += dt * rtn_sprint_freq->value * flScale * ( 2.0f * M_PI );
+			if( s_flPhase > 2.0f * M_PI ) s_flPhase -= 2.0f * M_PI;
+		}
+		else
+		{
+			s_flPhase = 0.0f; // proxima entrada comeca sempre do centro
+		}
+	}
+
+	if( s_flBlend <= 0.0f ) return;
+
+	// smoothstep: arranca e assenta suave, sem "tapa" nas pontas
+	const float s = s_flBlend * s_flBlend * ( 3.0f - 2.0f * s_flBlend );
+
+	const float flSin = sin( s_flPhase );
+	const float flDip = 0.5f - 0.5f * cos( s_flPhase * 2.0f ); // 0..1, 2 batidas por ciclo
+
+	// posicao: desce + balanco lateral (+ = direita) + leve afundada a cada passo
+	origin -= pparams->up * ( rtn_sprint_down->value * s + flDip * 0.6f * s );
+	origin += pparams->right * ( flSin * rtn_sprint_side->value * s );
+
+	// rotacao: pose base + balanco angular. flSin > 0 empurra a arma para a
+	// direita (yaw/roll do sway oposto ao da pose); < 0 para a esquerda.
+	angles[PITCH] += rtn_sprint_pitch->value * s + flDip * 1.0f * s;
+	angles[YAW]   += rtn_sprint_yaw->value * s - flSin * rtn_sprint_sway->value * s;
+	angles[ROLL]  += rtn_sprint_roll->value * s - flSin * rtn_sprint_sway->value * 0.5f * s;
 }
 
 //==========================
@@ -1117,6 +1226,9 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 	view->origin += pparams->up * ( g_flIronSightRaise * cl_ironsight_raise->value );
 
 	V_CalcViewModelLag( pparams, view->origin, view->angles, lastAngles );
+
+	// RTN: pose de sprint (depois do lag; ver V_ApplySprintPose)
+	V_ApplySprintPose( pparams, view->origin, view->angles );
 
 	// RTN F10: no modo PERNAS o corpo desce para o CHAO - a origem do
 	// viewmodel fica na altura dos olhos (~28u), mas o player.mdl tem a

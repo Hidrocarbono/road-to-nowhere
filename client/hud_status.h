@@ -24,6 +24,7 @@ public:
 	int Draw( float flTime );
 	void Reset( void );
 	int MsgFunc_Stamina( const char *pszName, int iSize, void *pbuf );  // RTN F10 fix
+	float GetStamina( void ) const { return m_flStamina; }  // 0..100 (pose de sprint em r_view.cpp)
 
 	// momento do ultimo dano recebido (flash + shake) - exposto p/ debug
 	float m_flDamageTime = -100.0f;
