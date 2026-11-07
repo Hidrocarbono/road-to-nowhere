@@ -730,7 +730,12 @@ void V_RenderPostEffect( word hProgram )
 			u->SetValue( s_flWaterDropsVis, s_flWaterDropsDensity, 0.0f, 0.0f );
 			break;
 		case UT_FILMGRAINSCALE:
-			u->SetValue(post.fxParameters.GetFilmGrainScale());
+			// RTN: film grain ELIMINADO por completo (pedido do user). Zerado aqui,
+			// no ultimo ponto antes do shader, para valer tambem contra o
+			// env_postfx_controller dos mapas, o menu ImGui e o grain do NVG
+			// (gl_nvg.cpp). Para reativar, e so voltar a ler
+			// post.fxParameters.GetFilmGrainScale().
+			u->SetValue(0.0f);
 			break;
 		case UT_ACCENTCOLOR:
 		{

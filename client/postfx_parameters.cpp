@@ -61,7 +61,7 @@ const CPostFxParameters& CPostFxParameters::Defaults()
 	defaults.m_flGreenLevel = 1.0f;
 	defaults.m_flBlueLevel = 1.0f;
 	defaults.m_flVignetteScale = 1.0f;	// RTN: maximo da faixa [0..1] (user, ajustado em jogo; era 0.6)
-	defaults.m_flFilmGrainScale = 0.011f;	// RTN: user pediu 0.011 (era 0.02; 0.05 era forte demais)
+	defaults.m_flFilmGrainScale = 0.0f;	// RTN: film grain eliminado (era 0.011; o uniform tambem e forcado a 0 em gl_postprocess.cpp)
 	defaults.m_flColorAccentScale = 0.0f;
 	defaults.m_vecAccentColor = Vector(1.0f, 1.0f, 1.0f);
 	return defaults;

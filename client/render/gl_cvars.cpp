@@ -221,7 +221,9 @@ void R_InitializeConVars()
 	r_grass_alpha = CVAR_REGISTER("r_grass_alpha", "0.5", FCVAR_ARCHIVE);
 	r_grass_lighting = CVAR_REGISTER("r_grass_lighting", "1", FCVAR_ARCHIVE);
 	r_grass_shadows = CVAR_REGISTER("r_grass_shadows", "1", FCVAR_ARCHIVE);
-	r_grass_fade_start = CVAR_REGISTER("r_grass_fade_start", "1024", FCVAR_ARCHIVE);
+	// RTN: alcance do mato ampliado (era 1024 / 2048): tamanho cheio ate 2048u,
+	// some em 4096u. Tambem fixado em userconfig.d/rtn.cfg (sobrescreve o config.cfg salvo).
+	r_grass_fade_start = CVAR_REGISTER("r_grass_fade_start", "2048", FCVAR_ARCHIVE);
 	r_grass_fade_dist = CVAR_REGISTER("r_grass_fade_dist", "2048", FCVAR_ARCHIVE);
 
 	// RTN: multiplicador sobre a density do 'fog R G B D' do worldspawn.
