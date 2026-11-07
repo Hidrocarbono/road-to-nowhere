@@ -895,6 +895,14 @@ void R_DrawWeather( void )
 		return;
 
 	GL_DEBUG_SCOPE();
+
+	// RTN: DrawRain/DrawFXObjects usam ARRAYS DE CLIENTE (pglVertexPointer com
+	// ponteiro da CPU). Se um VAO ou um GL_ARRAY_BUFFER do passe anterior
+	// (lista transparente/particulas) continuar ligado, o ponteiro vira offset
+	// no buffer e o draw gera GL_INVALID_OPERATION. O Diffusion faz exatamente
+	// este cleanup antes de desenhar o clima.
+	GL_CleanupDrawState();
+
 	ProcessRain();
 	ProcessFXObjects();
 	DrawRain();
