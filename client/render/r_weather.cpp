@@ -891,7 +891,9 @@ void R_DrawWeather( void )
 	ZoneScoped;
 
 	// it was RP_SKYPORTALVIEW, is it correct?
-	if( FBitSet( RI->params, RP_SKYVIEW))
+	// RTN: tambem nao desenha em captura de cubemap nem em passe de sombra (o
+	// Diffusion faz o mesmo) - chuva nao deve ficar "assada" no cubemap.
+	if( FBitSet( RI->params, RP_SKYVIEW|RP_ENVVIEW|RP_SHADOWVIEW ))
 		return;
 
 	GL_DEBUG_SCOPE();
@@ -902,6 +904,14 @@ void R_DrawWeather( void )
 	// no buffer e o draw gera GL_INVALID_OPERATION. O Diffusion faz exatamente
 	// este cleanup antes de desenhar o clima.
 	GL_CleanupDrawState();
+
+	// RTN: o clima e desenhado com blend aditivo SEM depth write e SEM alpha test.
+	// O estado vazava do passe anterior: com alpha test ligado, os sprites de
+	// chuva (alpha 0.12-0.2) eram descartados -> chuva sumia conforme o que
+	// estava na tela. O Diffusion zera os dois aqui (e a currententity).
+	RI->currententity = NULL;
+	GL_AlphaTest( GL_FALSE );
+	GL_DepthMask( GL_FALSE );
 
 	ProcessRain();
 	ProcessFXObjects();
