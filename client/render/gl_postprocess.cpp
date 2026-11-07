@@ -18,6 +18,11 @@
 
 static CBasePostEffects	post;
 void V_RenderPostEffect(word hProgram);
+bool R_GetRainScreenState( float *flIntensity );	// r_weather.cpp
+
+// RTN: estado do efeito de gotas na tela (RenderWaterDrops / UT_WATERDROPSPARAMS)
+static float s_flWaterDropsVis = 0.0f;		// 0..1, sobe devagar e some rapido
+static float s_flWaterDropsDensity = 0.0f;	// 0..1, vem da chuva (R_GetRainScreenState)
 
 void CBasePostEffects::InitializeTextures()
 {
@@ -56,6 +61,9 @@ void CBasePostEffects::InitializeShaders()
 
 	// RTN F10: lens dirt (sujeira de lente na luz forte)
 	lensDirtShader = GL_FindShader("postfx/lensdirt", "postfx/generic", "postfx/lensdirt");
+
+	// RTN: gotas de chuva na tela
+	waterDropsShader = GL_FindShader("postfx/waterdrops", "postfx/generic", "postfx/waterdrops");
 
 	// RTN: HBAO (oclusao ambiental) - dois passes, ver RenderHBAO()
 	hbaoGenShader = GL_FindShader("postfx/genhbao", "postfx/generic", "postfx/genhbao");
@@ -570,6 +578,9 @@ void InitPostEffects()
 	// gl_lensdirt_debug 1 = sujeira sem mascara, para conferir se a textura
 	// carregou e como ela e. Nao e ARCHIVE: nao deve sobreviver ao restart.
 	gl_lensdirt_debug = CVAR_REGISTER( "gl_lensdirt_debug", "0", 0 );	// RTN F10
+	gl_waterdrops = CVAR_REGISTER( "gl_waterdrops", "1", FCVAR_ARCHIVE );	// RTN: gotas de chuva na tela
+	// multiplica a densidade que vem da chuva do mapa (drips/1500); resultado limitado a 1
+	gl_waterdrops_intensity = CVAR_REGISTER( "gl_waterdrops_intensity", "1.0", FCVAR_ARCHIVE );	// RTN
 	r_postfx_enable = CVAR_REGISTER("r_postfx_enable", "1.0", 0);
 	RTN_NVG_RegisterCvars();	// RTN: visao noturna
 	r_tonemap = CVAR_REGISTER("r_tonemap", "1", FCVAR_ARCHIVE);
@@ -714,6 +725,9 @@ void V_RenderPostEffect( word hProgram )
 			break;
 		case UT_DIRTPARAMS:		// RTN F10: lens dirt (limiar, debug, aspecto da textura)
 			u->SetValue( gl_lensdirt_threshold->value, CVAR_TO_BOOL( gl_lensdirt_debug ) ? 1.0f : 0.0f, post.m_dirtAspect );
+			break;
+		case UT_WATERDROPSPARAMS:	// RTN: gotas na tela (visibilidade, densidade)
+			u->SetValue( s_flWaterDropsVis, s_flWaterDropsDensity, 0.0f, 0.0f );
 			break;
 		case UT_FILMGRAINSCALE:
 			u->SetValue(post.fxParameters.GetFilmGrainScale());
@@ -1131,6 +1145,51 @@ void RenderHBAO( void )
 	pglViewport( 0, 0, glState.width, glState.height );
 	V_RenderPostEffect( post.hbaoDrawShader );
 
+	post.End();
+}
+
+//==========================
+// RenderWaterDrops
+//
+// RTN: gotas de chuva na tela. Liga sozinho quando o mapa tem env_rain +
+// env_rainmodify (drips > 0, modo chuva) e o jogador esta ao ar livre
+// (R_GetRainScreenState). A visibilidade sobe devagar (0.25/s) e some rapido
+// (0.75/s), entao entrar/sair de baixo de um teto nao "pisca".
+//==========================
+void RenderWaterDrops( void )
+{
+	if( !post.waterDropsShader )
+		return;
+
+	float flRain = 0.0f;
+	bool bWant = CVAR_TO_BOOL( gl_waterdrops ) && R_GetRainScreenState( &flRain );
+
+	// nao mostra olhando muito para baixo (mesma regra do modo pernas) nem submerso
+	if( tr.viewparams.viewangles[PITCH] > 30.0f || tr.viewparams.waterlevel > 2 )
+		bWant = false;
+
+	const float dt = bound( 0.0f, tr.viewparams.frametime, 0.1f );
+
+	if( bWant )
+	{
+		s_flWaterDropsDensity = bound( 0.0f, flRain * gl_waterdrops_intensity->value, 1.0f );
+		s_flWaterDropsVis += 0.25f * dt;
+	}
+	else
+	{
+		s_flWaterDropsVis -= 0.75f * dt;
+	}
+	s_flWaterDropsVis = bound( 0.0f, s_flWaterDropsVis, 1.0f );
+
+	if( s_flWaterDropsVis <= 0.0f )
+		return;
+
+	GL_DEBUG_SCOPE();
+	if( !post.Begin( ))
+		return;
+
+	post.RequestScreenColor();
+	V_RenderPostEffect( post.waterDropsShader );
 	post.End();
 }
 

@@ -27,3 +27,7 @@ Optamos por **não** ativar branch protection (`enforce_admins`) porque, como as
 - Se estiver no meio de uma mudança grande/arriscada, considere trabalhar em uma branch de feature antes de subir para a `master`.
 
 Sem issues habilitadas neste repo — este arquivo é o canal combinado para deixar esse tipo de aviso registrado no histórico.
+
+## Créditos de terceiros
+
+- `game_dir/glsl/postfx/waterdrops_fp.glsl` (gotas de chuva na tela) — shader de **Elie Michel**, "Rain drops on screen" (2017, https://www.shadertoy.com/view/ldSBWW), licença **CC BY 3.0**. Adaptado para o PrimeXT. A ideia de usá-lo veio do mod Diffusion (Aynekko); o código de controle em C++ é próprio.

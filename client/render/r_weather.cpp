@@ -495,6 +495,39 @@ void ParseRainFile( void )
 
 /*
 =================================
+R_GetRainScreenState
+
+RTN: usado pelo efeito de gotas na tela (RenderWaterDrops).
+"Ao ar livre" = um trace da camera ate a altura da chuva (origem do env_rain)
+nao bate em nada. O mapper deve por o env_rain ABAIXO do teto do ceu, senao o
+trace sempre bate no proprio ceu e o efeito nunca liga.
+=================================
+*/
+bool R_GetRainScreenState( float *flIntensity )
+{
+	*flIntensity = 0.0f;
+
+	if( Rain.weatherMode != MODE_RAIN || Rain.dripsPerSecond <= 0 )
+		return false;
+
+	Vector org = tr.viewparams.vieworg;
+	if( org.z >= Rain.globalHeight )
+		return false;	// acima da altura da chuva
+
+	Vector top = org;
+	top.z = Rain.globalHeight;
+
+	pmtrace_t *trace = gEngfuncs.PM_TraceLine( org, top, PM_TRACELINE_PHYSENTSONLY, 2, -1 );
+	if( trace->fraction < 1.0f )
+		return false;	// ha teto: coberto
+
+	// 800 drips (padrao do env_rainmodify) = ~0.53; 1500+ = chuva pesada (1.0)
+	*flIntensity = bound( 0.0f, Rain.dripsPerSecond / 1500.0f, 1.0f );
+	return true;
+}
+
+/*
+=================================
 R_ParseRainMessage
 =================================
 */

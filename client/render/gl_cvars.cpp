@@ -57,6 +57,8 @@ cvar_t *gl_lensdirt;		// RTN F10
 cvar_t *gl_lensdirt_scale;	// RTN F10
 cvar_t *gl_lensdirt_threshold;	// RTN F10
 cvar_t *gl_lensdirt_debug;	// RTN F10
+cvar_t *gl_waterdrops;		// RTN: gotas de chuva na tela
+cvar_t *gl_waterdrops_intensity;	// RTN: multiplicador da densidade de gotas
 cvar_t *gl_fog_density_scale;	// RTN: calibragem do fog do mod
 cvar_t *gl_fog_sky_blend;	// RTN: quanto o fog cobre o skybox
 cvar_t *gl_fog_debug;		// RTN: diagnostico - ver comentario no CVAR_REGISTER abaixo

@@ -308,6 +308,7 @@ static uniformTable_t glsl_uniformTable[] =
 { "u_DirtMap",			UT_DIRTMAP,			UFL_TEXTURE_UNIT },	// RTN F10
 { "u_DirtScale",		UT_DIRTSCALE,		0 },				// RTN F10
 { "u_DirtParams",		UT_DIRTPARAMS,		0 },				// RTN F10
+{ "u_WaterDropsParams",	UT_WATERDROPSPARAMS,	0 },			// RTN: gotas na tela
 { "u_Saturation",		UT_SATURATION,		0 },
 { "u_Contrast",			UT_CONTRAST,		0 },
 { "u_ColorLevels",		UT_COLORLEVELS,		0 },
