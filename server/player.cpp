@@ -1893,12 +1893,32 @@ void CBasePlayer::PreThink(void)
 				m_bDizzy = FALSE;
 			}
 		}
+		float leanDir = 0.0f;
 		if ( pev->button & IN_ALT1 )
-			leanTarget = -12.0f;
+			leanDir = -1.0f;
 		else if ( pev->button & IN_CANCEL )
-			leanTarget = 12.0f;
+			leanDir = 1.0f;
 
 		float leanYaw = pev->v_angle.y * ( M_PI / 180.0f );
+
+		// RTN: o alcance do lean (RTN_LEAN_OFFSET, game_shared/cdll_dll.h) passa
+		// do hull (16u), entao um trace do olho (sem lean) ate o ponto lateral
+		// encurta o alcance ao bater em parede/porta - senao o tiro nasceria do
+		// outro lado de uma parede fina. O cliente (r_view.cpp) faz o MESMO trace.
+		float leanReach = RTN_LEAN_OFFSET;
+		if ( leanDir != 0.0f )
+		{
+			Vector vecLeanEye = pev->origin + Vector( 0, 0, pev->view_ofs.z );
+			Vector vecLeanRight( sin( leanYaw ), -cos( leanYaw ), 0 );	// mesma convencao do offset abaixo
+			float flSpan = RTN_LEAN_OFFSET + RTN_LEAN_WALL_MARGIN;
+			TraceResult trLean;
+			UTIL_TraceLine( vecLeanEye, vecLeanEye + vecLeanRight * ( leanDir * flSpan ), ignore_monsters, edict(), &trLean );
+			leanReach = trLean.flFraction * flSpan - RTN_LEAN_WALL_MARGIN;
+			if ( leanReach < 0.0f ) leanReach = 0.0f;
+			if ( leanReach > RTN_LEAN_OFFSET ) leanReach = RTN_LEAN_OFFSET;
+		}
+		leanTarget = leanDir * leanReach;
+
 		float leanOfsX =  sin( leanYaw ) * leanTarget;
 		float leanOfsY = -cos( leanYaw ) * leanTarget;
 
