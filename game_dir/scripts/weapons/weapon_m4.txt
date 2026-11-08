@@ -1,0 +1,108 @@
+/*
+weapon_m4.txt - weapon description file (part of Xash Weapon System)
+Copyright (C) 2014 Uncle Mike
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+*/
+
+// M4 Carbine com RAS (Rail Adapter System) e mira holografica/red dot M68 CCO
+// (Aimpoint Close Combat Optic, 1x), 5.56x45mm NATO, pente STANAG de 30.
+// Script portado do mod antigo e AJUSTADO para o RTN - o que mudou e por que:
+//   primary_ammo  "m16" -> "5.56"   o tipo foi renomeado no ammodesc.txt
+//   secondary     "vog25" -> "none" nao existe vog25 aqui e a M4 CCO nao tem
+//                                   lancador sob o cano (o SecondaryAttack e a mira)
+//   nextattack    0.1 -> 0.08       750 tiros/min (ciclico real da M4: 700-950)
+//   PunchAngle*   menor              5.56 e leve; a M4 e conhecida por recuo baixo
+//   SpreadRangeIS menor              red dot 1x: mira precisa e rapida
+//   zoom_fov      70                 sem lunetas: 1x so "fecha" um pouco o campo
+//   hudsprite     .tga 200x62        pipeline atual (ver o cabecalho do icone abaixo)
+//   hudsprite ammo/ammo2 removidos   apontavam pro atlas 640hud7 do Paranoia 2
+// Os numeros de recuo/dispersao sao ajuste de jogo (nao dado de fabrica) - calibrar em jogo.
+
+WeaponData
+{
+	"viewmodel"	"models/v_m4.mdl"	// path to viewmodel
+	"playermodel"	"models/p_m4.mdl" 		// p_: arma nas maos do jogador
+	"worldmodel"	"models/w_m4.mdl" 		// w_: arma caida no chao
+	"anim_prefix"	"mp5" 			// player animation prefix (campo morto - ver GUIA_ARMAS_SCRIPT.md)
+	"bucket"		"4"			// slot number
+	"bucket_position"	"2"			// slot position
+	"clip_size"	"30"			// clip size (pente STANAG de 30)
+	"defaultammo"	"30"			// default ammo give print "random" for random choose
+	"primary_ammo"	"5.56"			// 5.56x45mm NATO (ver ammodesc.txt)
+	"secondary_ammo" 	"none"			// secondary ammo type
+	"weight"		"15"			// autoswitch weight
+	"SpreadTime"	"0.3"			// time to back to normal spread
+	"item_flags"	"IronSight|AutoAim|AutoFire"	// weapon flags
+	"MaxSpeed"	"55"
+	"MaxSpeedIS"	"40"
+	"zoom_fov"	"70"			// red dot 1x: sem zoom de verdade (default das armas e 65)
+	"volume"		"normal"
+	"flash"		"normal"
+}
+
+PrimaryAttack
+{
+	"action"		"ammo1"			// attack type
+	"nextattack"	"0.08"			// 750 tiros/min
+
+	"PunchAngle"	"0.7..1.0" "-0.4..0.4" "0"	// punchangle (quadril)
+	SpreadRange	"1..2"
+	SpreadExpand	0.08
+
+	"PunchAngleIS"	"0.4..0.7" "-0.3..0.2" "0"	// punchangle (mira) - arma mais estavel apoiada
+	SpreadRangeIS	"0.5..1"			// IS - IronSight (red dot)
+	SpreadExpandIS	0.05
+}
+
+SecondaryAttack
+{
+	"action"		"IronSight"
+	"nextattack"	"-1"			// sequence-length based
+}
+
+SoundData
+{
+	"shootsound1"	"weapons/m4a1_unsil-1.wav"	// primary attack sound
+	"shootsound2"	"weapons/m4a1_unsil-2.wav"	// primary attack sound
+	"emptysound"	"weapons/w_empty.wav"	// ammo is out
+}
+
+// PIPELINE DO ICONE - LEIA ANTES DE MEXER
+// O "file" abaixo aponta pro .tga de PROPOSITO, e o jogo NAO abre esse .tga.
+//   autoria   -> gfx/vgui/ammo/640_<arma>.tga   (edite so este)
+//   conversao -> python3 utils/gen_hudsprites.py (roda FORA do jogo; gera o
+//                .spr se faltar e escreve sprites/<arma>.txt)
+//   runtime   -> sprites/rtn_hud_ammo_<arma>.spr (o que o engine carrega)
+// Carregar .tga em jogo foi medido quebrado neste engine: o proprio engine
+// responde "GL_INVALID_ENUM while uploading ...tga [2D]". Por isso o runtime
+// e so .spr. Nao apague os .spr achando que o .tga entra no lugar - sem eles
+// a barra de selecao fica so com o nome da arma (e avisa no console).
+// hud sprites
+"hudsprite"	
+{
+	"name"		"weapon"
+	"file"		"gfx/vgui/ammo/640_weapon_m4.tga"
+	"x"		"0"
+	"y"		"0"
+	"width"		"200"
+	"height"		"62"
+}
+
+"hudsprite"	
+{
+	"name"		"weapon_s"
+	"file"		"gfx/vgui/ammo/640_weapon_m4.tga"
+	"x"		"0"
+	"y"		"0"
+	"width"		"200"
+	"height"		"62"
+}
