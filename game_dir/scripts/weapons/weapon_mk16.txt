@@ -1,0 +1,110 @@
+/*
+weapon_mk16.txt - weapon description file (part of Xash Weapon System)
+Copyright (C) 2014 Uncle Mike
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+*/
+
+// Carabina estilo AR-15 "MK16 URG-I", 5.56x45mm NATO, pente STANAG de 30.
+// Script portado do mod antigo e AJUSTADO para o RTN - o que mudou e por que:
+//   primary_ammo  "m16" -> "5.56"   o tipo foi renomeado no ammodesc.txt
+//   nextattack    0.1 -> 0.075      800 tiros/min (carabina curta de AR-15 cicla
+//                                   na faixa de 700-950; a M4 do jogo usa 750)
+//   PunchAngle*   um pouco menor     5.56 e leve e a arma e de alto desempenho
+//   SpreadRangeIS 0..0.1 -> 0.1..0.4 mira muito precisa (intencao original do
+//                                   mod antigo), mas sem cone zero - nenhuma arma
+//                                   real tem dispersao nula
+//   hudsprite     .tga 200x62        pipeline atual (ver o cabecalho do icone abaixo)
+//   hudsprite ammo/ammo2 removidos   apontavam pro atlas 640hud7 do Paranoia 2
+//   bucket_position 6 -> 4           MAX_WEAPON_SLOTS e 5 aqui (P2 usa 10); o
+//                                   parser clampava o 6 para 4 de qualquer jeito
+// Os numeros de recuo/dispersao sao ajuste de jogo (nao dado de fabrica) - calibrar em jogo.
+// Modelos: p_ar15 e p_m3 vem do mod antigo (conferir se existem; o worldmodel
+// aponta pra um "p_", que costuma ser o modelo de maos, nao o do chao).
+
+WeaponData
+{
+	"viewmodel"	"models/v_mk16.mdl"	// path to viewmodel
+	"playermodel"	"models/p_ar15.mdl" 		// p_: arma nas maos do jogador
+	"worldmodel"	"models/p_m3.mdl" 		// arma caida no chao
+	"anim_prefix"	"mp5" 			// player animation prefix (campo morto - ver GUIA_ARMAS_SCRIPT.md)
+	"bucket"		"3"			// slot number
+	"bucket_position"	"4"			// slot position
+	"clip_size"	"30"			// clip size (pente STANAG de 30)
+	"defaultammo"	"30"			// default ammo give print "random" for random choose
+	"primary_ammo"	"5.56"			// 5.56x45mm NATO (ver ammodesc.txt)
+	"secondary_ammo" 	"none"			// secondary ammo type
+	"weight"		"10"			// autoswitch weight
+	"SpreadTime"	"0.3"			// time to back to normal spread
+	"item_flags"	"IronSight|AutoAim|AutoFire"  // weapon flags
+	"MaxSpeed"	"55"
+	"MaxSpeedIS"	"40"
+	"volume"		"normal"
+	"flash"		"normal"
+}
+
+PrimaryAttack
+{
+	"action"		"ammo1"			// attack type
+	"nextattack"	"0.075"			// 800 tiros/min
+
+	"PunchAngle"	"0.8..1.1" "-0.4..0.4" "0"	// punchangle (quadril)
+	SpreadRange	"1..2"
+	SpreadExpand	0.08
+
+	"PunchAngleIS"	"0.2..0.4" "-0.15..0.15" "0"	// punchangle (mira) - menos chute mirando
+	SpreadRangeIS	"0.1..0.4"			// IS - IronSight, cone bem fechado
+	SpreadExpandIS	0.02				// cresce bem devagar em rajada
+}
+
+SecondaryAttack
+{
+	"action"		"IronSight"
+	"nextattack"	"-1"			// sequence-length based
+}
+
+SoundData
+{
+	"shootsound1"	"weapons/m4a1-1.wav"	// primary attack sound
+	"shootsound2"	"weapons/m4a1-2.wav"	// primary attack sound
+	"emptysound"	"weapons/w_empty.wav"	// ammo is out
+}
+
+// PIPELINE DO ICONE - LEIA ANTES DE MEXER
+// O "file" abaixo aponta pro .tga de PROPOSITO, e o jogo NAO abre esse .tga.
+//   autoria   -> gfx/vgui/ammo/640_<arma>.tga   (edite so este)
+//   conversao -> python3 utils/gen_hudsprites.py (roda FORA do jogo; gera o
+//                .spr se faltar e escreve sprites/<arma>.txt)
+//   runtime   -> sprites/rtn_hud_ammo_<arma>.spr (o que o engine carrega)
+// Carregar .tga em jogo foi medido quebrado neste engine: o proprio engine
+// responde "GL_INVALID_ENUM while uploading ...tga [2D]". Por isso o runtime
+// e so .spr. Nao apague os .spr achando que o .tga entra no lugar - sem eles
+// a barra de selecao fica so com o nome da arma (e avisa no console).
+// hud sprites
+"hudsprite"	
+{
+	"name"		"weapon"
+	"file"		"gfx/vgui/ammo/640_weapon_mk16.tga"
+	"x"		"0"
+	"y"		"0"
+	"width"		"200"
+	"height"		"62"
+}
+
+"hudsprite"	
+{
+	"name"		"weapon_s"
+	"file"		"gfx/vgui/ammo/640_weapon_mk16.tga"
+	"x"		"0"
+	"y"		"0"
+	"width"		"200"
+	"height"		"62"
+}
