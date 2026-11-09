@@ -59,5 +59,9 @@ void R_InitWeather( void );
 void R_ResetWeather( void );
 void R_DrawWeather( void );
 void R_ParseRainMessage( void );
+// RTN: true se o jogador esta sob chuva ao ar livre (env_rain + env_rainmodify com
+// drips > 0, modo chuva, e sem teto entre a camera e a altura da chuva).
+// *flIntensity recebe a densidade 0..1 (usada pelo efeito de gotas na tela).
+bool R_GetRainScreenState( float *flIntensity );
 
 #endif//R_WEATHER_H

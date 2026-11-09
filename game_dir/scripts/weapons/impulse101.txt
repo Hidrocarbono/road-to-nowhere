@@ -14,6 +14,8 @@ item_battery
 weapon_aps
 ammo_aps
 weapon_m4a3
+weapon_m4
+weapon_mk16
 ammo_m16
 weapon_parafal
 ammo_ak74

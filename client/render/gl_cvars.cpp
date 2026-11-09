@@ -57,6 +57,8 @@ cvar_t *gl_lensdirt;		// RTN F10
 cvar_t *gl_lensdirt_scale;	// RTN F10
 cvar_t *gl_lensdirt_threshold;	// RTN F10
 cvar_t *gl_lensdirt_debug;	// RTN F10
+cvar_t *gl_waterdrops;		// RTN: gotas de chuva na tela
+cvar_t *gl_waterdrops_intensity;	// RTN: multiplicador da densidade de gotas
 cvar_t *gl_fog_density_scale;	// RTN: calibragem do fog do mod
 cvar_t *gl_fog_sky_blend;	// RTN: quanto o fog cobre o skybox
 cvar_t *gl_fog_debug;		// RTN: diagnostico - ver comentario no CVAR_REGISTER abaixo
@@ -219,7 +221,9 @@ void R_InitializeConVars()
 	r_grass_alpha = CVAR_REGISTER("r_grass_alpha", "0.5", FCVAR_ARCHIVE);
 	r_grass_lighting = CVAR_REGISTER("r_grass_lighting", "1", FCVAR_ARCHIVE);
 	r_grass_shadows = CVAR_REGISTER("r_grass_shadows", "1", FCVAR_ARCHIVE);
-	r_grass_fade_start = CVAR_REGISTER("r_grass_fade_start", "1024", FCVAR_ARCHIVE);
+	// RTN: alcance do mato ampliado (era 1024 / 2048): tamanho cheio ate 2048u,
+	// some em 4096u. Tambem fixado em userconfig.d/rtn.cfg (sobrescreve o config.cfg salvo).
+	r_grass_fade_start = CVAR_REGISTER("r_grass_fade_start", "2048", FCVAR_ARCHIVE);
 	r_grass_fade_dist = CVAR_REGISTER("r_grass_fade_dist", "2048", FCVAR_ARCHIVE);
 
 	// RTN: multiplicador sobre a density do 'fog R G B D' do worldspawn.

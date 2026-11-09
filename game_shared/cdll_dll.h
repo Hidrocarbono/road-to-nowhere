@@ -57,4 +57,19 @@
 #define FDECAL_STUDIO		0x40	// Indicates a studio decal
 #define FDECAL_LOCAL_SPACE		0x80	// Decal is in local space (any decal after serialization)
 
+// RTN: LEAN (Q/E). Constantes COMPARTILHADAS: o cliente (r_view.cpp - camera e
+// arma) e o servidor (player.cpp - origem do tiro) precisam usar EXATAMENTE o
+// mesmo alcance, senao a camera mostra um ponto e o tiro sai de outro. Por
+// isso sao #define aqui e nao cvars (o cliente e o servidor registram cvars
+// separadas). O roll da camera e so visual e tem cvar propria no cliente
+// (rtn_lean_roll).
+//
+// Alcance lateral maximo do olho. O hull do jogador tem meia largura 16u, entao
+// acima disso o olho sai do corpo - por isso o alcance e SEMPRE limitado por um
+// trace (ver RTN_LEAN_WALL_MARGIN) que encurta o lean ao bater em geometria.
+#define RTN_LEAN_OFFSET		24.0f
+// Folga entre o olho e a parede: maior que o near-plane da camera, pra nao ver o
+// interior do poligono nem atravessar a parede.
+#define RTN_LEAN_WALL_MARGIN	6.0f
+
 #endif

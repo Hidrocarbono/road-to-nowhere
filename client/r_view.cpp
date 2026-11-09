@@ -66,6 +66,7 @@ cvar_t	*rtn_sprint_freq;		// ciclos/s a 320 u/s
 cvar_t	*rtn_sprint_in;			// tempo de entrada (s)
 cvar_t	*rtn_sprint_out;		// tempo de saida (s)
 cvar_t	*rtn_sprint_resume;		// atraso p/ voltar ao sprint apos atirar/recarregar (s)
+cvar_t	*rtn_lean_roll;			// RTN: roll da camera no lean (graus, so visual)
 cvar_t	*v_centermove;
 cvar_t	*v_centerspeed;
 cvar_t	*cl_viewsize;
@@ -128,6 +129,7 @@ void V_Init( void )
 	cl_ironsight_raise = CVAR_REGISTER( "cl_ironsight_raise", "1.5", FCVAR_ARCHIVE );
 	cl_viewsize = CVAR_GET_POINTER("viewsize");
 
+	rtn_lean_roll		= CVAR_REGISTER( "rtn_lean_roll", "12", FCVAR_ARCHIVE );
 	rtn_sprint		= CVAR_REGISTER( "rtn_sprint", "1", FCVAR_ARCHIVE );
 	rtn_sprint_minspeed	= CVAR_REGISTER( "rtn_sprint_minspeed", "210", FCVAR_ARCHIVE );
 	rtn_sprint_down		= CVAR_REGISTER( "rtn_sprint_down", "3.0", FCVAR_ARCHIVE );
@@ -1160,16 +1162,28 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 		if( pparams->cmd->buttons & IN_ALT1 ) leanDir = -1;  // Q = left
 		else if( pparams->cmd->buttons & IN_CANCEL ) leanDir = 1;  // E = right
 
-		float targetRoll = (float)leanDir * 5.0f;  // subtle 5deg
+		// RTN: alcance lateral limitado por TRACE (mesma conta do servidor,
+		// player.cpp) - o lean agora passa do hull (16u), entao sem isso o olho
+		// atravessaria parede. Parede perto = lean menor (e roll proporcional).
+		float flReach = RTN_LEAN_OFFSET;
+		if( leanDir != 0 )
+		{
+			const float flSpan = RTN_LEAN_OFFSET + RTN_LEAN_WALL_MARGIN;
+			Vector vLeanEnd = pparams->vieworg + pparams->right * ( (float)leanDir * flSpan );
+			pmtrace_t *trLean = gEngfuncs.PM_TraceLine( pparams->vieworg, vLeanEnd, PM_TRACELINE_PHYSENTSONLY, 2, -1 );
+			flReach = bound( 0.0f, trLean->fraction * flSpan - RTN_LEAN_WALL_MARGIN, RTN_LEAN_OFFSET );
+		}
+
+		float targetRoll = (float)leanDir * rtn_lean_roll->value * ( flReach / RTN_LEAN_OFFSET );
 		g_flLeanRoll += (targetRoll - g_flLeanRoll) * Q_min( 1.0f, pparams->frametime * 10.0f );
 		if( fabs( g_flLeanRoll - targetRoll ) < 0.05f ) g_flLeanRoll = targetRoll;
 		pparams->viewangles[ROLL] += g_flLeanRoll;
 
 		// lateral eye offset (visual, complements server view_ofs lean)
-		float targetOffset = (float)leanDir * 12.0f;  // matches server view_ofs lean
+		float targetOffset = (float)leanDir * flReach;  // igual ao view_ofs do servidor (player.cpp)
 		g_flLeanOffset += (targetOffset - g_flLeanOffset) * Q_min( 1.0f, pparams->frametime * 10.0f );
 		if( fabs( g_flLeanOffset - targetOffset ) < 0.05f ) g_flLeanOffset = targetOffset;
-		pparams->vieworg += pparams->right * g_flLeanOffset;  // camera eye shifts full 12u
+		pparams->vieworg += pparams->right * g_flLeanOffset;  // olho desloca ate RTN_LEAN_OFFSET (24u)
 	}
 
 	cl_entity_t *view = GET_VIEWMODEL();

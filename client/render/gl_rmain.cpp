@@ -978,9 +978,15 @@ void R_RenderScene( const ref_viewpass_t *rvp, RefParams params )
 	// restore right depthrange here
 	GL_DepthRange( gldepthmin, gldepthmax );
 
+	// RTN DIAG (temporario): um GL_CheckForErrors por etapa, cada um numa linha
+	// diferente, para o log dizer QUAL etapa gera o GL_INVALID_OPERATION (glGetError
+	// e sticky - ver CHANGELOG_AGENT.md). Remover quando a origem for confirmada.
 	R_RenderTransList();
+	GL_CheckForErrors();
 	R_DrawParticles( true );
+	GL_CheckForErrors();
 	R_DrawWeather();
+	GL_CheckForErrors();
 	HUD_DrawTransparentTriangles();
 
 	GL_CheckForErrors();

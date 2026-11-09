@@ -23,6 +23,7 @@ public:
 	word	blurMipShader;
 	word	bloomShader;
 	word	lensDirtShader;		// RTN F10: lens dirt (sujeira na luz)
+	word	waterDropsShader;	// RTN: gotas de chuva na tela
 	word	hbaoGenShader;		// RTN: HBAO passe 1 (gera AO em meia resolucao)
 	word	hbaoDrawShader;		// RTN: HBAO passe 2 (blur com profundidade + composicao)
 

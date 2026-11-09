@@ -172,6 +172,7 @@ typedef enum
 	UT_DIRTMAP,			// RTN F10: lens dirt (textura de sujeira)
 	UT_DIRTSCALE,		// RTN F10: lens dirt (intensidade)
 	UT_DIRTPARAMS,		// RTN F10: lens dirt (x = limiar de brilho, y = debug)
+	UT_WATERDROPSPARAMS,	// RTN: gotas na tela (x = visibilidade, y = densidade)
 	UT_LIGHTGAMMA,
 	UT_LIGHTSCALE,
 	UT_LIGHTTHRESHOLD,
