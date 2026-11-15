@@ -28,17 +28,26 @@
 #define CROWBAR_WEIGHT		0
 #define CROWBAR_CLASSNAME	weapon_crowbar
 
+// RTN: o crowbar do HL foi substituido pelo SOCO (models/v_hand.mdl). Estes
+// nomes continuam sendo usados pelo codigo (crowbar.cpp e o evento de swing no
+// cliente), mas agora apontam para as SEQUENCIAS do v_hand.mdl, que tem so 7:
+//   0 idle | 1 miss_small1 | 2 miss_small2 | 3 ready | 4 hit_small1 | 5 hit_small2 | 6 inspect
+// Nao ha sequencia de holster nem terceira variante de golpe, entao repetem-se
+// valores (IDLE no holster; miss1/hit1 reaproveitados no 3o golpe).
+// Se um dia o modelo voltar a ser o do crowbar, restaurar a ordem original do HL:
+// IDLE 0, DRAW 1, HOLSTER 2, ATTACK1HIT 3, ATTACK1MISS 4, ATTACK2MISS 5,
+// ATTACK2HIT 6, ATTACK3MISS 7, ATTACK3HIT 8.
 enum crowbar_e
 {
 	CROWBAR_IDLE = 0,
-	CROWBAR_DRAW,
-	CROWBAR_HOLSTER,
-	CROWBAR_ATTACK1HIT,
-	CROWBAR_ATTACK1MISS,
-	CROWBAR_ATTACK2MISS,
-	CROWBAR_ATTACK2HIT,
-	CROWBAR_ATTACK3MISS,
-	CROWBAR_ATTACK3HIT
+	CROWBAR_DRAW = 3,		// ready
+	CROWBAR_HOLSTER = 0,		// sem holster no v_hand: fica em idle
+	CROWBAR_ATTACK1HIT = 4,		// hit_small1
+	CROWBAR_ATTACK1MISS = 1,	// miss_small1
+	CROWBAR_ATTACK2MISS = 2,	// miss_small2
+	CROWBAR_ATTACK2HIT = 5,		// hit_small2
+	CROWBAR_ATTACK3MISS = 1,	// reaproveita miss_small1
+	CROWBAR_ATTACK3HIT = 4		// reaproveita hit_small1
 };
 
 class CCrowbarWeaponContext : public CBaseWeaponContext

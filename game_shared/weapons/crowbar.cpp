@@ -55,12 +55,17 @@ int CCrowbarWeaponContext::GetItemInfo(ItemInfo *p) const
 	p->iPosition = 0;
 	p->iId = m_iId;
 	p->iWeight = CROWBAR_WEIGHT;
+	// RTN: o soco nunca se esgota (sem municao, sem Exhaustible) e nao pode ser
+	// largado - nao existe um "soco no chao" (o drop geraria um w_crowbar).
+	p->iFlags = ITEM_FLAG_NODROP;
 	return 1;
 }
 
 bool CCrowbarWeaponContext::Deploy( )
 {
-	return DefaultDeploy( "models/v_crowbar.mdl", "models/p_crowbar.mdl", CROWBAR_DRAW, "crowbar" );
+	// RTN: soco. Sem modelo de terceira pessoa ("" = nada na mao dos outros
+	// jogadores/monstros); anim_ext "crowbar" mantem as poses de golpe do player.
+	return DefaultDeploy( "models/v_hand.mdl", "", CROWBAR_DRAW, "crowbar" );
 }
 
 void CCrowbarWeaponContext::Holster()
