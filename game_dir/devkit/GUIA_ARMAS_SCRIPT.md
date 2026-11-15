@@ -115,6 +115,40 @@ aliados. **Nunca reintroduza autoaim dentro de `PrimaryAttack()`/
 `WeaponIdle()`, que é puramente visual/feedback, não decide o que a bala
 acerta.
 
+## Armas corpo a corpo (`"action" "swing"`) — faca, soco
+
+`PrimaryAttack { "action" "swing" }` transforma a arma em corpo a corpo
+(port do `DefaultSwing()` do Paranoia 2). **Nenhum flag novo no `.txt`:** o parser
+liga sozinho o bit interno `WIF_MELEE` (que viaja pela rede em `m_iScriptFlags`,
+porque o cliente prediz o golpe). Exemplo completo: `weapon_hand.txt`.
+
+O que a action muda:
+
+- **Sem munição e sem pente.** `clip_size "noclip"` (vira `-1`) e `primary_ammo`
+  pode ficar de fora. A arma **nunca se esgota** — não use `Exhaustible`.
+- **Golpe em vez de tiro** (`CMP5WeaponContext::Swing`, `mp5.cpp`): trace de 32u
+  a partir do olho (e do hull da mão se a linha erra), dano, sons e decal.
+  Servidor faz o trace; o cliente prediz só a animação de erro e a cadência.
+- **Animações por activity**, não por índice: **acerto = 84** (`WACT_SHOOT`),
+  **erro = 86** (`WACT_MELEE`), saque = 78, idle = 82. Se o modelo tem mais de
+  uma sequência da mesma activity (`hit_small1/2`), elas alternam a cada golpe.
+  Sem activity 86 no modelo o erro usa a 84.
+- **`nextattack`:** `> 0` = segundos entre golpes; **`-1` = pelo tamanho da
+  animação** (frames/fps da sequência tocada — 39 frames a 45 fps = 0,87 s).
+- **`Damage`** (opcional, em `PrimaryAttack`): dano do golpe. Omitido = o do
+  crowbar (`sk_plr_crowbar`). Sempre `DMG_CLUB | DMG_NEVERGIB` (não estoura em gibs).
+- **`anim_prefix` passa a valer só para arma corpo a corpo** (`"crowbar"`,
+  `"knife"`...): é a pose de terceira pessoa. Para arma de fogo continua morto.
+- **`SoundData`:** repita a chave para dar variantes (até 4 por grupo, sorteadas):
+  `shootsound1` = acerta **corpo**, `shootsound2` = acerta **mundo**,
+  `emptysound` = **erra**. (Para arma de fogo a chave `shootsound2` agora também
+  vale: é o segundo som da alternância.)
+- **Não há `SmashDecal`** (o decal é o do crowbar) nem golpe secundário
+  (`SecondaryAttack` com `swing`) ainda.
+
+Para uma **faca**: copie `weapon_hand.txt`, troque `viewmodel`/`playermodel`/
+`worldmodel`, ajuste `Damage` e o `hudsprite`.
+
 ## Gaps conhecidos (não implementados nesta rodada)
 
 - **`AutoFire` sem efeito real.** Toda arma no RTN hoje dispara enquanto o

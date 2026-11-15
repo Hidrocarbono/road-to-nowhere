@@ -53,6 +53,9 @@ changing their script files.
 #define WIF_NOAUTORELOAD	(1<<4)	// 16  - suprime o auto-reload de CBaseWeaponContext (weapon_context.cpp)
 #define WIF_NOAUTOSWITCH	(1<<5)	// 32  - suprime a troca automatica de arma ao zerar municao (weapon_context.cpp)
 #define WIF_UNDERWATER		(1<<6)	// 64  - permite atirar debaixo d'agua (mp5.cpp PrimaryAttack, por padrao bloqueado)
+#define WIF_MELEE			(1<<7)	// 128 - arma corpo a corpo. NAO e escrito pelo autor do script: o parser liga este bit sozinho
+								//       quando PrimaryAttack { "action" "swing" } (WeaponScript_ParseWeapon). Precisa viajar
+								//       pela rede porque o cliente prediz o golpe (anim + cadencia) sem ter o parser.
 
 typedef struct ammoinfo_s
 {
@@ -81,6 +84,7 @@ typedef struct weaponattack_s
 {
 	char	action[32];
 	float	nextattack;
+	int	Damage;			// so action "swing": dano do golpe (0 = usa sk_plr_crowbar)
 	// Recuo como FAIXA, nao como valor unico. O script escreve
 	// "PunchAngle" "1..1.2" "-0.5..0.5" "0" - tres componentes, cada um podendo
 	// ser uma faixa. Guardar so o meio da faixa (o que se fazia antes) apagava
@@ -96,11 +100,25 @@ typedef struct weaponattack_s
 	float	SpreadExpandIS;
 } weaponattack_t;
 
+// Quantas variantes de som uma arma corpo a corpo aceita por grupo.
+#define WS_MAX_SND_VARIANTS	4
+
 typedef struct weaponsound_s
 {
 	char	shootsound1[MAX_SOUND_PATH];
 	char	shootsound2[MAX_SOUND_PATH];
 	char	emptysound[MAX_SOUND_PATH];
+
+	// Listas COMPLETAS do que o script declarou (o script do Paranoia 2 repete a
+	// chave para dar varias opcoes: "shootsound1" tres vezes = tres sons de
+	// impacto em corpo, sorteados a cada golpe). shootsound1/2 acima mantem a
+	// semantica de sempre das armas de fogo (um par que alterna) - estas listas
+	// so alimentam a action "swing" (mp5.cpp, CMP5WeaponContext::Swing):
+	//   shootsound1[] = acerta CORPO, shootsound2[] = acerta MUNDO, emptysound = erra.
+	char	shootsound1_list[WS_MAX_SND_VARIANTS][MAX_SOUND_PATH];
+	int	num_shootsound1;
+	char	shootsound2_list[WS_MAX_SND_VARIANTS][MAX_SOUND_PATH];
+	int	num_shootsound2;
 } weaponsound_t;
 
 typedef struct weaponsprite_s

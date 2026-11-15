@@ -45,6 +45,12 @@
 #define WIF_NOAUTORELOAD	(1<<4)
 #define WIF_NOAUTOSWITCH	(1<<5)
 #define WIF_UNDERWATER		(1<<6)
+#define WIF_MELEE			(1<<7)	// ligado pelo parser quando PrimaryAttack "action" = "swing"
+#endif
+// Variantes de som por grupo da arma corpo a corpo - mesmo valor de server/weaponscript.h
+// (o cliente nao inclui aquele header, mas o membro m_szSwing* existe nos dois lados).
+#ifndef WS_MAX_SND_VARIANTS
+#define WS_MAX_SND_VARIANTS	4
 #endif
 
 #define MP5_WEIGHT			15
@@ -142,6 +148,17 @@ public:
 	// MP5 hardcoded, que sempre teve mira no botao direito.
 	bool HasIronSight() const { return m_iScriptFlags == 0 || ( m_iScriptFlags & WIF_IRONSIGHT ) != 0; }
 
+	// true quando o script declara PrimaryAttack { "action" "swing" } (o parser liga
+	// WIF_MELEE, que viaja em m_iScriptFlags). Arma corpo a corpo: faca, soco...
+	bool IsMelee() const { return ( m_iScriptFlags & WIF_MELEE ) != 0; }
+
+	// Golpe da arma corpo a corpo (substitui o disparo em PrimaryAttack()). O
+	// SERVIDOR faz o trace, o dano, os sons e escolhe a animacao de acerto/erro;
+	// o CLIENTE so prediz a animacao de erro e a cadencia (o trace e so-servidor
+	// no crowbar classico tambem). Ver o comentario em mp5.cpp.
+	void Swing();
+	int m_iSwingCount = 0;	// alterna as variantes de animacao (hit_small1/2, miss_small1/2)
+
 	// FOV da mira: do script quando houver, senao o 65 que estava fixo no codigo.
 	float IronSightFOV() const { return m_iScriptZoomFOV > 0 ? (float)m_iScriptZoomFOV : 65.0f; }
 	bool ShouldWeaponIdle() override { return true; }  // so WeaponIdle runs every frame (FOV lerp)
@@ -204,6 +221,14 @@ public:
 	// PrecacheScriptSounds() (weapon_scripted.cpp chama no Precache()).
 	char m_szShootSound1[64] = { 0 };
 	char m_szShootSound2[64] = { 0 };
+
+	// Sons da arma corpo a corpo (so os .wav que existem - mesmo criterio acima).
+	// Corpo = shootsound1[], mundo = shootsound2[], erro = emptysound.
+	char m_szSwingBody[WS_MAX_SND_VARIANTS][64] = {};
+	int m_nSwingBody = 0;
+	char m_szSwingWorld[WS_MAX_SND_VARIANTS][64] = {};
+	int m_nSwingWorld = 0;
+	char m_szSwingMiss[64] = { 0 };
 
 	// Modelos do script que foram REALMENTE precacheados. Vazio = o arquivo nao
 	// existe e o modelo nao pode ser usado.

@@ -102,6 +102,16 @@ void CWeaponScripted::Spawn( void )
 	if( m_pInfo && m_pInfo->defaultammo > 0 )
 		m_pWeaponContext->m_iDefaultAmmo = m_pInfo->defaultammo;
 
+	// Arma corpo a corpo (action "swing"): sem municao e sem pente, igual ao
+	// crowbar classico (CCrowbarWeaponContext: m_iClip = -1). O ctor do
+	// CMP5WeaponContext deixa m_iDefaultAmmo = MP5_DEFAULT_GIVE, que aqui seria
+	// "dar municao de 9mm ao pegar a faca".
+	if( m_pInfo && ( m_pInfo->item_flags & WIF_MELEE ))
+	{
+		m_pWeaponContext->m_iClip = WEAPON_NOCLIP;
+		m_pWeaponContext->m_iDefaultAmmo = 0;
+	}
+
 	// Self-register into the shared ItemInfoArray when W_Precache() has not
 	// already done it. That table - not the script - is what CanDeploy(),
 	// pszAmmo1()/pszAmmo2() and iMaxClip() read on the CONTEXT
@@ -194,6 +204,10 @@ void CWeaponScripted::Precache( void )
 
 int CWeaponScripted::iMaxAmmo1( void )
 {
+	// corpo a corpo: sem municao (-1 = "ilimitado", o mesmo do crowbar classico)
+	if( m_pInfo && ( m_pInfo->item_flags & WIF_MELEE ))
+		return -1;
+
 	// same source as GetItemInfo()'s p->iMaxAmmo1 - ExtractAmmo()/GiveAmmo() call
 	// this one directly (not through ItemInfo), so the two must agree or reserve
 	// ammo gets clamped to a different ceiling than the HUD advertises.
@@ -255,6 +269,28 @@ int CWeaponScripted::GetItemInfo( ItemInfo *p ) const
 {
 	if( !m_pInfo ) return 0;
 	p->pszName = m_pInfo->scriptname;
+
+	// Arma corpo a corpo (WIF_MELEE, ligado pelo parser quando a action e
+	// "swing"): sem municao nem pente - pszAmmo1 NULL (NAO uma string vazia: o
+	// resto do codigo testa "!pszAmmo1()" para dizer "pode sempre sacar") e
+	// iMaxClip/iMaxAmmo1 = -1, exatamente o que o crowbar classico declara. Sem
+	// isto a faca nunca "esgotaria", mas seria tratada como arma de 9mm sem
+	// balas e o auto-switch a trocaria por outra.
+	if( m_pInfo->item_flags & WIF_MELEE )
+	{
+		p->pszAmmo1 = NULL;
+		p->pszAmmo2 = NULL;
+		p->iMaxClip = WEAPON_NOCLIP;
+		p->iMaxAmmo1 = -1;
+		p->iMaxAmmo2 = -1;
+		p->iSlot = m_pInfo->bucket;
+		p->iPosition = m_pInfo->bucket_position;
+		p->iWeight = m_pInfo->weight;
+		p->iFlags = ComputeIFlags();
+		p->iId = WeaponScript_GetWeaponID( m_pInfo );
+		return 1;
+	}
+
 	p->pszAmmo1 = m_pInfo->primary_ammo;
 	// "none" is the RTN test scripts' convention for "no secondary ammo type"
 	// (see weapon_parafal.txt); passing it through as a literal ammo name would

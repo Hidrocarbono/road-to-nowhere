@@ -52,7 +52,8 @@ enum weapon_activity_e
 	WACT_DRAW		= 78,	// deploy / saque
 	WACT_IDLE		= 82,	// parado, quadril
 	WACT_IDLE_AIM		= 83,	// parado, mirando (iron sight)
-	WACT_SHOOT		= 84,	// disparo, quadril (varias variantes)
+	WACT_SHOOT		= 84,	// disparo, quadril (varias variantes) / golpe que ACERTA (arma corpo a corpo)
+	WACT_MELEE		= 86,	// ACT_VM_MELEE_ATTACK do P2: golpe que ERRA (arma corpo a corpo, action "swing")
 	WACT_SHOOT_AIM		= 85,	// disparo, mirando (varias variantes)
 	WACT_RELOAD		= 94,	// recarga, quadril
 	WACT_RELOAD_AIM		= 95,	// recarga, mirando
@@ -87,3 +88,8 @@ int WeaponActivity_Lookup( const void *hdr, int activity, int variant = 0 );
 // sortear a variante de disparo dentro do numero real de animacoes do modelo,
 // em vez do "random(0,2)" fixo que assumia exatamente tres.
 int WeaponActivity_Count( const void *hdr, int activity );
+
+// Duracao em segundos da sequencia `seq` (numframes / fps). 0 se o indice for
+// invalido ou o hdr nulo. Usado pela arma corpo a corpo para o "nextattack -1"
+// do script (= "pelo tamanho da animacao").
+float WeaponActivity_SequenceTime( const void *hdr, int seq );

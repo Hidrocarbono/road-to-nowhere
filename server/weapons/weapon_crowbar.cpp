@@ -46,8 +46,9 @@ void CCrowbar::Spawn()
 
 void CCrowbar::Precache()
 {
-	PRECACHE_MODEL("models/v_hand.mdl");	// RTN: soco (substitui v_crowbar)
-	PRECACHE_MODEL("models/w_crowbar.mdl");	// ainda usado como modelo de mundo do item no mapa
+	PRECACHE_MODEL("models/v_crowbar.mdl");
+	PRECACHE_MODEL("models/w_crowbar.mdl");
+	PRECACHE_MODEL("models/p_crowbar.mdl");
 	PRECACHE_SOUND("weapons/cbar_hit1.wav");
 	PRECACHE_SOUND("weapons/cbar_hit2.wav");
 	PRECACHE_SOUND("weapons/cbar_hitbod1.wav");
