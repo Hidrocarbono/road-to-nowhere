@@ -1,0 +1,70 @@
+dialog_ariel
+{
+	repeatable	0
+	sealed
+	{
+	Ariel:
+	Já te disse o que eu tinha pra dizer.
+	}
+
+	font		roboto_small
+	fontsize	22
+
+	node dialog_ariel
+	{
+		npc_text
+		{
+		Ariel:
+		Pelo estado das suas roupas, você já veio encrencado. E trouxe mais problemas pra nossa
+		porta. Que sorte a nossa.
+		}
+		option 1 "Continuar..." -> dialog_ariel_b
+	}
+
+	node dialog_ariel_b
+	{
+		npc_text
+		{
+		Ariel:
+		Pode me chamar de Ariel. ARIEL era o apelido que me davam na corporação...
+		Antes do mundo virar esse playground de doidos.
+		}
+		option 1 "Continuar..." -> dialog_ariel_c
+	}
+
+	node dialog_ariel_c
+	{
+		npc_text
+		{
+		Ariel:
+		Quase não há equipamentos por aqui. É como viver depois do fim do mundo - porque é
+		exatamente isso que a gente faz. Tudo que a gente consegue está prestes a quebrar,
+		e as peças de reposição... bem, as peças de reposição geralmente estão ainda usando elas.
+		}
+		option 1 "Continuar..." -> dialog_ariel_d
+	}
+
+	node dialog_ariel_d
+	{
+		npc_text
+		{
+		Ariel:
+		Na semana passada, precisei fazer um receptor de rádio. Quer saber o que usei?
+		Uma geladeira velha. Duas gavetas de legumes e um motor corroído
+		pela radiação... e consegui ouvir a Vortex enviando seus malditos drones.
+		}
+		option 1 "Continuar..." -> dialog_ariel_e
+	}
+
+	node dialog_ariel_e
+	{
+		npc_text
+		{
+		Ariel:
+		Não espere ajuda de ninguém aqui - nem de mim. A última vez que ajudei um estranho,
+		quase virei enfeite num poste da Luz Pura. Mas... se quiser comer algo antes de voltar
+		pra sua guerra, sente-se. Só não fique muito tempo.
+		}
+		option 1 "Obrigado." -> END
+	}
+}
