@@ -76,7 +76,26 @@ BOOL CBaseMonster :: FScheduleDone ( void )
 //=========================================================
 void CBaseMonster :: ChangeSchedule ( Schedule_t *pNewSchedule )
 {
-	ASSERT( pNewSchedule != NULL );
+	// RTN: schedule nula. Antes era so ASSERT( pNewSchedule != NULL ) - no build de
+	// release o assert some e a linha de baixo (m_pSchedule->iInterruptMask)
+	// desreferenciava NULL: access violation (C0000005) dentro da fisica do servidor
+	// (zone05, logo depois do scripted_sequence "start_1" assumir os monstros).
+	// Agora diz QUEM pediu e em que estado, e cai numa schedule segura da classe
+	// base (nunca nula) em vez de derrubar o jogo. Se isto aparecer no log, o monstro
+	// e o estado apontam qual GetSchedule()/GetScheduleOfType() devolveu NULL.
+	if( pNewSchedule == NULL )
+	{
+		ALERT( at_error, "ChangeSchedule(NULL): classname=[%s] targetname=[%s] state=%d ideal=%d script=[%s] schedule_atual=[%s]\n",
+			STRING( pev->classname ), STRING( pev->targetname ), (int)m_MonsterState, (int)m_IdealMonsterState,
+			m_pCine ? STRING( m_pCine->pev->targetname ) : "nenhum",
+			( m_pSchedule && m_pSchedule->pName ) ? m_pSchedule->pName : "nenhuma" );
+
+		// CBaseMonster:: explicito (nao virtual) - a override da classe e justamente
+		// o suspeito de ter devolvido NULL
+		pNewSchedule = CBaseMonster::GetScheduleOfType( SCHED_IDLE_STAND );
+		if( pNewSchedule == NULL )
+			return;
+	}
 
 	m_pSchedule			= pNewSchedule;
 	m_iScheduleIndex	= 0;
