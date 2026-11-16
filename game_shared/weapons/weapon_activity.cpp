@@ -59,3 +59,18 @@ int WeaponActivity_Lookup( const void *hdr, int activity, int variant )
 
 	return WACT_NOT_AVAILABLE;
 }
+
+float WeaponActivity_SequenceTime( const void *hdr, int seq )
+{
+	const studiohdr_t *pstudiohdr = (const studiohdr_t *)hdr;
+
+	if( !pstudiohdr || seq < 0 || seq >= pstudiohdr->numseq )
+		return 0.0f;
+
+	const mstudioseqdesc_t *pseqdesc = (const mstudioseqdesc_t *)((const unsigned char *)pstudiohdr + pstudiohdr->seqindex) + seq;
+
+	if( pseqdesc->fps <= 0.0f || pseqdesc->numframes <= 1 )
+		return 0.0f;
+
+	return (float)pseqdesc->numframes / pseqdesc->fps;
+}

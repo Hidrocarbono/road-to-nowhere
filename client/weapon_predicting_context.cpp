@@ -267,6 +267,22 @@ void CWeaponPredictingContext::ReadWeaponSpecificData(CBaseWeaponContext *weapon
 		ctx->m_iScriptZoomFOV = data.iuser1;
 		ctx->m_iScriptFlags = data.iuser2;
 		ctx->m_iScriptHasSound = data.iuser3;
+
+		// Arma corpo a corpo (WIF_MELEE): o ItemInfoArray desta arma foi montado em
+		// GetWeaponContext(), ANTES de este frame trazer m_iScriptFlags - e o branch
+		// de cliente do GetItemInfo() nao conhece o script, entao registrou municao
+		// "9mm" e pente de MP5. Corrige aqui, onde a flag acabou de chegar: sem
+		// municao e sem pente, como o crowbar classico. Sem isto o cliente trataria
+		// o soco/faca como arma de 9mm sem balas (CanDeploy/IsUseable falsos).
+		if( ctx->m_iScriptFlags & WIF_MELEE )
+		{
+			ItemInfo &ii = CBaseWeaponContext::ItemInfoArray[weapon->m_iId];
+			ii.pszAmmo1 = NULL;
+			ii.pszAmmo2 = NULL;
+			ii.iMaxAmmo1 = -1;
+			ii.iMaxAmmo2 = -1;
+			ii.iMaxClip = WEAPON_NOCLIP;
+		}
 	}
 }
 

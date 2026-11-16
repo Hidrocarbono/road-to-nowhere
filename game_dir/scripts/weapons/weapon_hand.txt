@@ -1,0 +1,65 @@
+/*
+weapon_hand.txt - weapon description file (part of Xash Weapon System)
+Copyright (C) 2014 Uncle Mike
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+*/
+
+// SOCO - arma corpo a corpo que substitui o crowbar do HL.
+//
+// Usa a action "swing" (CMP5WeaponContext::Swing, game_shared/weapons/mp5.cpp):
+// o parser liga o bit WIF_MELEE sozinho, a arma fica SEM municao e SEM pente
+// (nunca se esgota) e o golpe e feito por trace de 32u. Para uma faca basta
+// copiar este arquivo, trocar o viewmodel e (se quiser) o "Damage".
+//
+// O que mudou em relacao ao script original do mod antigo:
+//   playermodel      removido  soco nao tem modelo de terceira pessoa (w_knife.mdl era de faca)
+//   item_flags       + NoDrop  nao existe "soco no chao"; NoDuplicate ja estava
+//   hudsprite        removido  o icone ainda nao existe (sprites/weapon_knife.spr nao veio
+//                              junto). Sem ele a barra de selecao mostra so o nome da arma
+//   SmashDecal       nao lido  o parser ainda nao tem grupos de decal; o golpe usa o do crowbar
+//
+// Sequencias do v_hand.mdl: 0 idle(82) | 1,2 miss_small(86) | 3 ready(78) | 4,5 hit_small(84) | 6 inspect(78)
+// O erro usa a activity 86 (WACT_MELEE), o acerto a 84 (WACT_SHOOT) e o saque a 78.
+
+WeaponData
+{
+	"viewmodel"	"models/v_hand.mdl"	// path to viewmodel
+	"anim_prefix"	"crowbar" 		// pose de terceira pessoa (so armas corpo a corpo leem este campo)
+	"bucket"		"0"			// slot number
+	"bucket_position"	"0"			// slot position
+	"clip_size"	"noclip"			// sem pente
+	"item_flags"	"NoDuplicate|NoDrop"	// weapon flags (sem Exhaustible: nunca se esgota)
+	"volume"		"none"
+	"flash"		"none"
+}
+
+PrimaryAttack
+{
+	"action"		"swing"			// attack type: golpe corpo a corpo
+	"nextattack"	"-1"			// sequence-length based (tamanho da animacao do golpe)
+	// "Damage"	"10"			// opcional: dano do golpe. Sem isto usa sk_plr_crowbar
+}
+
+SecondaryAttack
+{
+	"action"		"none"			// attack type
+}
+
+SoundData
+{
+	"shootsound1"	"weapons/cbar_hitbod1.wav"	// attack hit body (uma delas e sorteada a cada golpe)
+	"shootsound1"	"weapons/cbar_hitbod2.wav"	// attack hit body
+	"shootsound1"	"weapons/cbar_hitbod3.wav"	// attack hit body
+	"shootsound2"	"weapons/cbar_hit1.wav"	// hit world
+	"shootsound2"	"weapons/cbar_hit2.wav"	// hit world
+	"emptysound"	"weapons/cbar_miss1.wav"	// attack miss sound
+}

@@ -360,7 +360,13 @@ static void WS_ApplyWeaponData( void *out, const char *key, const char *val, cha
 	else if( !WS_stricmp( key, "anim_prefix" ) ) WS_strncpy( w->anim_prefix, val, sizeof( w->anim_prefix ) );
 	else if( !WS_stricmp( key, "bucket" ) ) w->bucket = atoi( val );
 	else if( !WS_stricmp( key, "bucket_position" ) ) w->bucket_position = atoi( val );
-	else if( !WS_stricmp( key, "clip_size" ) ) w->clip_size = atoi( val );
+	else if( !WS_stricmp( key, "clip_size" ) )
+	{
+		// "noclip" (sem pente - arma corpo a corpo, como a faca/soco do P2) vira
+		// WEAPON_NOCLIP (-1). Antes caia em atoi("noclip") = 0, que o resto do
+		// codigo trata como "usar o pente padrao da MP5" (50).
+		w->clip_size = !WS_stricmp( val, "noclip" ) ? -1 : atoi( val );
+	}
 	else if( !WS_stricmp( key, "defaultammo" ) ) w->defaultammo = atoi( val );
 	else if( !WS_stricmp( key, "primary_ammo" ) ) WS_strncpy( w->primary_ammo, val, sizeof( w->primary_ammo ) );
 	else if( !WS_stricmp( key, "secondary_ammo" ) ) WS_strncpy( w->secondary_ammo, val, sizeof( w->secondary_ammo ) );
@@ -423,6 +429,7 @@ static void WS_ApplyAttack( void *out, const char *key, const char *val, char **
 	weaponattack_t *at = (weaponattack_t *)out;
 	if( !WS_stricmp( key, "action" ) ) WS_strncpy( at->action, val, sizeof( at->action ) );
 	else if( !WS_stricmp( key, "nextattack" ) ) at->nextattack = atof( val );
+	else if( !WS_stricmp( key, "Damage" ) ) at->Damage = atoi( val );
 	else if( !WS_stricmp( key, "PunchAngle" ) )
 	{
 		WS_ParsePunch( val, pp, at->PunchAngleMin, at->PunchAngleMax );
@@ -450,6 +457,21 @@ static void WS_ApplySound( void *out, const char *key, const char *val, char **p
 	{
 		if( !s->shootsound1[0] ) WS_strncpy( s->shootsound1, val, sizeof( s->shootsound1 ) );
 		else WS_strncpy( s->shootsound2, val, sizeof( s->shootsound2 ) );
+
+		if( s->num_shootsound1 < WS_MAX_SND_VARIANTS )
+			WS_strncpy( s->shootsound1_list[s->num_shootsound1++], val, MAX_SOUND_PATH );
+	}
+	else if( !WS_stricmp( key, "shootsound2" ) )
+	{
+		// A chave "shootsound2" era ignorada: so a repeticao de "shootsound1"
+		// preenchia o segundo som. Armas escritas com shootsound1 + shootsound2
+		// (weapon_m4/weapon_mk16) ficavam com um som so. Agora ela preenche o
+		// segundo som da arma de fogo (alternancia) e tambem a lista de "acerta
+		// o mundo" da arma corpo a corpo.
+		WS_strncpy( s->shootsound2, val, sizeof( s->shootsound2 ) );
+
+		if( s->num_shootsound2 < WS_MAX_SND_VARIANTS )
+			WS_strncpy( s->shootsound2_list[s->num_shootsound2++], val, MAX_SOUND_PATH );
 	}
 	else if( !WS_stricmp( key, "emptysound" ) ) WS_strncpy( s->emptysound, val, sizeof( s->emptysound ) );
 }
@@ -577,6 +599,20 @@ int WeaponScript_ParseWeapon( const char *filename )
 		}
 	}
 
+	// Arma corpo a corpo: PrimaryAttack { "action" "swing" } liga WIF_MELEE
+	// sozinho (o autor nao escreve esse bit em item_flags). Tem que estar em
+	// item_flags - e nao so no servidor - porque ele viaja pela rede ate o
+	// cliente, que prediz o golpe sem ter este parser (ver weaponscript.h).
+	const bool bMelee = !WS_stricmp( w.primary.action, "swing" );
+	if( bMelee )
+	{
+		w.item_flags |= WIF_MELEE;
+		// arma corpo a corpo nunca tem pente: "noclip" ja vira -1 no parse, mas
+		// um script que omita clip_size inteiro cairia em 0 (= pente da MP5).
+		if( w.clip_size == 0 )
+			w.clip_size = -1;
+	}
+
 	// Paranoia 2 compatibility clamp. The scripts we import are written against
 	// Uncle Mike's HUD, which has MAX_WEAPON_SLOTS 10 (P2 game_shared/cdll_dll.h);
 	// PrimeXT's is 5 (game_shared/cdll_dll.h here), and MAX_WEAPON_POSITIONS is
@@ -676,7 +712,8 @@ int WeaponScript_ParseWeapon( const char *filename )
 		WS_Printf( "WeaponScript: [%s] vm=[%s] bucket=%d pos=%d clip=%d ammo1=[%s] sprites=%d\n",
 			w.scriptname, w.viewmodel, w.bucket, w.bucket_position,
 			w.clip_size, w.primary_ammo, w.num_sprites );
-		if( !w.viewmodel[0] || !w.primary_ammo[0] || w.clip_size <= 0 )
+		// arma corpo a corpo nao tem municao nem pente: so o viewmodel e obrigatorio
+		if( !w.viewmodel[0] || ( !bMelee && ( !w.primary_ammo[0] || w.clip_size <= 0 )))
 			WS_Printf( "WeaponScript: AVISO - [%s] tem campos vazios; o arquivo foi lido mas o conteudo nao foi interpretado\n",
 				w.scriptname );
 	}

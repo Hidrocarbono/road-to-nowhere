@@ -11,6 +11,7 @@ item_battery
 
 
 // armas de script do RTN (server/weaponscript.cpp, weapon_*.txt)
+weapon_hand
 weapon_aps
 ammo_aps
 weapon_m4a3

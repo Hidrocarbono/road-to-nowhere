@@ -1,0 +1,3 @@
+# RTN: portas locais do vcpkg (patches do PhysX) sem conversao de fim de linha -
+# um .patch com CRLF no checkout do Windows nao aplica.
+vcpkg_ports/** -text

@@ -64,6 +64,44 @@ void CMP5WeaponContext::PrecacheScriptSounds()
 	}
 
 	m_iScriptHasSound = m_szShootSound1[0] ? 1 : 0;
+
+	// Arma corpo a corpo: as listas completas (varias variantes por grupo) e o som
+	// de erro. Mesmo criterio acima - so entra o que existe no disco.
+	m_nSwingBody = m_nSwingWorld = 0;
+	m_szSwingMiss[0] = '\0';
+
+	if( !( m_iScriptFlags & WIF_MELEE ))
+		return;
+
+	auto precacheIfExists = []( const char *src, char *dst ) -> bool
+	{
+		if( !src || !src[0] )
+			return false;
+
+		char szPath[128];
+		snprintf( szPath, sizeof( szPath ), "sound/%s", src );
+
+		if( !fs::FileExists( szPath ))
+		{
+			ALERT( at_console, "WeaponScript: som [%s] nao existe - ignorado\n", src );
+			return false;
+		}
+
+		PRECACHE_SOUND( (char *)src );
+		strncpy( dst, src, 63 );
+		dst[63] = '\0';
+		return true;
+	};
+
+	for( int i = 0; i < m_pScriptInfo->sound.num_shootsound1; i++ )
+		if( precacheIfExists( m_pScriptInfo->sound.shootsound1_list[i], m_szSwingBody[m_nSwingBody] ))
+			m_nSwingBody++;
+
+	for( int i = 0; i < m_pScriptInfo->sound.num_shootsound2; i++ )
+		if( precacheIfExists( m_pScriptInfo->sound.shootsound2_list[i], m_szSwingWorld[m_nSwingWorld] ))
+			m_nSwingWorld++;
+
+	precacheIfExists( m_pScriptInfo->sound.emptysound, m_szSwingMiss );
 }
 #endif
 
@@ -80,6 +118,21 @@ int CMP5WeaponContext::GetItemInfo(ItemInfo *p) const
 	if( m_pScriptInfo )
 	{
 		p->pszName = m_pScriptInfo->scriptname[0] ? m_pScriptInfo->scriptname : CLASSNAME_STR(MP5_CLASSNAME);
+		// arma corpo a corpo: sem municao/pente (mesma regra de CWeaponScripted::GetItemInfo)
+		if( m_iScriptFlags & WIF_MELEE )
+		{
+			p->pszAmmo1 = NULL;
+			p->iMaxAmmo1 = -1;
+			p->pszAmmo2 = NULL;
+			p->iMaxAmmo2 = -1;
+			p->iMaxClip = WEAPON_NOCLIP;
+			p->iSlot = m_pScriptInfo->bucket;
+			p->iPosition = m_pScriptInfo->bucket_position;
+			p->iFlags = ITEM_FLAG_SELECTONEMPTY;
+			p->iId = m_iId;
+			p->iWeight = m_pScriptInfo->weight > 0 ? m_pScriptInfo->weight : MP5_WEIGHT;
+			return 1;
+		}
 		p->pszAmmo1 = m_pScriptInfo->primary_ammo[0] ? m_pScriptInfo->primary_ammo : "9mm";
 		p->iMaxAmmo1 = _9MM_MAX_CARRY;
 		p->pszAmmo2 = ( m_pScriptInfo->secondary_ammo[0] && stricmp( m_pScriptInfo->secondary_ammo, "none" ) )
@@ -149,7 +202,11 @@ bool CMP5WeaponContext::Deploy()
 	// simplesmente nao mostra arma na mao - feio, mas silencioso e sem erro.
 	if( m_pScriptInfo && m_szViewModel[0] )
 	{
-		bool deployed = DefaultDeploy( m_szViewModel, m_szPlayerModel, MP5_ANIM_DEPLOY, "mp5" );
+		// Arma corpo a corpo usa o anim_prefix do script ("crowbar", "knife"...) para
+		// a pose de terceira pessoa; as de fogo seguem com o "mp5" fixo de sempre (o
+		// campo anim_prefix das armas de fogo continua morto - ver GUIA_ARMAS_SCRIPT.md).
+		const char *szAnimExt = ( IsMelee() && m_pScriptInfo->anim_prefix[0] ) ? m_pScriptInfo->anim_prefix : "mp5";
+		bool deployed = DefaultDeploy( m_szViewModel, m_szPlayerModel, MP5_ANIM_DEPLOY, (char *)szAnimExt );
 
 		if( !m_szPlayerModel[0] && m_pScriptInfo->playermodel[0] )
 		{
@@ -215,6 +272,14 @@ bool CMP5WeaponContext::Deploy()
 
 void CMP5WeaponContext::PrimaryAttack()
 {
+	// Arma corpo a corpo ("action" "swing"): nao dispara, golpeia. Antes de TODA a
+	// logica de tiro (agua, pente, dispersao) porque nada disso se aplica.
+	if( IsMelee() )
+	{
+		Swing();
+		return;
+	}
+
 	// RTN weaponscript: item_flags "UnderWater" (ITEM_FLAG_SHOOT_UNDERWATER no
 	// Paranoia2 original) libera o tiro debaixo d'agua - ex: Glock real. Le
 	// m_iScriptFlags direto (nao iFlags()/ItemInfoArray) porque esse campo ja
@@ -390,6 +455,205 @@ void CMP5WeaponContext::PrimaryAttack()
 		m_flScriptNextAttack > 0.0f ? m_flScriptNextAttack : 0.1f );
 	m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase(UsePredicting()) + m_pLayer->GetRandomFloat(m_pLayer->GetRandomSeed(), 10.f, 15.f);
 }
+#ifndef CLIENT_DLL
+// Copia de FindHullIntersection (game_shared/weapons/crowbar.cpp, static la): acha
+// o ponto de impacto "mais provavel" quando a linha erra mas o volume da mao acerta.
+static void ScriptMeleeFindHullIntersection( const Vector &vecSrc, TraceResult &tr, float *mins, float *maxs, edict_t *pEntity )
+{
+	float		distance = 1e6f;
+	float		*minmaxs[2] = { mins, maxs };
+	TraceResult	tmpTrace;
+	Vector		vecHullEnd = tr.vecEndPos;
+	Vector		vecEnd;
+
+	vecHullEnd = vecSrc + (( vecHullEnd - vecSrc ) * 2 );
+	UTIL_TraceLine( vecSrc, vecHullEnd, dont_ignore_monsters, pEntity, &tmpTrace );
+	if( tmpTrace.flFraction < 1.0 )
+	{
+		tr = tmpTrace;
+		return;
+	}
+
+	for( int i = 0; i < 2; i++ )
+	{
+		for( int j = 0; j < 2; j++ )
+		{
+			for( int k = 0; k < 2; k++ )
+			{
+				vecEnd.x = vecHullEnd.x + minmaxs[i][0];
+				vecEnd.y = vecHullEnd.y + minmaxs[j][1];
+				vecEnd.z = vecHullEnd.z + minmaxs[k][2];
+
+				UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, pEntity, &tmpTrace );
+				if( tmpTrace.flFraction < 1.0 )
+				{
+					float thisDistance = ( tmpTrace.vecEndPos - vecSrc ).Length();
+					if( thisDistance < distance )
+					{
+						tr = tmpTrace;
+						distance = thisDistance;
+					}
+				}
+			}
+		}
+	}
+}
+#endif
+
+//
+// Swing - golpe da arma corpo a corpo (script: PrimaryAttack { "action" "swing" }).
+//
+// Port do CBasePlayerItem::DefaultSwing() do Paranoia 2 (dlls/weapons.cpp:1626),
+// com a mesma divisao de trabalho do crowbar classico deste projeto
+// (game_shared/weapons/crowbar.cpp):
+//   servidor - trace de 32u (+ hull se a linha erra), dano, sons, decal e a
+//              animacao REAL (acerto ou erro);
+//   cliente  - so prediz a animacao de ERRO e a cadencia. O servidor corrige a
+//              animacao quando acerta, e e ele quem manda no tempo do proximo golpe.
+//
+// Animacoes por ACTIVITY (weapon_activity.h): acerto = WACT_SHOOT (84), erro =
+// WACT_MELEE (86). O modelo pode ter varias de cada; m_iSwingCount alterna entre elas
+// (hit_small1/hit_small2). No P2 original so ha variante de erro para o golpe
+// secundario; aqui o erro do golpe primario usa a 86 quando o modelo a tem e cai
+// na 84 quando nao tem.
+//
+// Cadencia: "nextattack" > 0 do script; -1 (o padrao dos scripts de faca/soco do P2)
+// = "pelo tamanho da animacao" (numframes/fps da sequencia que acabou de tocar).
+//
+// Diferencas conscientes em relacao ao P2:
+//   - o decal sai imediatamente (o P2 atrasa 0.1s com um think);
+//   - nao ha "SmashDecal" (o grupo de decal e o do crowbar: BULLET_PLAYER_CROWBAR);
+//   - golpe secundario ("action" "swing" em SecondaryAttack) ainda nao existe.
+//
+void CMP5WeaponContext::Swing()
+{
+	const int variant = m_iSwingCount++;
+
+	// anim de erro (predita no cliente; no servidor, usada se o golpe errar) e de acerto
+	const int seqHit = ResolveWeaponAnim( WACT_SHOOT, 1, variant );
+	const int seqMiss = ResolveWeaponAnim( WACT_MELEE, seqHit, variant );
+
+	float flDelay = m_flScriptNextAttack;
+
+#ifdef CLIENT_DLL
+	SendWeaponAnim( seqMiss );
+
+	if( flDelay <= 0.0f )
+		flDelay = WeaponActivity_SequenceTime( m_pLayer->GetViewmodelStudioHeader(), seqMiss );
+	if( flDelay <= 0.0f )
+		flDelay = 0.5f;
+
+	m_flNextPrimaryAttack = GetNextPrimaryAttackDelay( flDelay );
+	m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase( UsePredicting() ) + flDelay + 0.05f;
+#else
+	CBasePlayer *player = m_pLayer->GetWeaponEntity()->m_pPlayer;
+
+	TraceResult tr;
+	UTIL_MakeVectors( player->pev->v_angle );
+	Vector vecSrc = player->GetGunPosition();
+	Vector vecEnd = vecSrc + gpGlobals->v_forward * 32.0f;
+
+	UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, ENT( player->pev ), &tr );
+
+	if( tr.flFraction >= 1.0f )
+	{
+		UTIL_TraceHull( vecSrc, vecEnd, dont_ignore_monsters, head_hull, ENT( player->pev ), &tr );
+		if( tr.flFraction < 1.0f )
+		{
+			// ponto de intersecao aproximado com o que a mao acertou
+			CBaseEntity *pHit = CBaseEntity::Instance( tr.pHit );
+			if( !pHit || pHit->IsBSPModel() )
+				ScriptMeleeFindHullIntersection( vecSrc, tr, VEC_DUCK_HULL_MIN, VEC_DUCK_HULL_MAX, player->edict() );
+			vecEnd = tr.vecEndPos;
+		}
+	}
+
+	player->SetAnimation( PLAYER_ATTACK1 );
+
+	int seqPlayed = seqMiss;
+
+	// cadencia + quando volta o idle, a partir da sequencia que foi de fato tocada
+	auto finishSwing = [&]( int seq )
+	{
+		float flWait = flDelay;
+		if( flWait <= 0.0f )
+			flWait = WeaponActivity_SequenceTime( m_pLayer->GetViewmodelStudioHeader(), seq );
+		if( flWait <= 0.0f )
+			flWait = 0.5f;
+
+		m_flNextPrimaryAttack = GetNextPrimaryAttackDelay( flWait );
+		m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase( UsePredicting() ) + flWait + 0.05f;
+	};
+
+	if( tr.flFraction >= 1.0f )
+	{
+		// erro: som de "passou no ar" (emptysound do script)
+		if( m_szSwingMiss[0] )
+			EMIT_SOUND( player->edict(), CHAN_WEAPON, m_szSwingMiss, 1.0f, ATTN_NORM );
+
+		SendWeaponAnim( seqMiss );
+	}
+	else
+	{
+		seqPlayed = seqHit;
+		SendWeaponAnim( seqHit );
+
+		CBaseEntity *pEntity = CBaseEntity::Instance( tr.pHit );
+
+		// dano: "Damage" do script, senao o do crowbar (sk_plr_crowbar). DMG_NEVERGIB
+		// como no P2 (Wargon: "corrigido o gibamento pela faca") - soco nao estoura.
+		const int iDamage = ( m_pScriptInfo && m_pScriptInfo->primary.Damage > 0 )
+			? m_pScriptInfo->primary.Damage : (int)gSkillData.plrDmgCrowbar;
+
+		ClearMultiDamage();
+		if( pEntity )
+			pEntity->TraceAttack( player->pev, iDamage, gpGlobals->v_forward, &tr, DMG_CLUB | DMG_NEVERGIB );
+		ApplyMultiDamage( player->pev, player->pev );
+
+		float flVol = 1.0f;
+		bool fHitWorld = true;
+
+		if( pEntity && pEntity->Classify() != CLASS_NONE && pEntity->Classify() != CLASS_MACHINE )
+		{
+			// acertou algo vivo: som de impacto em corpo
+			if( m_nSwingBody > 0 )
+				EMIT_SOUND( player->edict(), CHAN_WEAPON, m_szSwingBody[RANDOM_LONG( 0, m_nSwingBody - 1 )], 1.0f, ATTN_NORM );
+
+			player->m_iWeaponVolume = 128;	// mesmo CROWBAR_BODYHIT_VOLUME
+
+			if( !pEntity->IsAlive() )
+			{
+				// matou: nao ha o que "marcar" na parede - so fecha o golpe
+				finishSwing( seqPlayed );
+				return;
+			}
+
+			flVol = 0.1f;
+			fHitWorld = false;
+		}
+
+		if( fHitWorld )
+		{
+			float fvolbar = TEXTURETYPE_PlaySound( &tr, vecSrc, vecSrc + ( vecEnd - vecSrc ) * 2.0f, BULLET_PLAYER_CROWBAR );
+
+			if( m_pLayer->IsMultiplayer() )
+				fvolbar = 1.0f;	// em multiplayer nao ha som de textura: forca o volume
+
+			if( m_nSwingWorld > 0 )
+				EMIT_SOUND_DYN( player->edict(), CHAN_WEAPON, m_szSwingWorld[RANDOM_LONG( 0, m_nSwingWorld - 1 )],
+					fvolbar, ATTN_NORM, 0, RANDOM_LONG( 98, 102 ));
+		}
+
+		// marca na parede/objeto (imediato - o P2 atrasa 0.1s)
+		DecalGunshot( &tr, BULLET_PLAYER_CROWBAR, vecSrc, vecEnd );
+
+		player->m_iWeaponVolume = (int)( flVol * 512 );	// mesmo CROWBAR_WALLHIT_VOLUME
+	}
+
+	finishSwing( seqPlayed );
+#endif
+}
+
 void CMP5WeaponContext::SecondaryAttack()
 {
 	// Arma de script sem WIF_IRONSIGHT no item_flags nao tem mira de ferro -
