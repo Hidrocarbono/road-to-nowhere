@@ -1083,6 +1083,16 @@ Schedule_t* CBaseMonster :: GetScheduleOfType ( int Type )
 					return slRunToScript;
 				case 5:
 					return slFaceScript;
+				default:
+					// RTN: m_fMoveTo fora de {0,1,2,4,5} (os unicos que o FGD oferece).
+					// Antes o "break" abaixo saia do switch e a funcao terminava em
+					// "return NULL" no fim do arquivo: ChangeSchedule(NULL) -> access
+					// violation (zone05, scripted_sequence "start_1" com monster_zombie).
+					// Trata como "No" (espera o script, sem andar) e diz qual valor veio,
+					// para o mapper corrigir o scripted_sequence no Hammer.
+					ALERT( at_console, "scripted_sequence [%s]: 'Move to Position' = %d invalido (validos: 0,1,2,4,5) - usando 'No'\n",
+						STRING( m_pCine->pev->targetname ), (int)m_pCine->m_fMoveTo );
+					return slWaitScript;
 			}
 			break;
 		}
