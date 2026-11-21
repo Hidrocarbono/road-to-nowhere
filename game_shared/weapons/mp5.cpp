@@ -489,10 +489,13 @@ void CMP5WeaponContext::Reload()
 	// Para a MP5 de verdade o valor da tabela e MP5_MAX_CLIP, entao nada muda la.
 	int iClipSize = iMaxClip() > 0 ? iMaxClip() : MP5_MAX_CLIP;
 
-	if( m_bInIronSight )
-		DefaultReload( iClipSize, ResolveWeaponAnim( WACT_RELOAD_AIM, MP5_ANIM_RELOAD_AIM ), 1.5 );
-	else
-		DefaultReload( iClipSize, ResolveWeaponAnim( WACT_RELOAD, MP5_ANIM_RELOAD ), 1.5 );
+	// RTN: forcado a sempre usar a animacao de recarga de QUADRIL (ACT_94/
+	// MP5_ANIM_RELOAD), mesmo mirando. A variante "recarga mirando" (ACT_95/
+	// WACT_RELOAD_AIM) depende de toda viewmodel nova ter essa sequencia
+	// propria autorada - nem toda arma de script tem, e usar so a de quadril
+	// e robusto pra qualquer arma (inclusive as que so tem UMA sequencia de
+	// recarga). Pedido do user.
+	DefaultReload( iClipSize, ResolveWeaponAnim( WACT_RELOAD, MP5_ANIM_RELOAD ), 1.5 );
 }
 
 void CMP5WeaponContext::WeaponIdle()
