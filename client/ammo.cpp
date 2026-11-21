@@ -492,9 +492,11 @@ int CHudAmmo::Init( void )
 	CVAR_REGISTER( "hud_fastswitch", "0", FCVAR_ARCHIVE );
 
 	// RTN: mira dinamica (estilo Paranoia 2) - 0 = crosshair classico (sprite
-	// fixo do engine), 1 = reticulo que reflete o cone de tiro atual (ver
-	// RTN_GetCurrentSpreadTan() / rtn_crosshair_state.h e DrawDynamicCrosshair()
-	// mais abaixo). So visual - nao muda a dispersao real do tiro.
+	// fixo do engine), 1 = reticulo em 4 tracos retos, 2 = reticulo em 4
+	// cantos (mais parecido com o estilo classico do P2). Os dois refletem o
+	// cone de tiro ATUAL (ver RTN_GetCurrentSpreadTan()/rtn_crosshair_state.h
+	// e DrawDynamicCrosshair() mais abaixo). So visual - nao muda a
+	// dispersao real do tiro. Respeita o "crosshair 0" nativo do engine.
 	CVAR_REGISTER( "rtn_crosshair_dynamic", "0", FCVAR_ARCHIVE );
 
 	// RTN: valvula de diagnostico pro caso do GL_INVALID_ENUM. Em 0, a barra
@@ -1202,9 +1204,32 @@ void CHudAmmo::UserCmd_PrevWeapon( void )
 // FireBullets usa) vira raio em pixels pela relacao de camera-pinhole:
 // na borda da tela, o angulo de visao e FOV_h/2, e tan(FOV_h/2) corresponde
 // a ScreenWidth/2 pixels - entao raio_px = (spread / tan(FOV_h/2)) * (ScreenWidth/2).
+// RTN: canto em L (estilo "camera AF" / 4-bar classico do Paranoia 2),
+// usado por rtn_crosshair_dynamic 2. signX/signY apontam pra qual canto
+// (-1,-1 = superior-esquerdo, etc).
+static void RTN_DrawCrosshairCorner( int cx, int cy, int gap, int len, int thick,
+	int r, int g, int b, int a, int signX, int signY )
+{
+	int cornerX = cx + signX * gap;
+	int cornerY = cy + signY * gap;
+
+	int hx = ( signX > 0 ) ? ( cornerX - len ) : cornerX;
+	FillRGBA( hx, cornerY - thick / 2, len, thick, r, g, b, a );	// perna horizontal
+
+	int vy = ( signY > 0 ) ? ( cornerY - len ) : cornerY;
+	FillRGBA( cornerX - thick / 2, vy, thick, len, r, g, b, a );	// perna vertical
+}
+
 static void DrawDynamicCrosshair( void )
 {
-	if( CVAR_GET_FLOAT( "rtn_crosshair_dynamic" ) <= 0.0f )
+	int iStyle = (int)CVAR_GET_FLOAT( "rtn_crosshair_dynamic" );
+	if( iStyle <= 0 )
+		return;
+
+	// RTN: respeita o "crosshair 0" nativo do engine - desligar TODA mira
+	// (classica ou dinamica) precisa ser uma coisa so pro jogador.
+	extern cvar_t *cv_crosshair;
+	if( cv_crosshair && cv_crosshair->value <= 0.0f )
 		return;
 
 	if( !RTN_HasCurrentSpread() )
@@ -1233,10 +1258,25 @@ static void DrawDynamicCrosshair( void )
 	// e o reticulo precisa ficar legivel o tempo todo)
 	int r = 60, g = 230, b = 90, a = 220;
 
-	FillRGBA( cx - thick / 2, cy - gap - len, thick, len, r, g, b, a );	// cima
-	FillRGBA( cx - thick / 2, cy + gap, thick, len, r, g, b, a );		// baixo
-	FillRGBA( cx - gap - len, cy - thick / 2, len, thick, r, g, b, a );	// esquerda
-	FillRGBA( cx + gap, cy - thick / 2, len, thick, r, g, b, a );		// direita
+	if( iStyle >= 2 )
+	{
+		// RTN: estilo "classico" (4 cantos em L, pedido do user - "crosshair
+		// de paranoia 2"). Nao e pixel-a-pixel igual ao sprite original do P2
+		// (nunca vimos a arte dele, so o codigo-fonte via WebFetch), mas seguindo
+		// a mesma ideia de 4 marcas nos cantos em vez de 4 tracos retos.
+		RTN_DrawCrosshairCorner( cx, cy, gap, len, thick, r, g, b, a, -1, -1 );
+		RTN_DrawCrosshairCorner( cx, cy, gap, len, thick, r, g, b, a,  1, -1 );
+		RTN_DrawCrosshairCorner( cx, cy, gap, len, thick, r, g, b, a, -1,  1 );
+		RTN_DrawCrosshairCorner( cx, cy, gap, len, thick, r, g, b, a,  1,  1 );
+	}
+	else
+	{
+		// estilo 1 (default): 4 tracos retos, cima/baixo/esquerda/direita
+		FillRGBA( cx - thick / 2, cy - gap - len, thick, len, r, g, b, a );	// cima
+		FillRGBA( cx - thick / 2, cy + gap, thick, len, r, g, b, a );		// baixo
+		FillRGBA( cx - gap - len, cy - thick / 2, len, thick, r, g, b, a );	// esquerda
+		FillRGBA( cx + gap, cy - thick / 2, len, thick, r, g, b, a );		// direita
+	}
 }
 
 int CHudAmmo::Draw( float flTime )

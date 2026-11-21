@@ -766,7 +766,17 @@ void CMP5WeaponContext::SecondaryAttack()
 
 	// Toggle ironsight on right-click
 	m_bInIronSight = !m_bInIronSight;
+	ApplyIronSightTransition();
 
+	m_flNextSecondaryAttack = m_pLayer->GetWeaponTimeBase(UsePredicting()) + 0.3f;
+	m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase(UsePredicting()) + 2.0f;
+}
+
+// RTN: ver o comentario grande em mp5.h. Roda toda a transicao visual (FOV,
+// anim, viewmodel fov, aviso ao cliente) a partir do m_bInIronSight JA
+// ATUALIZADO por quem chamou - nao faz o toggle sozinho.
+void CMP5WeaponContext::ApplyIronSightTransition()
+{
 	// Transicao suave de FOV. Os campos m_fFOVLerp* existiam desde o inicio,
 	// declarados e zerados, mas nunca foram ligados a nada - o FOV pulava do 90
 	// para o da mira num frame. O lerp roda em WeaponIdle(), que ja e chamado
@@ -839,9 +849,6 @@ void CMP5WeaponContext::SecondaryAttack()
 		MESSAGE_END();
 	}
 #endif
-
-	m_flNextSecondaryAttack = m_pLayer->GetWeaponTimeBase(UsePredicting()) + 0.3f;
-	m_flTimeWeaponIdle = m_pLayer->GetWeaponTimeBase(UsePredicting()) + 2.0f;
 }
 
 void CMP5WeaponContext::Reload()
@@ -852,10 +859,26 @@ void CMP5WeaponContext::Reload()
 	// Para a MP5 de verdade o valor da tabela e MP5_MAX_CLIP, entao nada muda la.
 	int iClipSize = iMaxClip() > 0 ? iMaxClip() : MP5_MAX_CLIP;
 
+	// RTN (pedido do user): recarregar mirado sai da mira primeiro. Com a
+	// viewmodel aproximada (FOV baixo, arma "colada na tela" - ver
+	// ApplyIronSightTransition()), a animacao de recarga fica feia demais
+	// perto da camera. Forca a mesma transicao de saida que o botao direito
+	// faria, antes de tocar a animacao de recarga.
 	if( m_bInIronSight )
-		DefaultReload( iClipSize, ResolveWeaponAnim( WACT_RELOAD_AIM, MP5_ANIM_RELOAD_AIM ), 1.5 );
-	else
-		DefaultReload( iClipSize, ResolveWeaponAnim( WACT_RELOAD, MP5_ANIM_RELOAD ), 1.5 );
+	{
+		m_bInIronSight = false;
+		ApplyIronSightTransition();
+	}
+
+	// RTN: forcado a sempre usar a animacao de recarga de QUADRIL (ACT_94/
+	// MP5_ANIM_RELOAD), mesmo vindo de mirado ha pouco. A variante "recarga
+	// mirando" (ACT_95/WACT_RELOAD_AIM) depende de toda viewmodel nova ter
+	// essa sequencia propria autorada - nem toda arma de script tem, e usar
+	// so a de quadril e robusto pra qualquer arma (inclusive as que so tem
+	// UMA sequencia de recarga). Agora que a recarga sempre sai do IronSight
+	// (acima), isso tambem deixou de ser so uma questao de robustez: a
+	// animacao de quadril e a UNICA que faz sentido aqui.
+	DefaultReload( iClipSize, ResolveWeaponAnim( WACT_RELOAD, MP5_ANIM_RELOAD ), 1.5 );
 }
 
 void CMP5WeaponContext::WeaponIdle()

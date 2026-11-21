@@ -203,6 +203,16 @@ public:
 
 	// FOV da mira: do script quando houver, senao o 65 que estava fixo no codigo.
 	float IronSightFOV() const { return m_iScriptZoomFOV > 0 ? (float)m_iScriptZoomFOV : 65.0f; }
+
+	// RTN: lerp de FOV + anim de transicao + cl_viewmodel_fov + aviso ao
+	// cliente (gmsgIronSight) - tudo que precisa rodar sempre que
+	// m_bInIronSight MUDA de valor, de qualquer jeito que isso aconteca
+	// (toggle manual em SecondaryAttack(), ou forcado por Reload() - ver
+	// comentario la sobre recarregar mirado ficar colado na tela). Extraido
+	// de SecondaryAttack() pra nao duplicar essa logica inteira em Reload().
+	// NAO mexe em m_bInIronSight - quem chama ja deve ter mudado o valor
+	// antes de chamar isto.
+	void ApplyIronSightTransition();
 	bool ShouldWeaponIdle() override { return true; }  // so WeaponIdle runs every frame (FOV lerp)
 	uint16_t m_usEvent1;
 	uint16_t m_usEvent2;
