@@ -4,6 +4,8 @@
 #include <cstdio>	// snprintf (comando cl_viewmodel_fov montado em runtime)
 
 #ifdef CLIENT_DLL
+#include "rtn_crosshair_state.h"	// RTN: ponte pro crosshair dinamico (ver UpdateSpreadState())
+#include "const.h"	// IN_DUCK (UpdateSpreadState) - o lado servidor ja traz isso transitivo, o cliente nao
 #else
 #include "extdll.h"
 #include "enginecallback.h"
@@ -270,6 +272,92 @@ bool CMP5WeaponContext::Deploy()
 	return DefaultDeploy( "models/v_mp5.mdl", "models/p_mp5.mdl", MP5_ANIM_DEPLOY, "mp5" );
 }
 
+// RTN: ver o comentario grande em mp5.h (acima de m_flStateSpreadMul) sobre
+// por que isto e deliberadamente sem estado entre frames.
+void CMP5WeaponContext::UpdateSpreadState()
+{
+	float flSpeed = m_pLayer->GetPlayerVelocity().Length();
+	bool bDucking = m_pLayer->CheckPlayerButtonFlag( IN_DUCK );
+
+	// RTN: dispersao por estado - parado e a base, agachado ajuda um pouco
+	// mais, andando/correndo piora de forma continua com a velocidade (sem
+	// degraus bruscos entre "andando" e "correndo").
+	if( bDucking && flSpeed < 10.0f )
+		m_flStateSpreadMul = 0.75f;
+	else if( flSpeed < 10.0f )
+		m_flStateSpreadMul = 1.0f;
+	else
+	{
+		const float RTN_RUN_SPEED_REF = 320.0f;	// aprox. velocidade de corrida padrao
+		float t = flSpeed / RTN_RUN_SPEED_REF;
+		if( t > 1.0f ) t = 1.0f;
+		m_flStateSpreadMul = 1.0f + t;	// 1.0 parado-ish .. 2.0 correndo no limite
+	}
+
+	// RTN: primeiro-tiro vs sustentado - decai o "aquecimento" com base em
+	// quanto tempo faz desde o ultimo tiro. Ancorado em m_flLastFireTime
+	// (campo pre-existente da classe base) - ver comentario grande em mp5.h.
+	//
+	// NAO le m_pScriptInfo->SpreadTime/SpreadExpand aqui de proposito:
+	// m_pScriptInfo e server-only (comentario grande em mp5.h, "o parser usa
+	// std::filesystem") e esta funcao PRECISA rodar identica nos dois lados
+	// (predicao). Os 6 slots do weapon_data_t pra esta arma (fuser1-3/
+	// iuser1-3) ja estao todos ocupados (nextattack/spread/spreadIS/zoomFOV/
+	// flags/hasSound - ver client/weapon_predicting_context.cpp), entao
+	// sincronizar mais 3 campos exigiria tirar algum dos de cima. Por ora,
+	// constante fixa (0.3s bate com o "SpreadTime" de TODOS os scripts atuais)
+	// e um bonus fixo de cone em vez do SpreadExpand configuravel por arma -
+	// se um dia abrir mais slots, da pra tornar isso configuravel de verdade.
+	const float RTN_SPREAD_COOLDOWN_TIME = 0.3f;
+	if( m_flLastFireTime > 0.0f )
+	{
+		float flSince = m_pLayer->GetTime() - m_flLastFireTime;
+		if( flSince < 0.0f ) flSince = 0.0f;	// relogio pode recuar num rollback de predicao
+		float t = flSince / RTN_SPREAD_COOLDOWN_TIME;
+		m_flSpreadHeat = ( t >= 1.0f ) ? 0.0f : m_flSpreadHeatAtLastShot * ( 1.0f - t );
+	}
+
+	float flScriptSpread = m_bInIronSight ? m_flScriptSpreadIS : m_flScriptSpread;
+
+	if( flScriptSpread > 0.0f )
+	{
+		// RTN: ate +50% de cone no auge do aquecimento (rajada sustentada).
+		const float RTN_SPREAD_HEAT_MAX_BONUS = 0.5f;
+		float flEffectiveDeg = flScriptSpread * ( 1.0f + RTN_SPREAD_HEAT_MAX_BONUS * m_flSpreadHeat ) * m_flStateSpreadMul;
+
+		if( IsSteadyAiming() )
+		{
+			// RTN: firmeza em ADS - piso de 35% do cone mirado quando parado
+			// (nunca zero - "quase laser" ja foi o ajuste anterior, nao laser
+			// de verdade). Liga/desliga (sem rampa) - ver motivo em mp5.h.
+			const float RTN_STEADYAIM_FLOOR = 0.35f;
+			flEffectiveDeg *= RTN_STEADYAIM_FLOOR;
+		}
+
+		// Os VECTOR_CONE_*DEGREES do HL sao tan(graus/2) - VECTOR_CONE_3DEGREES
+		// e 0.02618 = tan(1.5deg). Converter na mao mantem o script na mesma
+		// unidade que o Paranoia 2 usa (graus) sem precisar de uma tabela.
+		// constante literal em vez de M_PI: o MSVC so define M_PI com
+		// _USE_MATH_DEFINES, que este projeto nao liga.
+		m_flCurrentSpreadTan = tanf( flEffectiveDeg * 0.5f * ( 3.14159265f / 180.0f ));
+	}
+	else if( m_bInIronSight )
+	{
+		m_flCurrentSpreadTan = VECTOR_CONE_1DEGREES.x;
+	}
+	else
+	{
+		m_flCurrentSpreadTan = m_pLayer->IsMultiplayer() ? VECTOR_CONE_6DEGREES.x : VECTOR_CONE_3DEGREES.x;
+	}
+
+#ifdef CLIENT_DLL
+	// RTN: alimenta o crosshair dinamico (client/rtn_crosshair_state.h) - so
+	// cosmetico, nao influencia o tiro (o tiro em si usa m_flCurrentSpreadTan
+	// direto, calculado acima, nos dois lados).
+	RTN_SetCurrentSpread( m_flCurrentSpreadTan, m_bInIronSight );
+#endif
+}
+
 void CMP5WeaponContext::PrimaryAttack()
 {
 	// Arma corpo a corpo ("action" "swing"): nao dispara, golpeia. Antes de TODA a
@@ -330,29 +418,27 @@ void CMP5WeaponContext::PrimaryAttack()
 #endif
 
 	// Dispersao: do script quando houver (SpreadRange/SpreadRangeIS, em graus),
-	// senao os valores fixos da MP5. Os dois lados chegam ao mesmo numero porque
-	// m_flScriptSpread* trafega no weapon_data_t - ver o comentario grande em
-	// mp5.h. Fosse so no servidor, o tracante predito pelo cliente sairia numa
-	// direcao e o dano em outra.
-	float flScriptSpread = m_bInIronSight ? m_flScriptSpreadIS : m_flScriptSpread;
-	float flSpread;
+	// senao os valores fixos da MP5, AJUSTADA pela postura/velocidade atual e
+	// pela firmeza em ADS - ver UpdateSpreadState()/IsSteadyAiming() em mp5.h.
+	// Os dois lados chegam ao mesmo numero porque tudo que entra na conta
+	// (m_flScriptSpread*, velocidade, IN_DUCK, m_bInIronSight) ja e
+	// deterministico/predito nos dois lados. Fosse so no servidor, o
+	// tracante predito pelo cliente sairia numa direcao e o dano em outra.
+	UpdateSpreadState();
+	float flSpread = m_flCurrentSpreadTan;
 
-	if( flScriptSpread > 0.0f )
+	// RTN: aquece o cone PRA DEPOIS deste tiro (o tiro atual usa o heat de
+	// ANTES dele, calculado acima em UpdateSpreadState() - assim o cone
+	// mostrado/usado neste disparo reflete o estado ja acumulado pelos tiros
+	// ANTERIORES da rajada, e so o PROXIMO tiro sente este aqui). Le
+	// m_flScriptSpread*/m_bInIronSight (neutros, sincronizados - ver
+	// UpdateSpreadState()), nao m_pScriptInfo (server-only).
+	float flScriptSpreadNow = m_bInIronSight ? m_flScriptSpreadIS : m_flScriptSpread;
+	if( flScriptSpreadNow > 0.0f )
 	{
-		// Os VECTOR_CONE_*DEGREES do HL sao tan(graus/2) - VECTOR_CONE_3DEGREES
-		// e 0.02618 = tan(1.5deg). Converter na mao mantem o script na mesma
-		// unidade que o Paranoia 2 usa (graus) sem precisar de uma tabela.
-		// constante literal em vez de M_PI: o MSVC so define M_PI com
-		// _USE_MATH_DEFINES, que este projeto nao liga.
-		flSpread = tanf( flScriptSpread * 0.5f * ( 3.14159265f / 180.0f ));
-	}
-	else if( m_bInIronSight )
-	{
-		flSpread = VECTOR_CONE_1DEGREES.x;
-	}
-	else
-	{
-		flSpread = m_pLayer->IsMultiplayer() ? VECTOR_CONE_6DEGREES.x : VECTOR_CONE_3DEGREES.x;
+		m_flSpreadHeat += 0.25f;	// ~4 tiros ate o cone maximo
+		if( m_flSpreadHeat > 1.0f ) m_flSpreadHeat = 1.0f;
+		m_flSpreadHeatAtLastShot = m_flSpreadHeat;
 	}
 
 	// Dano por tiro: do ammodesc.txt (PlayerDamage do tipo de municao). So o
@@ -423,11 +509,22 @@ void CMP5WeaponContext::PrimaryAttack()
 			94 + RANDOM_LONG( 0, 15 ) );
 	}
 
-	// Recuo (PunchAngle do script), sorteado dentro da faixa declarada -
-	// "1..1.2" nao e "1.1 sempre", e a variacao por tiro que da a sensacao de
-	// recuo. Aplicado so aqui de proposito: pev->punchangle ja e um campo
-	// networkado (delta.lst), entao o cliente recebe o resultado pronto - somar
-	// de novo no lado predito dobraria o coice.
+	// Recuo (PunchAngle do script). Aplicado so aqui de proposito:
+	// pev->punchangle ja e um campo networkado (delta.lst), entao o cliente
+	// recebe o resultado pronto - somar de novo no lado predito dobraria o coice.
+	//
+	// RTN: componente VERTICAL (pitch, indice 0) deixou de ser sorteado
+	// aleatorio dentro da faixa - agora escala de forma DETERMINISTICA com o
+	// mesmo "aquecimento" da dispersao (m_flSpreadHeat, item de
+	// primeiro-tiro-vs-sustentado acima): frio = lo[0] (chute minimo),
+	// aquecido = hi[0] (chute maximo). Chute vertical aleatorio nao da pra
+	// aprender a compensar com contra-recuo (puxar a mira pra baixo); um
+	// padrao prevesivel da. Horizontal (yaw, indice 1) e roll (indice 2)
+	// continuam sorteados - o "vai e volta" lateral e realista mesmo numa
+	// arma bem controlada. Sem SpreadExpand no script, m_flSpreadHeat fica
+	// sempre 0 e o pitch vira lo[0] fixo (chute minimo) - comportamento mais
+	// brando que o sorteio aleatorio de antes para essas armas, mas
+	// consistente com o objetivo (menos aleatoriedade, mais pra aprender).
 	{
 		const weaponattack_t *atk = m_pScriptInfo ? &m_pScriptInfo->primary : NULL;
 		if( atk )
@@ -437,8 +534,10 @@ void CMP5WeaponContext::PrimaryAttack()
 
 			if( lo[0] != 0.0f || hi[0] != 0.0f || lo[1] != 0.0f || hi[1] != 0.0f )
 			{
+				float flPitch = lo[0] + ( hi[0] - lo[0] ) * m_flSpreadHeat;
+
 				m_pLayer->AddPlayerPunchangle(
-					RANDOM_FLOAT( lo[0], hi[0] ),
+					flPitch,
 					RANDOM_FLOAT( lo[1], hi[1] ),
 					RANDOM_FLOAT( lo[2], hi[2] ) );
 			}
@@ -762,6 +861,12 @@ void CMP5WeaponContext::Reload()
 void CMP5WeaponContext::WeaponIdle()
 {
 	ResetEmptySound();
+
+	// RTN: mantem o cone/crosshair dinamico fresco mesmo sem atirar (ShouldWeaponIdle()
+	// desta arma devolve true, entao isto roda todo frame - ver comentario do FOV lerp
+	// logo abaixo, mesmo mecanismo).
+	UpdateSpreadState();
+
 	// RTN weaponscript: item_flags "AutoAim" agora liga de verdade o auto-mira
 	// cosmetico (so a snap de crosshair - SET_CROSSHAIRANGLE - nunca a direcao
 	// real do tiro). NAO reintroduzir GetAutoaimVector() em PrimaryAttack/

@@ -954,8 +954,28 @@ void CHGrunt :: Shoot ( void )
 	UTIL_MakeVectors ( GetAbsAngles() );
 
 	Vector	vecShellVelocity = gpGlobals->v_right * RANDOM_FLOAT(40,90) + gpGlobals->v_up * RANDOM_FLOAT(75,200) + gpGlobals->v_forward * RANDOM_FLOAT(-40, 40);
-	EjectBrass ( vecShootOrigin - vecShootDir * 24, vecShellVelocity, GetAbsAngles().y, m_iBrassShell, TE_BOUNCE_SHELL); 
-	FireBullets(1, vecShootOrigin, vecShootDir, VECTOR_CONE_10DEGREES, 2048, BULLET_MONSTER_MP5 ); // shoot +-5 degrees
+	EjectBrass ( vecShootOrigin - vecShootDir * 24, vecShellVelocity, GetAbsAngles().y, m_iBrassShell, TE_BOUNCE_SHELL);
+
+	// RTN: falloff de precisao por distancia (debate "combate a longa
+	// distancia com hgrunts" - contraparte do lado inimigo das mudancas de
+	// dispersao do jogador em game_shared/weapons/mp5.cpp). Perto, cone
+	// vanilla (VECTOR_CONE_10DEGREES); de RTN_ACCURACY_FALLOFF_START ate
+	// RTN_ACCURACY_FALLOFF_END (o teto de engajamento de CheckRangeAttack1),
+	// o cone alarga linearmente ate o dobro - sem isso o grunt acerta tao
+	// bem a 2048u quanto a 200u, tornando o combate aberto uma corrida pra
+	// ver quem acerta primeiro em vez de um troca-tiro de posicionamento.
+	Vector vecConeSpread = VECTOR_CONE_10DEGREES;
+	const float RTN_ACCURACY_FALLOFF_START = 1000.0f;
+	const float RTN_ACCURACY_FALLOFF_END = 2048.0f;
+	float flDistToEnemy = ( m_hEnemy->GetAbsOrigin() - vecShootOrigin ).Length();
+	if( flDistToEnemy > RTN_ACCURACY_FALLOFF_START )
+	{
+		float t = ( flDistToEnemy - RTN_ACCURACY_FALLOFF_START ) / ( RTN_ACCURACY_FALLOFF_END - RTN_ACCURACY_FALLOFF_START );
+		if( t > 1.0f ) t = 1.0f;
+		vecConeSpread = vecConeSpread * ( 1.0f + t );	// ate 2x o cone no limite do alcance
+	}
+
+	FireBullets(1, vecShootOrigin, vecShootDir, vecConeSpread, 2048, BULLET_MONSTER_MP5 ); // shoot +-5 degrees (perto; alarga a distancia, ver RTN_ACCURACY_FALLOFF_*)
 
 	pev->effects |= EF_MUZZLEFLASH;
 	

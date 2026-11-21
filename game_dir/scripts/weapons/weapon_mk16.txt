@@ -45,6 +45,12 @@ WeaponData
 	"weight"		"10"			// autoswitch weight
 	"SpreadTime"	"0.3"			// time to back to normal spread
 	"item_flags"	"IronSight|AutoAim|AutoFire"  // weapon flags
+	// RTN: combo zoom+cone (debate "combate a longa distancia") - essa arma ja
+	// tinha o cone de IronSight mais fechado do script (SpreadRangeIS
+	// 0.1..0.4, ajuste anterior). zoom_fov 50 (default seria 65, sem isso)
+	// completa o combo: ver o alvo maior a distancia SO ajuda combinado com
+	// cone reduzido, senao e so "miro bonito e erro igual" - ver debate.
+	"zoom_fov"	"50"			// mais zoom que o default (65) - carabina de precisao
 	"MaxSpeed"	"55"
 	"MaxSpeedIS"	"40"
 	"volume"		"normal"

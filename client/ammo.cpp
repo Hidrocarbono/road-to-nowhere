@@ -23,6 +23,7 @@
 #include "parsemsg.h"
 #include "ammohistory.h"
 #include "filesystem_utils.h"	// fs::FileExists - icone da barra de selecao e opcional (RTN)
+#include "rtn_crosshair_state.h"	// RTN: cone de tiro atual, pro crosshair dinamico
 #include "const.h"		// kRenderTransTexture (DrawSpriteAsPoly)
 #include "triangleapi.h"	// RTN: pTriAPI->RenderMode/Color4f - fallback .tga do icone (mesma tripa do hud_weaponbox.cpp)
 #include "gl_local.h"		// RTN: GL_Bind - idem
@@ -490,6 +491,12 @@ int CHudAmmo::Init( void )
 	// controls whether or not weapons can be selected in one keypress
 	CVAR_REGISTER( "hud_fastswitch", "0", FCVAR_ARCHIVE );
 
+	// RTN: mira dinamica (estilo Paranoia 2) - 0 = crosshair classico (sprite
+	// fixo do engine), 1 = reticulo que reflete o cone de tiro atual (ver
+	// RTN_GetCurrentSpreadTan() / rtn_crosshair_state.h e DrawDynamicCrosshair()
+	// mais abaixo). So visual - nao muda a dispersao real do tiro.
+	CVAR_REGISTER( "rtn_crosshair_dynamic", "0", FCVAR_ARCHIVE );
+
 	// RTN: valvula de diagnostico pro caso do GL_INVALID_ENUM. Em 0, a barra
 	// de selecao desenha SO texto (nenhum quad de textura crua). Se o erro
 	// sumir com rtn_hud_selectbar_icons 0 e voltar com 1, a origem esta
@@ -862,6 +869,12 @@ int CHudAmmo::MsgFunc_HideWeapon( const char *pszName, int iSize, void *pbuf )
 		gpActiveSel = NULL;
 		SetCrosshair( 0, nullRc, 0, 0, 0 );
 	}
+	else if( CVAR_GET_FLOAT( "rtn_crosshair_dynamic" ) > 0.0f )
+	{
+		// RTN: mira dinamica ligada - o reticulo e desenhado por
+		// DrawDynamicCrosshair() (ammo.cpp), nao pelo sprite nativo do engine.
+		SetCrosshair( 0, nullRc, 0, 0, 0 );
+	}
 	else
 	{
 		SetCrosshair( m_pWeapon->hCrosshair, m_pWeapon->rcCrosshair, 255, 255, 255 );
@@ -872,7 +885,7 @@ int CHudAmmo::MsgFunc_HideWeapon( const char *pszName, int iSize, void *pbuf )
 	return 1;
 }
 
-// 
+//
 //  CurWeapon: Update hud state with the current weapon and clip count. Ammo
 //  counts are updated with AmmoX. Server assures that the Weapon ammo type 
 //  numbers match a real ammo type.
@@ -926,8 +939,13 @@ int CHudAmmo::MsgFunc_CurWeapon(const char *pszName, int iSize, void *pbuf )
 
 	m_pWeapon = pWeapon;
 
-	if( gHUD.m_iFOV >= 90 )
-	{ 
+	if( CVAR_GET_FLOAT( "rtn_crosshair_dynamic" ) > 0.0f )
+	{
+		// RTN: mira dinamica ligada - ver comentario em MsgFunc_HideWeapon()
+		SetCrosshair( 0, nullRc, 0, 0, 0 );
+	}
+	else if( gHUD.m_iFOV >= 90 )
+	{
 		// normal crosshairs
 		if( fOnTarget && m_pWeapon->hAutoaim )
 			SetCrosshair( m_pWeapon->hAutoaim, m_pWeapon->rcAutoaim, 255, 255, 255 );
@@ -1172,6 +1190,55 @@ void CHudAmmo::UserCmd_PrevWeapon( void )
 //-------------------------------------------------------------------------
 // Drawing code
 //-------------------------------------------------------------------------
+
+// RTN: mira dinamica estilo Paranoia 2 (debate "combate a longa distancia") -
+// reticulo que reflete o cone de tiro ATUAL (game_shared/weapons/mp5.cpp::
+// UpdateSpreadState(), via client/rtn_crosshair_state.h), em vez do sprite
+// fixo classico do engine. So desenha quando o cvar rtn_crosshair_dynamic
+// esta ligado - MsgFunc_CurWeapon/MsgFunc_HideWeapon suprimem o SetCrosshair()
+// nativo nesse caso, pra nao ficarem os dois brigando na tela.
+//
+// Matematica: "spread" (tan do meio-angulo do cone, mesma unidade que
+// FireBullets usa) vira raio em pixels pela relacao de camera-pinhole:
+// na borda da tela, o angulo de visao e FOV_h/2, e tan(FOV_h/2) corresponde
+// a ScreenWidth/2 pixels - entao raio_px = (spread / tan(FOV_h/2)) * (ScreenWidth/2).
+static void DrawDynamicCrosshair( void )
+{
+	if( CVAR_GET_FLOAT( "rtn_crosshair_dynamic" ) <= 0.0f )
+		return;
+
+	if( !RTN_HasCurrentSpread() )
+		return;
+
+	float flFOV = ( gHUD.m_iFOV > 0 ) ? (float)gHUD.m_iFOV : 90.0f;
+	float flHalfFOVRad = flFOV * 0.5f * ( 3.14159265f / 180.0f );
+	float flTanHalfFOV = tanf( flHalfFOVRad );
+	if( flTanHalfFOV < 0.001f )
+		return;	// FOV absurdo (quase 0) - evita divisao instavel
+
+	float flSpreadTan = RTN_GetCurrentSpreadTan();
+	float flRadiusPx = ( flSpreadTan / flTanHalfFOV ) * ( ScreenWidth * 0.5f );
+
+	// piso minimo: sempre visivel, mesmo com cone quase zero (firmeza maxima)
+	if( flRadiusPx < XRES( 3 ) )
+		flRadiusPx = XRES( 3 );
+
+	int cx = ScreenWidth / 2;
+	int cy = ScreenHeight / 2;
+	int gap = (int)flRadiusPx;
+	int len = XRES( 6 );
+	int thick = Q_max( 1, XRES( 2 ) );
+
+	// verde tatico fixo, nao a cor dinamica do HUD (gHUD.m_color muda com dano/etc
+	// e o reticulo precisa ficar legivel o tempo todo)
+	int r = 60, g = 230, b = 90, a = 220;
+
+	FillRGBA( cx - thick / 2, cy - gap - len, thick, len, r, g, b, a );	// cima
+	FillRGBA( cx - thick / 2, cy + gap, thick, len, r, g, b, a );		// baixo
+	FillRGBA( cx - gap - len, cy - thick / 2, len, thick, r, g, b, a );	// esquerda
+	FillRGBA( cx + gap, cy - thick / 2, len, thick, r, g, b, a );		// direita
+}
+
 int CHudAmmo::Draw( float flTime )
 {
 	int a, x, y, r, g, b;
@@ -1203,6 +1270,10 @@ int CHudAmmo::Draw( float flTime )
 
 	// Draw ammo pickup history
 	gHR.DrawAmmoHistory( flTime );
+
+	// RTN: mira dinamica - funciona nos dois estilos de HUD, por isso fica
+	// antes do gate de rtn_hud_style abaixo (igual a barra de selecao acima).
+	DrawDynamicCrosshair();
 
 	// RTN F10: com o HUD novo (rtn_hud_style 1), o CONTADOR classico de
 	// municao (o resto desta funcao, dai pra baixo) some - o CHudWeaponBox
