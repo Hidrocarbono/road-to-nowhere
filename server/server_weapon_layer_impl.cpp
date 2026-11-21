@@ -157,52 +157,11 @@ Vector CServerWeaponLayerImpl::FireBullets(int bullets, Vector origin, matrix3x3
 		ClearBits(gpGlobals->trace_flags, FTRACE_MATERIAL_TRACE);
 
 		// do damage, paint decals
-		if (tr.flFraction != 1.0)
-		{
-			CBaseEntity *pEntity = CBaseEntity::Instance(tr.pHit);
-
-			if ( damage )
-			{
-				// RTN: mesmo teto usado em combat.cpp::FireBullets (ver RTN_BULLET_ALWAYSGIB_DAMAGE
-				// em cbase.h) - esse é um SEGUNDO caminho de tiro (server weapon layer, usado
-				// pelas armas atuais/scriptadas), independente do FireBullets clássico. Ficou
-				// esquecido com o "> 16" original quando subimos o teto pra 100 na outra branch.
-				pEntity->TraceAttack(player->pev, damage, vecDir, &tr, DMG_BULLET | ((damage > RTN_BULLET_ALWAYSGIB_DAMAGE) ? DMG_ALWAYSGIB : DMG_NEVERGIB) );
-				
-				TEXTURETYPE_PlaySound(&tr, origin, vecEnd, bulletType);
-				DecalGunshot( &tr, bulletType, origin, vecEnd );
-			} 
-			else
-			{
-				switch (bulletType)
-				{
-					default:
-					case BULLET_PLAYER_9MM:
-						pEntity->TraceAttack(player->pev, gSkillData.plrDmg9MM, vecDir, &tr, DMG_BULLET);
-						break;
-
-					case BULLET_PLAYER_MP5:
-						pEntity->TraceAttack(player->pev, gSkillData.plrDmgMP5, vecDir, &tr, DMG_BULLET);
-						break;
-
-					case BULLET_PLAYER_BUCKSHOT:
-						// make distance based!
-						pEntity->TraceAttack(player->pev, gSkillData.plrDmgBuckshot, vecDir, &tr, DMG_BULLET);
-						break;
-
-					case BULLET_PLAYER_357:
-						pEntity->TraceAttack(player->pev, gSkillData.plrDmg357, vecDir, &tr, DMG_BULLET);
-						break;
-
-					case BULLET_NONE: // FIX 
-						pEntity->TraceAttack(player->pev, 50, vecDir, &tr, DMG_CLUB);
-						break;
-				}
-
-				TEXTURETYPE_PlaySound(&tr, origin, vecEnd, bulletType);
-				DecalGunshot(&tr, bulletType, origin, vecEnd);
-			}
-		}
+		// RTN: nucleo de impacto unificado com o dos monstros (combat.cpp) -
+		// ver RTN_ResolveBulletImpact() em weapons.cpp/weapons.h (inclui o
+		// teto de gib RTN_BULLET_ALWAYSGIB_DAMAGE, antes dessincronizado
+		// entre os dois caminhos).
+		RTN_ResolveBulletImpact( player->pev, &tr, bulletType, damage, vecDir, origin, vecEnd );
 		// make bullet trails
 		UTIL_BubbleTrail( origin, tr.vecEndPos, (distance * tr.flFraction) / 64.0 );
 	}

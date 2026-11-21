@@ -33,6 +33,7 @@
 #include "sv_materials.h"
 #include "user_messages.h"
 #include "weaponscript.h"
+// gSkillData (skill.h) ja chega via monsters.h, usado por RTN_ResolveBulletImpact()
 
 extern int gEvilImpulse101;
 
@@ -206,6 +207,87 @@ void DecalGunshot( TraceResult *pTrace, int iBulletType, const vec3_t &origin, c
 				UTIL_StudioDecalTrace(pTrace, pMaterial->impact_decal);
 			}
 		}
+	}
+}
+
+// RTN: ver comentario em weapons.h - nucleo unificado de impacto de bala,
+// extraido de CBaseEntity::FireBullets (combat.cpp) e
+// CServerWeaponLayerImpl::FireBullets (server_weapon_layer_impl.cpp).
+void RTN_ResolveBulletImpact( entvars_t *pevAttacker, TraceResult *ptr, int iBulletType,
+	int iDamage, const Vector &vecDir, const Vector &vecSrc, const Vector &vecEnd,
+	bool bSkipFallbackImpactFX )
+{
+	if ( ptr->flFraction == 1.0f )
+		return;	// nao acertou nada
+
+	CBaseEntity *pEntity = CBaseEntity::Instance( ptr->pHit );
+	if ( !pEntity )
+		return;	// edict sem CBaseEntity pareado (ver nota de UTIL_PrecacheOtherWeapon no CLAUDE.md) - nao tinha checagem antes, so nao crasha mais
+
+	if ( iDamage )
+	{
+		// dano explicito (ammodesc.txt da arma de script, ou chamada direta) -
+		// som/decal sempre tocam, nos dois lados sempre foi assim (sem gate de tracer)
+		pEntity->TraceAttack( pevAttacker, iDamage, vecDir, ptr, DMG_BULLET | ( ( iDamage > RTN_BULLET_ALWAYSGIB_DAMAGE ) ? DMG_ALWAYSGIB : DMG_NEVERGIB ) );
+		TEXTURETYPE_PlaySound( ptr, vecSrc, vecEnd, iBulletType );
+		DecalGunshot( ptr, iBulletType, vecSrc, vecEnd );
+		return;
+	}
+
+	// sem dano explicito: fallback pelos valores fixos do gSkillData, por tipo de bala
+	// (mesma tabela que existia duplicada nos dois FireBullets)
+	switch ( iBulletType )
+	{
+	default:
+	case BULLET_MONSTER_9MM:
+		pEntity->TraceAttack( pevAttacker, gSkillData.monDmg9MM, vecDir, ptr, DMG_BULLET );
+		if ( !bSkipFallbackImpactFX ) { TEXTURETYPE_PlaySound( ptr, vecSrc, vecEnd, iBulletType ); DecalGunshot( ptr, iBulletType, vecSrc, vecEnd ); }
+		break;
+
+	case BULLET_MONSTER_MP5:
+		pEntity->TraceAttack( pevAttacker, gSkillData.monDmgMP5, vecDir, ptr, DMG_BULLET );
+		if ( !bSkipFallbackImpactFX ) { TEXTURETYPE_PlaySound( ptr, vecSrc, vecEnd, iBulletType ); DecalGunshot( ptr, iBulletType, vecSrc, vecEnd ); }
+		break;
+
+	case BULLET_MONSTER_12MM:
+		pEntity->TraceAttack( pevAttacker, gSkillData.monDmg12MM, vecDir, ptr, DMG_BULLET );
+		if ( !bSkipFallbackImpactFX ) { TEXTURETYPE_PlaySound( ptr, vecSrc, vecEnd, iBulletType ); DecalGunshot( ptr, iBulletType, vecSrc, vecEnd ); }
+		break;
+
+	case BULLET_PLAYER_357:
+		pEntity->TraceAttack( pevAttacker, gSkillData.plrDmg357, vecDir, ptr, DMG_BULLET );
+		if ( !bSkipFallbackImpactFX ) { TEXTURETYPE_PlaySound( ptr, vecSrc, vecEnd, iBulletType ); DecalGunshot( ptr, iBulletType, vecSrc, vecEnd ); }
+		break;
+
+	case BULLET_PLAYER_9MM:
+		pEntity->TraceAttack( pevAttacker, gSkillData.plrDmg9MM, vecDir, ptr, DMG_BULLET );
+		if ( !bSkipFallbackImpactFX ) { TEXTURETYPE_PlaySound( ptr, vecSrc, vecEnd, iBulletType ); DecalGunshot( ptr, iBulletType, vecSrc, vecEnd ); }
+		break;
+
+	case BULLET_PLAYER_MP5:
+		pEntity->TraceAttack( pevAttacker, gSkillData.plrDmgMP5, vecDir, ptr, DMG_BULLET );
+		if ( !bSkipFallbackImpactFX ) { TEXTURETYPE_PlaySound( ptr, vecSrc, vecEnd, iBulletType ); DecalGunshot( ptr, iBulletType, vecSrc, vecEnd ); }
+		break;
+
+	case BULLET_PLAYER_BUCKSHOT:
+		// make distance based! (nota original - ainda vale, ver debate de falloff)
+		pEntity->TraceAttack( pevAttacker, gSkillData.plrDmgBuckshot, vecDir, ptr, DMG_BULLET );
+		if ( !bSkipFallbackImpactFX ) { TEXTURETYPE_PlaySound( ptr, vecSrc, vecEnd, iBulletType ); DecalGunshot( ptr, iBulletType, vecSrc, vecEnd ); }
+		break;
+
+	case BULLET_NONE: // FIX
+		// RTN: antes o lado do jogador (server_weapon_layer_impl.cpp) fazia
+		// DecalGunshot normal aqui em vez do "so decal se for vidro" do
+		// combat.cpp - BULLET_NONE e o valor 0 do enum (item_info.h), nao
+		// encontrei nenhum call site que passe isso de proposito pros dois
+		// FireBullets (so o default do parametro). Unificado pro
+		// comportamento do combat.cpp (mais restrito) por ser estritamente
+		// mais seguro; sinalizado aqui pro caso de alguem notar diferenca.
+		pEntity->TraceAttack( pevAttacker, 50, vecDir, ptr, DMG_CLUB );
+		TEXTURETYPE_PlaySound( ptr, vecSrc, vecEnd, iBulletType );
+		if ( !FNullEnt( ptr->pHit ) && VARS( ptr->pHit )->rendermode != 0 )
+			UTIL_DecalTrace( ptr, "{break1" );
+		break;
 	}
 }
 
