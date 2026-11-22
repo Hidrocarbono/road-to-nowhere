@@ -10,6 +10,7 @@
 #include "pm_movevars.h"
 #include "pm_defs.h"
 #include "gl_local.h"
+#include "rtn_crosshair_state.h"	// RTN: RTN_IsCurrentSpreadIronSight() - ver o lean roll mais abaixo
 #include "r_studioint.h"
 #include "gl_studio.h"
 #include "gl_cvars.h"
@@ -1184,7 +1185,21 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 		// cosmetico). Testado em jogo (rtn_lean_roll 0): sem o roll, a mira
 		// fica no lugar. O deslocamento lateral (abaixo) continua normal -
 		// so o roll e suprimido, e so enquanto mirado.
-		float targetRoll = RTN_IsIronSightActive() ? 0.0f
+		//
+		// RTN_IsCurrentSpreadIronSight() (client/rtn_crosshair_state.h), nao
+		// RTN_IsIronSightActive() (gl_postprocess.cpp): a primeira versao
+		// dependia da mensagem de rede gmsgIronSight (hud_msg.cpp) pro DOF -
+		// se essa mensagem nao chegasse de volta com 0 por qualquer motivo
+		// (perda de pacote, ordem, etc), o roll ficava suprimido PRA SEMPRE,
+		// mesmo sem estar mirando (foi o que o user reportou: "e como se o
+		// rtn_lean_roll estivesse desligado"). RTN_IsCurrentSpreadIronSight()
+		// e recalculado TODO FRAME, localmente, por UpdateSpreadState() em
+		// mp5.cpp (ShouldWeaponIdle() desta arma sempre true) - sem rede
+		// nenhuma envolvida, mesma fonte que ja alimenta a mira dinamica.
+		// RTN_HasCurrentSpread() protege o frame antes da arma rodar a
+		// primeira vez (senao comecaria presumindo mirado = sem roll).
+		bool bAimingNow = RTN_HasCurrentSpread() && RTN_IsCurrentSpreadIronSight();
+		float targetRoll = bAimingNow ? 0.0f
 			: (float)leanDir * rtn_lean_roll->value * ( flReach / RTN_LEAN_OFFSET );
 		g_flLeanRoll += (targetRoll - g_flLeanRoll) * Q_min( 1.0f, pparams->frametime * 10.0f );
 		if( fabs( g_flLeanRoll - targetRoll ) < 0.05f ) g_flLeanRoll = targetRoll;

@@ -948,7 +948,6 @@ void RenderLensDirt();	// RTN F10: sujeira de lente na luz forte
 void RenderWaterDrops();	// RTN: gotas de chuva na tela (so com chuva ao ar livre)
 void RenderHBAO();		// RTN: oclusao ambiental em espaco de tela (gl_hbao)
 void RTN_SetIronSightDOF( bool bActive );	// RTN F10: gatilho do DOF da mira de ferro
-bool RTN_IsIronSightActive( void );		// RTN: estado cru da mira (ver r_view.cpp - roll do lean)
 void RenderUnderwaterBlur();
 void RenderNerveGasBlur();
 void RenderPostprocessing();
