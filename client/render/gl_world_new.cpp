@@ -15,6 +15,7 @@ GNU General Public License for more details.
 
 #include "hud.h"
 #include "utils.h"
+#include "rtn_body.h"
 #include "gl_local.h"
 #include "pm_defs.h"
 #include "event_api.h"
@@ -1968,6 +1969,7 @@ void Mod_PrepareModelInstances( void )
 	}
 
 	GET_VIEWMODEL()->modelhandle = INVALID_HANDLE;
+	RTN_Body_OnNewMap();	// RTN: a entidade do corpo tambem perde o model instance
 	memset( tr.draw_entities, 0, sizeof( tr.draw_entities ));
 }
 
