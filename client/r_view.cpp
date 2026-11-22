@@ -1174,7 +1174,18 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 			flReach = bound( 0.0f, trLean->fraction * flSpan - RTN_LEAN_WALL_MARGIN, RTN_LEAN_OFFSET );
 		}
 
-		float targetRoll = (float)leanDir * rtn_lean_roll->value * ( flReach / RTN_LEAN_OFFSET );
+		// RTN fix: sem roll mirado. O viewmodel e desenhado com um FOV
+		// diferente do da camera (cl_viewmodel_fov, pro zoom nao mudar o
+		// tamanho da arma - ver ApplyIronSightTransition() em mp5.cpp), entao
+		// girar os dois pelo mesmo angulo NAO reconcilia perfeitamente na
+		// tela: a mira de ferro visualmente "foge" do centro conforme o roll
+		// aumenta, mesmo o tiro continuando reto (GetCameraOrientation() usa
+		// view angles sem esse roll nos dois lados - o lean sempre foi so
+		// cosmetico). Testado em jogo (rtn_lean_roll 0): sem o roll, a mira
+		// fica no lugar. O deslocamento lateral (abaixo) continua normal -
+		// so o roll e suprimido, e so enquanto mirado.
+		float targetRoll = RTN_IsIronSightActive() ? 0.0f
+			: (float)leanDir * rtn_lean_roll->value * ( flReach / RTN_LEAN_OFFSET );
 		g_flLeanRoll += (targetRoll - g_flLeanRoll) * Q_min( 1.0f, pparams->frametime * 10.0f );
 		if( fabs( g_flLeanRoll - targetRoll ) < 0.05f ) g_flLeanRoll = targetRoll;
 		pparams->viewangles[ROLL] += g_flLeanRoll;

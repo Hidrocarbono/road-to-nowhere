@@ -1082,8 +1082,16 @@ void RenderAverageLuminance()
 // transicao suave de 0.3s com a focal length indo de 0 ate fLength (o fundo
 // desfoca, o centro da tela - o alvo - permanece nitido). Desativa: zera
 // imediatamente (o desfoque some junto com o zoom).
+// RTN: estado cru da mira de ferro, pro resto do cliente poder consultar
+// (hoje so o roll do lean - r_view.cpp - precisa disso; o DOF acima ja tinha
+// seu proprio estado interno em post.m_flDOFStartTime, mas nada externo
+// conseguia perguntar "estou mirando?" sem reimplementar essa logica).
+static bool s_bIronSightActive = false;
+
 void RTN_SetIronSightDOF( bool bActive )
 {
+	s_bIronSightActive = bActive;
+
 	if( bActive )
 	{
 		if( post.m_flDOFStartTime == 0.0f )
@@ -1100,6 +1108,11 @@ void RTN_SetIronSightDOF( bool bActive )
 		post.m_flStartLength = 0.0f;
 		post.m_flOffsetLength = 0.0f;
 	}
+}
+
+bool RTN_IsIronSightActive( void )
+{
+	return s_bIronSightActive;
 }
 
 // RTN F10: lens dirt - sujeira de lente mascarada pelo brilho da cena
