@@ -23,6 +23,7 @@ list(APPEND CLDLL_SOURCES
 	"hud_titlefont.cpp"
 	"hud_status.cpp"
 	"hud_weaponbox.cpp"
+	"rtn_crosshair_state.cpp"
 	"hud_interact.cpp"
 	"hud_textwindow.cpp"
 	"hud_radio.cpp"

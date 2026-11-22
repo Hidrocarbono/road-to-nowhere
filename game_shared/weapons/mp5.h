@@ -132,6 +132,48 @@ public:
 	int m_iScriptZoomFOV = 0;		// zoom_fov (0 = arma sem mira de ferro)
 	int m_iScriptFlags = 0;			// WIF_IRONSIGHT|WIF_AUTOAIM|WIF_AUTOFIRE
 
+	// ---------------------------------------------------------------------
+	// RTN: dispersao por estado + firmeza em ADS (debate "combate a longa
+	// distancia"). Calculado em UpdateSpreadState(), chamado em PrimaryAttack()
+	// (pro tiro em si) e em WeaponIdle() (pra ficar fresco mesmo sem atirar -
+	// e o que o crosshair dinamico/client/rtn_crosshair_state.h le).
+	//
+	// DE PROPOSITO sem nenhum acumulador de tempo (tipo "segundos parado ate
+	// a firmeza maxima"): m_flScriptSpread* so chega identico nos dois lados
+	// porque trafega no weapon_data_t (comentario acima) - um campo local novo
+	// que precisasse "lembrar" de frames anteriores correria o risco de nao
+	// sobreviver a reconstrucao do contexto de arma durante replay de
+	// predicao (o mesmo tipo de bug que o comentario de cima descreve pro
+	// tracante). Por isso tanto o multiplicador de postura quanto a firmeza
+	// sao funcoes PURAS do frame atual (GetPlayerVelocity(), IN_DUCK,
+	// m_bInIronSight) - zero estado entre chamadas, zero risco de
+	// dessincronia de replay. Firmeza fica "liga/desliga" (sem rampa
+	// gradual) por esse motivo - se um dia quisermos a rampa, precisa antes
+	// confirmar como o contexto de arma sobrevive (ou nao) ao replay de
+	// predicao.
+	// ---------------------------------------------------------------------
+	float m_flStateSpreadMul = 1.0f;	// multiplicador por postura/velocidade (1.0 parado .. ~2.0 correndo)
+	float m_flCurrentSpreadTan = 0.0f;	// ultimo cone calculado (tan do meio-angulo) - o que PrimaryAttack usa de verdade
+
+	// RTN: primeiro-tiro vs sustentado (SpreadExpand/SpreadTime do script -
+	// existiam no parser desde sempre, nunca tinham sido lidos, ver comentario
+	// antigo em CacheScriptParams()). ESTES dois SAO estado entre frames (ao
+	// contrario do resto acima) - decaimento ancorado em m_flLastFireTime, que
+	// ja e um campo pre-existente da classe base (weapon_context.h/.cpp,
+	// usado no ajuste de cadencia) e portanto ja provado seguro atraves de
+	// replay de predicao neste projeto; nao introduz uma categoria nova de
+	// risco, so reusa uma ja validada.
+	float m_flSpreadHeat = 0.0f;		// 0 = frio (cone base), 1 = cone maximo (rajada sustentada)
+	float m_flSpreadHeatAtLastShot = 0.0f;	// snapshot do heat no instante do ultimo tiro - base do decaimento
+
+	// true = parado (ou agachado) E em ADS agora mesmo - aplica o piso de firmeza
+	bool IsSteadyAiming() const { return m_bInIronSight && m_pLayer->GetPlayerVelocity().Length() < 10.0f; }
+
+	// Recalcula m_flStateSpreadMul e m_flCurrentSpreadTan a partir do estado
+	// atual do jogador (velocidade, agachado, ADS). Definida em mp5.cpp
+	// (precisa de IN_DUCK/tanf/VECTOR_CONE_*, ja incluidos la).
+	void UpdateSpreadState();
+
 	// 1 = o servidor tem o .wav do SoundData e toca o tiro ele mesmo; o evento do
 	// cliente entao NAO deve tocar o som hardcoded por cima. 0 = o som do script
 	// nao existe no disco, e o cliente segue tocando o som padrao.
@@ -161,6 +203,16 @@ public:
 
 	// FOV da mira: do script quando houver, senao o 65 que estava fixo no codigo.
 	float IronSightFOV() const { return m_iScriptZoomFOV > 0 ? (float)m_iScriptZoomFOV : 65.0f; }
+
+	// RTN: lerp de FOV + anim de transicao + cl_viewmodel_fov + aviso ao
+	// cliente (gmsgIronSight) - tudo que precisa rodar sempre que
+	// m_bInIronSight MUDA de valor, de qualquer jeito que isso aconteca
+	// (toggle manual em SecondaryAttack(), ou forcado por Reload() - ver
+	// comentario la sobre recarregar mirado ficar colado na tela). Extraido
+	// de SecondaryAttack() pra nao duplicar essa logica inteira em Reload().
+	// NAO mexe em m_bInIronSight - quem chama ja deve ter mudado o valor
+	// antes de chamar isto.
+	void ApplyIronSightTransition();
 	bool ShouldWeaponIdle() override { return true; }  // so WeaponIdle runs every frame (FOV lerp)
 	uint16_t m_usEvent1;
 	uint16_t m_usEvent2;

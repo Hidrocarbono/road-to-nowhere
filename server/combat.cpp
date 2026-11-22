@@ -1479,96 +1479,10 @@ void CBaseEntity::FireBullets(ULONG cShots, Vector vecSrc, Vector vecDirShooting
 			}
 		}
 		// do damage, paint decals
-		if (tr.flFraction != 1.0)
-		{
-			CBaseEntity *pEntity = CBaseEntity::Instance(tr.pHit);
+		// RTN: nucleo de impacto unificado com o do jogador/armas de script -
+		// ver RTN_ResolveBulletImpact() em weapons.cpp/weapons.h.
+		RTN_ResolveBulletImpact( pevAttacker, &tr, iBulletType, iDamage, vecDir, vecSrc, vecEnd, tracer != 0 );
 
-			if ( iDamage )
-			{
-				pEntity->TraceAttack(pevAttacker, iDamage, vecDir, &tr, DMG_BULLET | ((iDamage > RTN_BULLET_ALWAYSGIB_DAMAGE) ? DMG_ALWAYSGIB : DMG_NEVERGIB) );
-				
-				TEXTURETYPE_PlaySound(&tr, vecSrc, vecEnd, iBulletType);
-				DecalGunshot(&tr, iBulletType, vecSrc, vecEnd);
-			} 
-			else switch(iBulletType)
-			{
-			default:
-			case BULLET_MONSTER_9MM:
-				pEntity->TraceAttack(pevAttacker, gSkillData.monDmg9MM, vecDir, &tr, DMG_BULLET);
-				if ( !tracer )
-				{
-					TEXTURETYPE_PlaySound(&tr, vecSrc, vecEnd, iBulletType);
-					DecalGunshot(&tr, iBulletType, vecSrc, vecEnd);
-				}
-				break;
-
-			case BULLET_MONSTER_MP5:
-				pEntity->TraceAttack(pevAttacker, gSkillData.monDmgMP5, vecDir, &tr, DMG_BULLET);
-				if ( !tracer )
-				{
-					TEXTURETYPE_PlaySound(&tr, vecSrc, vecEnd, iBulletType);
-					DecalGunshot(&tr, iBulletType, vecSrc, vecEnd);
-				}
-				break;
-
-			case BULLET_MONSTER_12MM:		
-				pEntity->TraceAttack(pevAttacker, gSkillData.monDmg12MM, vecDir, &tr, DMG_BULLET); 
-				if ( !tracer )
-				{
-					TEXTURETYPE_PlaySound(&tr, vecSrc, vecEnd, iBulletType);
-					DecalGunshot(&tr, iBulletType, vecSrc, vecEnd);
-				}
-				break;
-
-			case BULLET_PLAYER_357:
-				pEntity->TraceAttack(pevAttacker, gSkillData.plrDmg357, vecDir, &tr, DMG_BULLET);
-				if ( !tracer )
-				{
-					TEXTURETYPE_PlaySound(&tr, vecSrc, vecEnd, iBulletType);
-					DecalGunshot(&tr, iBulletType, vecSrc, vecEnd);
-				}
-				break;
-
-			case BULLET_PLAYER_9MM:		
-				pEntity->TraceAttack(pevAttacker, gSkillData.plrDmg9MM, vecDir, &tr, DMG_BULLET); 
-				if ( !tracer )
-				{
-					TEXTURETYPE_PlaySound(&tr, vecSrc, vecEnd, iBulletType);
-					DecalGunshot(&tr, iBulletType, vecSrc, vecEnd);
-				}
-				break;
-
-			case BULLET_PLAYER_MP5:		
-				pEntity->TraceAttack(pevAttacker, gSkillData.plrDmgMP5, vecDir, &tr, DMG_BULLET); 
-				if ( !tracer )
-				{
-					TEXTURETYPE_PlaySound(&tr, vecSrc, vecEnd, iBulletType);
-					DecalGunshot(&tr, iBulletType, vecSrc, vecEnd);
-				}
-				break;
-
-			case BULLET_PLAYER_BUCKSHOT:	
-				 // make distance based!
-				pEntity->TraceAttack(pevAttacker, gSkillData.plrDmgBuckshot, vecDir, &tr, DMG_BULLET); 
-				if ( !tracer )
-				{
-					TEXTURETYPE_PlaySound(&tr, vecSrc, vecEnd, iBulletType);
-					DecalGunshot(&tr, iBulletType, vecSrc, vecEnd);
-				}
-				break;
-			
-			case BULLET_NONE: // FIX 
-				pEntity->TraceAttack(pevAttacker, 50, vecDir, &tr, DMG_CLUB);
-				TEXTURETYPE_PlaySound(&tr, vecSrc, vecEnd, iBulletType);
-				// only decal glass
-				if ( !FNullEnt(tr.pHit) && VARS(tr.pHit)->rendermode != 0)
-				{
-					UTIL_DecalTrace( &tr, "{break1" );
-				}
-
-				break;
-			}
-		}
 		// make bullet trails
 		UTIL_BubbleTrail(vecSrc, tr.vecEndPos, (flDistance * tr.flFraction) / 64.0);
 	}

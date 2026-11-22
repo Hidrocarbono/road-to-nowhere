@@ -10,6 +10,7 @@
 #include "pm_movevars.h"
 #include "pm_defs.h"
 #include "gl_local.h"
+#include "rtn_crosshair_state.h"	// RTN: RTN_IsCurrentSpreadIronSight() - ver o lean roll mais abaixo
 #include "r_studioint.h"
 #include "gl_studio.h"
 #include "gl_cvars.h"
@@ -1174,7 +1175,32 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 			flReach = bound( 0.0f, trLean->fraction * flSpan - RTN_LEAN_WALL_MARGIN, RTN_LEAN_OFFSET );
 		}
 
-		float targetRoll = (float)leanDir * rtn_lean_roll->value * ( flReach / RTN_LEAN_OFFSET );
+		// RTN fix: sem roll mirado. O viewmodel e desenhado com um FOV
+		// diferente do da camera (cl_viewmodel_fov, pro zoom nao mudar o
+		// tamanho da arma - ver ApplyIronSightTransition() em mp5.cpp), entao
+		// girar os dois pelo mesmo angulo NAO reconcilia perfeitamente na
+		// tela: a mira de ferro visualmente "foge" do centro conforme o roll
+		// aumenta, mesmo o tiro continuando reto (GetCameraOrientation() usa
+		// view angles sem esse roll nos dois lados - o lean sempre foi so
+		// cosmetico). Testado em jogo (rtn_lean_roll 0): sem o roll, a mira
+		// fica no lugar. O deslocamento lateral (abaixo) continua normal -
+		// so o roll e suprimido, e so enquanto mirado.
+		//
+		// RTN_IsCurrentSpreadIronSight() (client/rtn_crosshair_state.h), nao
+		// RTN_IsIronSightActive() (gl_postprocess.cpp): a primeira versao
+		// dependia da mensagem de rede gmsgIronSight (hud_msg.cpp) pro DOF -
+		// se essa mensagem nao chegasse de volta com 0 por qualquer motivo
+		// (perda de pacote, ordem, etc), o roll ficava suprimido PRA SEMPRE,
+		// mesmo sem estar mirando (foi o que o user reportou: "e como se o
+		// rtn_lean_roll estivesse desligado"). RTN_IsCurrentSpreadIronSight()
+		// e recalculado TODO FRAME, localmente, por UpdateSpreadState() em
+		// mp5.cpp (ShouldWeaponIdle() desta arma sempre true) - sem rede
+		// nenhuma envolvida, mesma fonte que ja alimenta a mira dinamica.
+		// RTN_HasCurrentSpread() protege o frame antes da arma rodar a
+		// primeira vez (senao comecaria presumindo mirado = sem roll).
+		bool bAimingNow = RTN_HasCurrentSpread() && RTN_IsCurrentSpreadIronSight();
+		float targetRoll = bAimingNow ? 0.0f
+			: (float)leanDir * rtn_lean_roll->value * ( flReach / RTN_LEAN_OFFSET );
 		g_flLeanRoll += (targetRoll - g_flLeanRoll) * Q_min( 1.0f, pparams->frametime * 10.0f );
 		if( fabs( g_flLeanRoll - targetRoll ) < 0.05f ) g_flLeanRoll = targetRoll;
 		pparams->viewangles[ROLL] += g_flLeanRoll;

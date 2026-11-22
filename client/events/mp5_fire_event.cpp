@@ -92,28 +92,38 @@ void CMP5FireEvent::HandleShot()
 	// RTN F10 fix: origem do TRACANTE = ponta do cano (attachment[0] do viewmodel).
 	// Antes o tracante nascia no olho (centro da tela) - agora nasce no mesmo
 	// ponto da fumaca/flash (evento 5001), alinhado no ironsight e no lean.
+	//
+	// RTN fix (achado testando zoom_fov baixo numa mira): o attachment do cano
+	// e calculado com o FOV do VIEWMODEL (cl_viewmodel_fov, ajustado em
+	// SecondaryAttack() pra compensar o zoom e manter a arma do mesmo tamanho
+	// na tela), que e DIFERENTE do FOV da CAMERA usado por cameraMatrix/
+	// GetShootDirection() logo abaixo - o proprio SecondaryAttack() ja avisa
+	// disso ("pode desalinhar um pouco"). Com zoom forte (FOV baixo), a
+	// diferenca entre os dois FOVs fica grande RELATIVO ao FOV total, e o
+	// furo de bala aparece visivelmente desviado do reticulo, a distancia -
+	// nao e o .mdl, e essa divergencia de projecao entre as duas FOVs.
+	//
+	// Mirando (bparam1=1), o SERVIDOR traca o tiro de verdade saindo do OLHO
+	// sem offset nenhum (vecSrc sem o recuo de 12u que so existe no hip-fire -
+	// ver mp5.cpp PrimaryAttack). Em vez de tentar fazer as duas projecoes
+	// concordarem, o tracante visual usa o MESMO ponto que o servidor usa
+	// (GetOrigin(), o olho) quando mirado - alinhado por construcao, sem
+	// depender de FOV nenhum. So usa o attachment do cano no hip-fire, onde
+	// a divergencia e pequena demais pra notar.
+	bool bIronSight = m_arguments->bparam1 != 0;
 	Vector muzzleOrigin = GetOrigin();
 	cl_entity_t *viewModel = gEngfuncs.GetViewModel();
-	if (viewModel && viewModel->model)
+
+	if( !bIronSight && viewModel && viewModel->model )
 	{
 		// attachment[0] esta em coordenadas de mundo (calculado pelo renderer)
 		if (viewModel->attachment[0].Length() > 0.01f)
 			muzzleOrigin = Vector(viewModel->attachment[0]);
 	}
 	// fallback: se o modelo nao tem attachment, offset classico do HL (direita+baixo)
-	if (muzzleOrigin == GetOrigin())
+	// - nao se aplica mirado, que ja usa o olho de proposito (ver acima).
+	if (!bIronSight && muzzleOrigin == GetOrigin())
 		muzzleOrigin = GetOrigin() + cameraMatrix.GetForward() * 8.0f + cameraMatrix.GetRight() * 8.0f + cameraMatrix.GetUp() * -4.0f;
-
-	// RTN DEBUG ironsight: mostra o que o tracante usa (remover depois)
-	if( IsEventLocal() && viewModel && viewModel->model )
-	{
-		gEngfuncs.pfnConsolePrint( va( "[RTN] tracer origin=(%.1f,%.1f,%.1f) attach=(%.1f,%.1f,%.1f) len=%.2f fov=%.0f\n",
-			muzzleOrigin.x, muzzleOrigin.y, muzzleOrigin.z,
-			viewModel->attachment[0].x, viewModel->attachment[0].y, viewModel->attachment[0].z,
-			viewModel->attachment[0].Length(),
-			gEngfuncs.pfnGetCvarFloat( "cl_viewmodel_fov" ) ) );
-	}
-
 
 	GameEventUtils::FireBullet(m_arguments->entindex, cameraMatrix, GetOrigin(), muzzleOrigin, GetShootDirection(cameraMatrix), 2);
 

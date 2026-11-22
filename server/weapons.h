@@ -193,6 +193,25 @@ extern void AddMultiDamage( entvars_t *pevInflictor, CBaseEntity *pEntity, float
 
 extern void DecalGunshot( TraceResult *pTrace, int iBulletType, const vec3_t &origin, const vec3_t &vecEnd );
 extern void SpawnBlood(Vector vecSpot, int bloodColor, float flDamage);
+
+// RTN: nucleo compartilhado de "o que acontece no impacto de uma bala" -
+// extraido de CBaseEntity::FireBullets (combat.cpp, usado por monstros) e
+// CServerWeaponLayerImpl::FireBullets (server_weapon_layer_impl.cpp, usado
+// pelo jogador/armas de script). Os DOIS FireBullets continuam separados
+// de proposito (RNG com seed pro jogador predizer o mesmo tiro, sem seed
+// pro monstro; tracer de rede so no monstro) - so a parte de dano+decal+som
+// no ponto de impacto era identica nos dois e vivia duplicada. Daqui em
+// diante, mudanca de regra de impacto (falloff de dano, penetracao, etc)
+// entra uma vez so e vale pros dois.
+//
+// iDamage == 0 cai no fallback de gSkillData por tipo de bala (mesmo
+// comportamento de antes, nos dois lados). bSkipFallbackImpactFX existe so
+// pro monstro: quando o tiro ja mandou um tracer de rede (TE_TRACER), o
+// som/decal de impacto do fallback e pulado (comportamento original do
+// combat.cpp); o jogador nunca pula (sempre false).
+extern void RTN_ResolveBulletImpact( entvars_t *pevAttacker, TraceResult *ptr, int iBulletType,
+	int iDamage, const Vector &vecDir, const Vector &vecSrc, const Vector &vecEnd,
+	bool bSkipFallbackImpactFX = false );
 extern const char* DamageDecal( CBaseEntity *pEntity, int bitsDamageType );
 extern void RadiusDamage( Vector vecSrc, entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, float flRadius, int iClassIgnore, int bitsDamageType );
 
