@@ -1205,6 +1205,20 @@ void V_CalcFirstPersonRefdef( struct ref_params_s *pparams )
 		if( fabs( g_flLeanRoll - targetRoll ) < 0.05f ) g_flLeanRoll = targetRoll;
 		pparams->viewangles[ROLL] += g_flLeanRoll;
 
+		// RTN DEBUG lean roll (remover depois): so imprime enquanto Q/E
+		// estiver pressionado, pra nao floodar o console o tempo todo.
+		if( leanDir != 0 )
+		{
+			static float s_flLastPrint = 0.0f;
+			if( pparams->time - s_flLastPrint > 0.25f )
+			{
+				s_flLastPrint = pparams->time;
+				gEngfuncs.Con_Printf( "[RTN] lean leanDir=%d hasSpread=%d ironsight=%d aiming=%d rtn_lean_roll=%.1f targetRoll=%.2f g_flLeanRoll=%.2f\n",
+					leanDir, RTN_HasCurrentSpread(), RTN_IsCurrentSpreadIronSight(), bAimingNow,
+					rtn_lean_roll->value, targetRoll, g_flLeanRoll );
+			}
+		}
+
 		// lateral eye offset (visual, complements server view_ofs lean)
 		float targetOffset = (float)leanDir * flReach;  // igual ao view_ofs do servidor (player.cpp)
 		g_flLeanOffset += (targetOffset - g_flLeanOffset) * Q_min( 1.0f, pparams->frametime * 10.0f );
