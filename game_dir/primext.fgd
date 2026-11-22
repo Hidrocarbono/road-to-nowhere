@@ -4726,15 +4726,18 @@
 @PointClass base(Targetname, Targetx, Parent, Reflection) studio("models/w_stimulant.mdl") = item_stimulant : "RTN: Estimulante" []
 
 // server/weapons/weapon_scripted.cpp - CWeaponScripted
-// Arma dirigida por game_dir/scripts/weapons/<classname>.txt.
-//
-// ATENCAO: normalmente NAO se usa este classname. Toda arma da pasta de scripts
-// e registrada como uma classe de entidade propria no carregamento
-// (WeaponScript_RegisterEntities), entao coloque no mapa o classname da arma -
-// weapon_parafal, weapon_diplomat, weapon_m4a3... - digitando-o a mao no editor.
-// Estes nao aparecem nesta lista porque dependem dos arquivos da sua pasta, nao
-// do codigo. weapon_scripted so serve como generico sem script proprio.
-@PointClass base(Weapon, Targetx, Parent, Reflection) size(-16 -16 -16, 16 16 16) = weapon_scripted : "RTN: Arma por script (generica)" []
+// Arma dirigida por game_dir/scripts/weapons/<nome>.txt. Esta e A entrada para colocar
+// no mapa QUALQUER arma do sistema de script (weapon_m4, weapon_mk16, weapon_hand,
+// weapon_parafal...): preencha "script" com o nome do arquivo. Ao nascer, a entidade
+// vira aquela arma. O TIPO de municao e o pente vem do proprio script (primary_ammo /
+// clip_size) e nao se escolhe aqui - so a quantidade inicial.
+// (Digitar o classname da arma direto no editor, ex: weapon_m4, continua funcionando.)
+@PointClass base(Weapon, Targetx, Parent, Reflection) size(-16 -16 -16, 16 16 16) = weapon_scripted : "RTN: Arma por script"
+[
+	script(string) : "Script da arma" : "" : "Nome do arquivo em scripts/weapons/, sem o .txt (ex: weapon_m4). Aceita tambem com .txt."
+	worldmodel(studio) : "Modelo do chao (w_)" : "" : "Opcional. Sobrescreve o worldmodel do script - o modelo que aparece no mapa. Vazio = o do script."
+	defaultammo(integer) : "Municao inicial" : -1 : "Opcional. Quanto vem ao pegar a arma. -1 = o defaultammo do script. O tipo de municao e do script."
+]
 
 // server/entities/env_time.cpp - CEnvTime
 // Relogio do nivel: define a hora e a velocidade de passagem do tempo.

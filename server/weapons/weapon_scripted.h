@@ -11,6 +11,7 @@ class CWeaponScripted : public CBasePlayerWeapon
 {
 public:
 	DECLARE_CLASS( CWeaponScripted, CBasePlayerWeapon );
+	DECLARE_DATADESC();
 	CWeaponScripted();
 	virtual void Spawn( void ) override;
 	virtual void Precache( void ) override;
@@ -36,4 +37,11 @@ private:
 	int ComputeIFlags( void ) const;
 
 	weaponinfo_t *m_pInfo;
+
+	// Campos do FGD da entidade generica "weapon_scripted" (ver primext.fgd). Chegam
+	// pelo datamap (DEFINE_KEYFIELD) e tambem sao salvos no savegame - o
+	// m_iszWorldModel precisa voltar no restore para o Precache() o registrar de novo.
+	string_t m_iszScript;			// "script": nome do arquivo em scripts/weapons/, sem .txt
+	string_t m_iszWorldModel;		// "worldmodel": sobrescreve o modelo de chao do script (opcional)
+	int m_iDefaultAmmoOverride;		// "defaultammo": municao inicial; -1 = usa a do script
 };

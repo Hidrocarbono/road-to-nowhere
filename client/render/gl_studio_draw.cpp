@@ -26,10 +26,7 @@ GNU General Public License for more details.
 #include "pm_defs.h"
 #include "stringlib.h"
 
-// RTN F10: modo PERNAS (definida no r_view.cpp) - enquanto ativa, o
-// viewent carrega o corpo do jogador (player.mdl) e o DrawViewModel
-// NAO pode trocar o modelo de volta para o viewmodel da arma.
-extern bool g_bRTNLegs;
+#include "rtn_body.h"	// RTN: corpo (pernas + tronco) em primeira pessoa - ver DrawBodyModel()
 #include "triangleapi.h"
 #include "entity_types.h"
 #include "gl_shader.h"
@@ -39,6 +36,11 @@ extern bool g_bRTNLegs;
 
 #define LIGHT_INTERP_UPDATE	0.1f
 #define LIGHT_INTERP_FACTOR	(1.0f / LIGHT_INTERP_UPDATE)
+
+// RTN: true enquanto a passada do CORPO esta desenhando. O corpo e uma entidade de indice 0
+// (como o viewmodel), e o bloco de attachments em AddStudioModelToDrawList copiaria os
+// attachments DELE por cima dos da arma (os que o evento de tiro usa para fumaca/tracante).
+static bool s_bRTNBodyPass = false;
 
 /*
 =================
@@ -2387,7 +2389,7 @@ void CStudioModelRenderer :: AddStudioModelToDrawList( cl_entity_t *e, bool upda
 		StudioCalcAttachments( m_pModelInstance->m_pbones );
 		StudioClientEvents( );
 
-		if( RI->currententity->index > 0 )
+		if( !s_bRTNBodyPass && RI->currententity->index > 0 )
 		{
 			// because RI->currententity may be not equal his index e.g. for viewmodel
 			cl_entity_t *ent = GET_ENTITY( RI->currententity->index );
@@ -2399,7 +2401,7 @@ void CStudioModelRenderer :: AddStudioModelToDrawList( cl_entity_t *e, bool upda
 		// o m_flViewmodelFov do frame), mas o fire event le via GetViewModel().
 		// Expor explicitamente para o viewent garante que o tracante use o attachment
 		// compensado (ponta visual do cano) em vez do fallback fixo.
-		if( m_iDrawModelType == DRAWSTUDIO_VIEWMODEL || RI->currententity->index == 0 )
+		if( !s_bRTNBodyPass && ( m_iDrawModelType == DRAWSTUDIO_VIEWMODEL || RI->currententity->index == 0 ))
 		{
 			cl_entity_t *view = gEngfuncs.GetViewModel();
 			if( view && view != RI->currententity )
@@ -2596,6 +2598,43 @@ void CStudioModelRenderer :: RestoreNormalFov( matrix4x4 &projMatrix, matrix4x4 
 
 /*
 =================
+DrawBodyModel
+
+RTN: desenha o corpo do jogador (pernas + tronco, models/player_legs.mdl) como uma SEGUNDA
+entidade, antes da arma. Estado/animacao/posicao vem de rtn_body.cpp.
+
+Diferencas deliberadas em relacao ao viewmodel:
+  - m_iDrawModelType NORMAL: FOV do mundo e profundidade normal (sem depth hack), entao as
+    pernas tem a mesma perspectiva do chao e sao ocluidas por paredes/caixas de verdade;
+  - o blend entre sequencias fica ligado (o caminho do viewmodel o zera);
+  - sem o tratamento especial de GET_VIEWMODEL() (mao esquerda, attachments, eventos).
+So roda aqui dentro de DrawViewModel, portanto so na passada normal do jogador local, em
+primeira pessoa e vivo - nunca em espelho, portal, sombra ou cubemap.
+=================
+*/
+void CStudioModelRenderer :: DrawBodyModel( void )
+{
+	cl_entity_t *body = RTN_Body_GetEntity();
+
+	if( !body )
+		return;
+
+	s_bRTNBodyPass = true;
+	m_iDrawModelType = DRAWSTUDIO_NORMAL;
+	RI->frame.solid_meshes.RemoveAll();
+	RI->frame.trans_list.RemoveAll();
+
+	AddStudioModelToDrawList( body );
+
+	RenderSolidStudioList();
+	R_RenderTransList();
+
+	s_bRTNBodyPass = false;
+	GL_BindShader( NULL );
+}
+
+/*
+=================
 DrawViewModel
 
 =================
@@ -2617,6 +2656,9 @@ void CStudioModelRenderer :: DrawViewModel( void )
 	// tell the particle system about visibility
 	view->curstate.messagenum = r_currentMessageNum;
 
+	// RTN: corpo (pernas + tronco) ANTES da arma - a arma, com o depth hack, fica por cima
+	DrawBodyModel();
+
 	// hack the depth range to prevent view model from poking into walls
 	GL_DepthRange( gldepthmin, gldepthmin + 0.3f * ( gldepthmax - gldepthmin ));
 
@@ -2634,11 +2676,7 @@ void CStudioModelRenderer :: DrawViewModel( void )
 	bool bCustom = ComputeCustomFov( projMatrix, worldViewProjMatrix );
 
 	// prevent ugly blinking when weapon is changed
-	// RTN F10: no modo PERNAS (olhando para baixo) o viewent carrega o
-	// player.mdl (corpo) - NUNCA trocar de volta para o viewmodel da arma,
-	// senao o corpo nem chega a ser desenhado (bug das pernas invisiveis)
-	if( !g_bRTNLegs )
-		view->model = MODEL_HANDLE( gHUD.m_iViewModelIndex );
+	view->model = MODEL_HANDLE( gHUD.m_iViewModelIndex );
 
 	// copy viewhands modelindx into weaponmodel
 	if( view->index > 0 )

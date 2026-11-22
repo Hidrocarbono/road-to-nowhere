@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.       
 */
 
+#include "rtn_body.h"
 #include "hud.h"
 #include "utils.h"
 #include "gl_local.h"
@@ -366,6 +367,9 @@ void CStudioModelRenderer :: DestroyAllModelInstances( void )
 	// NOTE: should destroy in reverse-order because it's linked list not array!
 	for( int i = m_ModelInstances.Count(); --i >= 0; )
 		DestroyInstance( i );
+
+	// RTN: a entidade do corpo guarda um handle de instance - todos acabaram de ser destruidos
+	RTN_Body_OnNewMap();
 }
 
 void CStudioModelRenderer :: UpdateInstanceMaterials( void )

@@ -70,16 +70,49 @@ void WeaponScript_RegisterEntities( void )
 	ALERT( at_console, "WeaponScript: %d arma(s) de script registradas como entidade\n", registered );
 }
 
+BEGIN_DATADESC( CWeaponScripted )
+	DEFINE_KEYFIELD( m_iszScript, FIELD_STRING, "script" ),
+	DEFINE_KEYFIELD( m_iszWorldModel, FIELD_STRING, "worldmodel" ),
+	DEFINE_KEYFIELD( m_iDefaultAmmoOverride, FIELD_INTEGER, "defaultammo" ),
+END_DATADESC()
+
 CWeaponScripted::CWeaponScripted()
 {
 	auto layerImpl = std::make_unique<CServerWeaponLayerImpl>( this );
 	auto contextImpl = std::make_unique<CMP5WeaponContext>( std::move( layerImpl ) );
 	m_pWeaponContext = std::move( contextImpl );
 	m_pInfo = NULL;
+	m_iszScript = iStringNull;
+	m_iszWorldModel = iStringNull;
+	m_iDefaultAmmoOverride = -1;	// -1 = "nao informado": vale o defaultammo do script
 }
 
 void CWeaponScripted::Spawn( void )
 {
+	// Entidade generica "weapon_scripted" com o campo "script" do FGD: a arma passa a
+	// ser aquela do script. Troca o classname (mesmo truque do CCrowbar::Spawn, "hack to
+	// allow for old names") porque todo o resto - inventario, resolucao do script abaixo,
+	// WeaponList, HasNamedPlayerItem - identifica a arma por pev->classname. Aceita
+	// "weapon_m4" e "weapon_m4.txt".
+	if( !FStringNull( m_iszScript ))
+	{
+		char szName[64];
+		Q_strncpy( szName, STRING( m_iszScript ), sizeof( szName ));
+		size_t len = strlen( szName );
+		if( len > 4 && !stricmp( szName + len - 4, ".txt" ))
+			szName[len - 4] = '\0';
+
+		if( WeaponScript_FindWeaponByName( szName ))
+		{
+			pev->classname = ALLOC_STRING( szName );
+		}
+		else
+		{
+			ALERT( at_error, "weapon_scripted: script [%s] nao existe em scripts/weapons/ - arma generica (origem %.0f %.0f %.0f)\n",
+				szName, pev->origin.x, pev->origin.y, pev->origin.z );
+		}
+	}
+
 	// generic by classname: whatever entity name spawned us ("weapon_parafal",
 	// "weapon_scripted", or any future LINK_ENTITY_TO_CLASS added above) is looked
 	// up directly against scripts/weapons/<classname>.txt. Previously this was
@@ -101,6 +134,12 @@ void CWeaponScripted::Spawn( void )
 	// SwitchWeapon() refuse it without a word: picked up, never equipped.
 	if( m_pInfo && m_pInfo->defaultammo > 0 )
 		m_pWeaponContext->m_iDefaultAmmo = m_pInfo->defaultammo;
+
+	// "defaultammo" do FGD (>= 0) tem prioridade sobre o do script - e a unica coisa
+	// por-entidade em termos de municao: o TIPO vem do script (primary_ammo) e e
+	// compartilhado por todas as copias da arma (ItemInfoArray), nao pode variar aqui.
+	if( m_iDefaultAmmoOverride >= 0 )
+		m_pWeaponContext->m_iDefaultAmmo = m_iDefaultAmmoOverride;
 
 	// Arma corpo a corpo (action "swing"): sem municao e sem pente, igual ao
 	// crowbar classico (CCrowbarWeaponContext: m_iClip = -1). O ctor do
@@ -137,7 +176,11 @@ void CWeaponScripted::Spawn( void )
 	// foi precacheado (porque o arquivo nao existe) derruba o servidor. Com o
 	// registro dinamico de entidades, scripts sem modelo passaram a ser
 	// spawnaveis, entao este caminho agora e alcancavel de verdade.
-	if( m_pInfo && m_pInfo->worldmodel[0] && fs::FileExists( m_pInfo->worldmodel ))
+	// "worldmodel" do FGD (opcional) sobrescreve o modelo de chao do script. So vale se o
+	// arquivo existe - e foi precacheado em Precache() sob a mesma condicao.
+	if( !FStringNull( m_iszWorldModel ) && fs::FileExists( STRING( m_iszWorldModel )))
+		SET_MODEL( ENT( pev ), STRING( m_iszWorldModel ));
+	else if( m_pInfo && m_pInfo->worldmodel[0] && fs::FileExists( m_pInfo->worldmodel ))
 		SET_MODEL( ENT( pev ), m_pInfo->worldmodel );
 	else
 		SET_MODEL( ENT( pev ), "models/w_9mmAR.mdl" );
@@ -183,6 +226,8 @@ void CWeaponScripted::Precache( void )
 		const bool haveView = PrecacheScriptModel( m_pInfo->viewmodel );
 		const bool havePlayer = PrecacheScriptModel( m_pInfo->playermodel );
 		PrecacheScriptModel( m_pInfo->worldmodel );
+		if( !FStringNull( m_iszWorldModel ))
+			PrecacheScriptModel( STRING( m_iszWorldModel ));
 
 		// O contexto so pode usar o que foi de fato precacheado - ver
 		// CMP5WeaponContext::m_szViewModel/m_szPlayerModel.

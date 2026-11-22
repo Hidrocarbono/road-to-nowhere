@@ -24,6 +24,7 @@ list(APPEND CLDLL_SOURCES
 	"hud_status.cpp"
 	"hud_weaponbox.cpp"
 	"rtn_crosshair_state.cpp"
+	"rtn_body.cpp"
 	"hud_interact.cpp"
 	"hud_textwindow.cpp"
 	"hud_radio.cpp"

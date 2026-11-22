@@ -634,6 +634,9 @@ public:
 	// Draw view model (at end the frame)
 	void	DrawViewModel( void );
 
+	// RTN: corpo do jogador (pernas + tronco) - segunda entidade, desenhada antes da arma
+	void	DrawBodyModel( void );
+
 	void	RenderSolidStudioList( void );
 
 	void	RenderShadowStudioList( void );

@@ -115,6 +115,26 @@ aliados. **Nunca reintroduza autoaim dentro de `PrimaryAttack()`/
 `WeaponIdle()`, que é puramente visual/feedback, não decide o que a bala
 acerta.
 
+## Colocando a arma no mapa (Hammer) — `weapon_scripted`
+
+Use a entidade **`weapon_scripted`** ("RTN: Arma por script") do `primext.fgd`:
+
+| Propriedade | Tipo | O que faz |
+|---|---|---|
+| `script` | texto | nome do arquivo em `scripts/weapons/` sem `.txt` (`weapon_m4`). Aceita com `.txt` |
+| `worldmodel` | `studio` (seletor) | opcional: modelo do chão. Vazio = o `worldmodel` do script |
+| `defaultammo` | inteiro | opcional: munição inicial. `-1` = o `defaultammo` do script |
+
+- Ao nascer, a entidade **troca o próprio classname** pelo do script (mesmo truque do
+  `CCrowbar::Spawn`), então inventário, HUD e save/load a tratam como a arma de verdade.
+  Script inexistente = aviso `weapon_scripted: script [...] nao existe` no log e a arma
+  genérica (modelo `w_9mmAR`) — confira o nome.
+- O **tipo de munição não é escolhido aqui**: vem do `primary_ammo` do script e é
+  compartilhado por todas as cópias da arma. Só a quantidade inicial varia por entidade.
+- `worldmodel` só vale se o `.mdl` existe no disco (o mesmo critério do precache).
+- Digitar o classname da arma direto (`weapon_m4`) continua funcionando; `weapon_scripted`
+  só adiciona os campos acima.
+
 ## Armas corpo a corpo (`"action" "swing"`) — faca, soco
 
 `PrimaryAttack { "action" "swing" }` transforma a arma em corpo a corpo
